@@ -103,6 +103,14 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
         </div>
       )
     }
+    
+    if (card.type === "wildSwap") {
+      return (
+        <div className="text-2xl font-bold">
+          <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">SWAP</div>
+        </div>
+      )
+    }
 
     return null
   }

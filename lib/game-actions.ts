@@ -1,7 +1,7 @@
 "use server"
 
 import { v4 as uuidv4 } from "uuid"
-import type { GameState, Player, Card, CardColor } from "./types"
+import type { GameState, Player, Card, CardColor, CardType } from "./types"
 import { pusherServer } from "./pusher-server"
 import * as fs from "fs"
 import * as path from "path"
@@ -180,16 +180,30 @@ export async function startGame(roomId: string): Promise<void> {
   // Add the isValidPlay function
   gameState.isValidPlay = function (card: Card) {
     const topCard = this.discardPile[this.discardPile.length - 1]
+    const currentPlayer = this.players.find(p => p.id === this.currentPlayer)
+    
+    if (!currentPlayer) return false
 
-    // Wild cards can always be played
-    if (card.type === "wild" || card.type === "wild4") {
+    // Wild cards can be played with some restrictions
+    if (card.type === "wild" || card.type === "wildSwap") {
       return true
     }
+    
+    // Wild Draw Four can only be played if you have no cards matching the current color
+    if (card.type === "wild4") {
+      // Check if player has any cards matching the current color
+      const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
+      return !hasMatchingColor
+    }
+    
+    // Draw Two can only be played on a matching color or another Draw Two
+    if (card.type === "draw2") {
+      return card.color === this.currentColor || topCard.type === "draw2"
+    }
 
-    // Cards must match color or value/type
+    // Cards must match color or value/type for number cards
     return (
       card.color === this.currentColor ||
-      card.type === topCard.type ||
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
     )
   }
@@ -244,12 +258,18 @@ export async function playCard(roomId: string, playerId: string, cardId: string)
   gameState.discardPile.push(card)
 
   // Update the current color if it's a wild card
-  if (card.type === "wild" || card.type === "wild4") {
+  if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
     // For simplicity, we'll just pick the first non-wild color
     const colors: ("red" | "blue" | "green" | "yellow")[] = ["red", "blue", "green", "yellow"]
     gameState.currentColor = colors[Math.floor(Math.random() * colors.length)]
   } else {
     gameState.currentColor = card.color
+  }
+
+  // Check if the player has exactly one card left (need to say UNO)
+  if (gameState.players[playerIndex].cards.length === 1) {
+    // Reset the saidUno flag - they need to say UNO again
+    gameState.players[playerIndex].saidUno = false
   }
 
   // Check if the player has won
@@ -329,9 +349,51 @@ export async function sayUno(roomId: string, playerId: string): Promise<void> {
   if (playerIndex === -1) {
     throw new Error("Player not found")
   }
+  
+  // Mark that the player has said UNO
+  gameState.players[playerIndex].saidUno = true
 
-  // This would be more complex in a real game, adding penalties, etc.
-  // For this example, we're just saying UNO without consequences
+  // Update the game state in the database
+  await updateGameState(roomId, gameState)
+
+  // Notify players
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+}
+
+// Call UNO on another player who didn't say UNO
+export async function callUnoOnPlayer(roomId: string, callerId: string, targetPlayerId: string): Promise<void> {
+  // Get the current game state
+  const gameState = await getGameState(roomId)
+
+  if (!gameState) {
+    throw new Error("Room not found")
+  }
+
+  if (gameState.status !== "playing") {
+    throw new Error("Game is not in progress")
+  }
+
+  // Find the target player
+  const targetPlayerIndex = gameState.players.findIndex((p) => p.id === targetPlayerId)
+  if (targetPlayerIndex === -1) {
+    throw new Error("Target player not found")
+  }
+  
+  const targetPlayer = gameState.players[targetPlayerIndex]
+  
+  // Check if the player has only one card and hasn't said UNO
+  if (targetPlayer.cards.length === 1 && !targetPlayer.saidUno) {
+    // Apply the penalty: draw 2 cards
+    for (let i = 0; i < 2; i++) {
+      targetPlayer.cards.push(drawCardFromPile())
+      gameState.drawPileCount--
+    }
+    
+    // Reset the UNO status as they now have more than 1 card
+    targetPlayer.saidUno = false
+  } else {
+    throw new Error("Cannot call UNO on this player")
+  }
 
   // Update the game state in the database
   await updateGameState(roomId, gameState)
@@ -460,6 +522,13 @@ function createDeck(): Card[] {
       color: "black",
     })
   }
+  
+  // Wild Swap Hands card - 1
+  deck.push({
+    id: uuidv4(),
+    type: "wildSwap",
+    color: "black",
+  })
 
   return deck
 }
@@ -476,7 +545,7 @@ function drawCardFromPile(): Card {
   // In a real game, we would draw from the actual pile
   // For this simplified example, we'll just create a new random card
   const colors: CardColor[] = ["red", "blue", "green", "yellow"]
-  const types = ["number", "skip", "reverse", "draw2", "wild", "wild4"]
+  const types = ["number", "skip", "reverse", "draw2", "wild", "wild4", "wildSwap"]
   const type = types[Math.floor(Math.random() * types.length)] as
     | "number"
     | "skip"
@@ -484,8 +553,9 @@ function drawCardFromPile(): Card {
     | "draw2"
     | "wild"
     | "wild4"
+    | "wildSwap"
 
-  if (type === "wild" || type === "wild4") {
+  if (type === "wild" || type === "wild4" || type === "wildSwap") {
     return {
       id: uuidv4(),
       type,
@@ -527,6 +597,13 @@ function applyCardEffects(gameState: GameState, card: Card): void {
     case "reverse":
       // Reverse the direction of play
       gameState.direction *= -1
+      
+      // In a two-player game, Reverse acts like a Skip
+      if (gameState.players.length === 2) {
+        const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+        // Skip the next player's turn
+        gameState.currentPlayer = gameState.players[currentPlayerIndex].id
+      }
       break
 
     case "draw2":
@@ -539,10 +616,19 @@ function applyCardEffects(gameState: GameState, card: Card): void {
         gameState.players[nextPlayer].cards.push(drawCardFromPile())
         gameState.drawPileCount--
       }
+      
+      // Skip the next player's turn
+      gameState.currentPlayer = 
+        gameState.players[
+          getNextPlayerIndex(
+            gameState,
+            nextPlayer
+          )
+        ].id
       break
 
     case "wild4":
-      // Next player draws 4 cards
+      // Next player draws 4 cards and loses their turn
       const nextPlayerIdx = getNextPlayerIndex(
         gameState,
         gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
@@ -550,6 +636,35 @@ function applyCardEffects(gameState: GameState, card: Card): void {
       for (let i = 0; i < 4; i++) {
         gameState.players[nextPlayerIdx].cards.push(drawCardFromPile())
         gameState.drawPileCount--
+      }
+      
+      // Skip the next player's turn
+      gameState.currentPlayer = 
+        gameState.players[
+          getNextPlayerIndex(
+            gameState,
+            nextPlayerIdx
+          )
+        ].id
+      break
+      
+    case "wildSwap":
+      // Randomly choose another player to swap hands with
+      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+      
+      // Get all other player indices
+      const otherPlayerIndices = gameState.players
+        .map((_, index) => index)
+        .filter(index => index !== currentPlayerIndex)
+      
+      // If there are other players, swap hands with a random one
+      if (otherPlayerIndices.length > 0) {
+        const randomPlayerIndex = otherPlayerIndices[Math.floor(Math.random() * otherPlayerIndices.length)]
+        
+        // Swap the cards
+        const tempCards = [...gameState.players[currentPlayerIndex].cards]
+        gameState.players[currentPlayerIndex].cards = [...gameState.players[randomPlayerIndex].cards]
+        gameState.players[randomPlayerIndex].cards = tempCards
       }
       break
   }
@@ -587,12 +702,30 @@ try {
       if (gameState.status === 'playing') {
         gameState.isValidPlay = function (card: Card) {
           const topCard = this.discardPile[this.discardPile.length - 1];
-          if (card.type === "wild" || card.type === "wild4") {
+          const currentPlayer = this.players.find(p => p.id === this.currentPlayer);
+          
+          if (!currentPlayer) return false;
+          
+          // Wild cards can be played with some restrictions
+          if (card.type === "wild" || card.type === "wildSwap") {
             return true;
           }
+          
+          // Wild Draw Four can only be played if you have no cards matching the current color
+          if (card.type === "wild4") {
+            // Check if player has any cards matching the current color
+            const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor);
+            return !hasMatchingColor;
+          }
+          
+          // Draw Two can only be played on a matching color or another Draw Two
+          if (card.type === "draw2") {
+            return card.color === this.currentColor || topCard.type === "draw2";
+          }
+
+          // Cards must match color or value/type for number cards
           return (
-            card.color === this.currentColor ||
-            card.type === topCard.type ||
+            card.color === this.currentColor || 
             (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
           );
         };

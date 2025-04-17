@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useReducer, useState, type ReactNode } from "react"
 import pusherClient from "@/lib/pusher-client"
 import type { GameState, GameAction } from "@/lib/types"
-import { playCard, drawCard, sayUno, getRoom } from "@/lib/game-actions"
+import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer } from "@/lib/game-actions"
 import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
 
 type GameContextType = {
@@ -11,6 +11,7 @@ type GameContextType = {
   playCard: (cardId: string) => Promise<void>
   drawCard: () => Promise<void>
   sayUno: () => Promise<void>
+  callUnoOnPlayer: (targetPlayerId: string) => Promise<void>
   currentPlayerId: string | null
   refreshGameState: () => Promise<void>
 }
@@ -140,6 +141,18 @@ export function GameProvider({
     await sayUno(roomId, currentPlayerId)
   }
 
+  const handleCallUnoOnPlayer = async (targetPlayerId: string) => {
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot call UNO: No player ID")
+      return
+    }
+    try {
+      await callUnoOnPlayer(roomId, currentPlayerId, targetPlayerId)
+    } catch (error) {
+      console.error("[GameProvider] Error calling UNO:", error)
+    }
+  }
+
   return (
     <GameContext.Provider
       value={{
@@ -147,6 +160,7 @@ export function GameProvider({
         playCard: handlePlayCard,
         drawCard: handleDrawCard,
         sayUno: handleSayUno,
+        callUnoOnPlayer: handleCallUnoOnPlayer,
         currentPlayerId,
         refreshGameState
       }}

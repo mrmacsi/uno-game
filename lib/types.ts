@@ -1,5 +1,5 @@
 export type CardColor = "red" | "blue" | "green" | "yellow" | "black" | "wild"
-export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4"
+export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4" | "wildSwap"
 
 export interface Card {
   id: string
@@ -13,6 +13,7 @@ export interface Player {
   name: string
   cards: Card[]
   isHost: boolean
+  saidUno?: boolean
 }
 
 export interface GameState {
