@@ -43,6 +43,7 @@ export interface GameState {
     type: "draw2" | "wild4"
   }
   matchHistory?: MatchResult[]
+  log?: string[]
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

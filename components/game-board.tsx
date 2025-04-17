@@ -8,6 +8,7 @@ import PlayerInfo from "./player-info"
 import GameControls from "./game-controls"
 import GameOver from "./game-over"
 import ColorSelector from "./color-selector"
+import GameLog from "./game-log"
 import { Button } from "@/components/ui/button"
 import { Home } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -26,6 +27,7 @@ export default function GameBoard() {
 
   return (
     <div className="flex flex-col h-screen bg-green-800 p-4 relative">
+      <GameLog />
       <Button 
         variant="ghost" 
         size="icon" 

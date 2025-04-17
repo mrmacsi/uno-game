@@ -272,7 +272,16 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
 
   // Add the card to the discard pile
   gameState.discardPile.push(card)
-  
+
+  // Log the action
+  if (!gameState.log) gameState.log = []
+  let actionMsg = `${gameState.players[playerIndex].name} played ${card.type === "number" ? card.value : card.type.toUpperCase()} ${card.color.toUpperCase()}`
+  if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
+    if (selectedColor) actionMsg += ` (changed color to ${selectedColor.toUpperCase()})`
+  }
+  gameState.log.push(actionMsg)
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+
   // Clear any draw card effect state
   gameState.drawCardEffect = undefined
 
@@ -293,21 +302,22 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   if (gameState.players[playerIndex].cards.length === 1) {
     // Reset the saidUno flag - they need to say UNO again
     gameState.players[playerIndex].saidUno = false
+    gameState.log.push(`${gameState.players[playerIndex].name} has only ONE card!`)
+    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
   }
 
   // Check if the player has won
   if (gameState.players[playerIndex].cards.length === 0) {
     gameState.status = "finished"
     gameState.winner = playerId
-    
+    gameState.log.push(`${gameState.players[playerIndex].name} has won the game!`)
+    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
     // Calculate points for each player
     calculatePoints(gameState)
-    
     // Add the result to match history
     if (!gameState.matchHistory) {
       gameState.matchHistory = []
     }
-    
     const matchResult: MatchResult = {
       winner: playerId,
       date: new Date().toISOString(),
@@ -317,12 +327,10 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
         points: player.points || 0
       }))
     }
-    
     gameState.matchHistory.push(matchResult)
   } else {
     // Apply card effects
     applyCardEffects(gameState, card)
-
     // Move to the next player only if the card is not a skip card or reverse card
     if (card.type !== "skip" && card.type !== "reverse") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
@@ -368,7 +376,13 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   const newCard = drawCardFromPile()
   gameState.players[playerIndex].cards.push(newCard)
   gameState.drawPileCount--
-  
+
+  // Log the action
+  if (!gameState.log) gameState.log = []
+  let drawMsg = `${gameState.players[playerIndex].name} drew a card`
+  gameState.log.push(drawMsg)
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+
   // If drawing because of a draw card effect, set flag to allow playing draw cards
   if (isDrawEffect) {
     gameState.drawCardEffect = {
@@ -412,6 +426,11 @@ export async function sayUno(roomId: string, playerId: string): Promise<void> {
   // Mark that the player has said UNO
   gameState.players[playerIndex].saidUno = true
 
+  // Log the action
+  if (!gameState.log) gameState.log = []
+  gameState.log.push(`${gameState.players[playerIndex].name} said UNO!`)
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+
   // Update the game state in the database
   await updateGameState(roomId, gameState)
 
@@ -447,9 +466,12 @@ export async function callUnoOnPlayer(roomId: string, callerId: string, targetPl
       targetPlayer.cards.push(drawCardFromPile())
       gameState.drawPileCount--
     }
-    
     // Reset the UNO status as they now have more than 1 card
     targetPlayer.saidUno = false
+    // Log the action
+    if (!gameState.log) gameState.log = []
+    gameState.log.push(`${targetPlayer.name} was caught not saying UNO and drew 2 cards!`)
+    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
   } else {
     throw new Error("Cannot call UNO on this player")
   }
