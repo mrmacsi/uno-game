@@ -18,8 +18,6 @@ const initializeGameState = (gameState: GameState) => {
       )
     }
   }
-      return gameState
-  }
   return gameState
 }
 
