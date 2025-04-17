@@ -78,15 +78,52 @@ export default function RoomPage() {
   }
 
   if (error) {
+    const [rejoinName, setRejoinName] = useState("")
+    const [isRejoining, setIsRejoining] = useState(false)
+    const [rejoinError, setRejoinError] = useState("")
+    const handleRejoin = async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!rejoinName.trim()) return
+      setIsRejoining(true)
+      setRejoinError("")
+      try {
+        const { joinRoom } = await import("@/lib/game-actions")
+        const { storePlayerIdInLocalStorage } = await import("@/lib/client-utils")
+        const playerId = await joinRoom(id as string, rejoinName)
+        storePlayerIdInLocalStorage(playerId)
+        window.location.reload()
+      } catch (err) {
+        setRejoinError(err instanceof Error ? err.message : "Failed to rejoin room. Please try again.")
+        setIsRejoining(false)
+      }
+    }
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-500 to-yellow-500">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
           <h2 className="text-xl font-bold text-red-600 mb-2">Error</h2>
-          <p className="text-gray-700">{error}</p>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <form onSubmit={handleRejoin} className="space-y-2">
+            <input
+              className="w-full border rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-red-400"
+              placeholder="Enter your name to rejoin"
+              value={rejoinName}
+              onChange={e => setRejoinName(e.target.value)}
+              required
+              disabled={isRejoining}
+            />
+            {rejoinError && <div className="text-red-600 text-sm">{rejoinError}</div>}
+            <button
+              type="submit"
+              className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60"
+              disabled={isRejoining}
+            >
+              {isRejoining ? "Rejoining..." : "Rejoin Room"}
+            </button>
+          </form>
           <div className="mt-4">
             <button 
               onClick={() => router.push("/")}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 w-full mt-2"
             >
               Back to Home
             </button>

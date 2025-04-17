@@ -265,7 +265,8 @@ export function GameProvider({
       // After drawing, check if the player can play any card
       // If not, automatically end their turn
       setTimeout(async () => {
-        const refreshedState = await getRoom(roomId)
+        const refreshedStateRaw = await getRoom(roomId)
+        const refreshedState = addIsValidPlayFunction(refreshedStateRaw)
         dispatch({ type: "UPDATE_GAME_STATE", payload: refreshedState })
         
         // If the player doesn't have a playable card after drawing, automatically end turn
