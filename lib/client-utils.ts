@@ -73,6 +73,11 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
       if (card.type === "draw2") {
         return card.color === this.currentColor || topCard.type === "draw2"
       }
+      
+      // Reverse cards can be played on any other reverse card regardless of color
+      if (card.type === "reverse" && topCard.type === "reverse") {
+        return true
+      }
 
       // Cards must match color or value/type for number cards
       return (

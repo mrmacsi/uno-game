@@ -216,8 +216,13 @@ export async function startGame(roomId: string): Promise<void> {
       // Regular color matching rule
       return card.color === this.currentColor
     }
+    
+    // Rule 4: Reverse cards can be played on any other reverse card regardless of color
+    if (card.type === "reverse" && topCard.type === "reverse") {
+      return true
+    }
 
-    // Rule 4: Standard cards must match color or value/type
+    // Rule 5: Standard cards must match color or value/type
     return (
       card.color === this.currentColor ||
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
@@ -847,7 +852,12 @@ try {
             return card.color === this.currentColor;
           }
 
-          // Rule 4: Standard cards must match color or value/type
+          // Rule 4: Reverse cards can be played on any other reverse card regardless of color
+          if (card.type === "reverse" && topCard.type === "reverse") {
+            return true;
+          }
+
+          // Rule 5: Standard cards must match color or value/type
           return (
             card.color === this.currentColor || 
             (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
