@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAllRooms } from "@/lib/game-actions"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const rooms = await getAllRooms()
     

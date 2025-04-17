@@ -52,9 +52,9 @@ export default function JoinRoom() {
       
       // Navigate to the room
       router.push(`/room/${roomId}`)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to join room:", error)
-      setError(error.message || "Failed to join room. Please check the room code and try again.")
+      setError(error instanceof Error ? error.message : "Failed to join room. Please check the room code and try again.")
       setIsJoining(false)
     }
   }

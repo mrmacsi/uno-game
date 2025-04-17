@@ -38,7 +38,7 @@ export default function GameBoard() {
       <div className="grid grid-cols-3 gap-4 mb-16 mt-16">
         {state.players
           .filter((player) => player.id !== state.currentPlayer)
-          .map((player, index) => (
+          .map((player) => (
             <PlayerInfo key={player.id} player={player} isCurrentTurn={player.id === state.currentPlayer} />
           ))}
       </div>

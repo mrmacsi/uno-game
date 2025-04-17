@@ -5,6 +5,7 @@ import pusherClient from "@/lib/pusher-client"
 import type { GameState, GameAction } from "@/lib/types"
 import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer } from "@/lib/game-actions"
 import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
+import { toast } from "@/hooks/use-toast"
 
 type GameContextType = {
   state: GameState
@@ -113,7 +114,7 @@ export function GameProvider({
       channel.unbind_all();
       pusherClient?.unsubscribe(channelName);
     };
-  }, [roomId]);
+  }, [roomId, currentPlayerId]);
 
   const refreshGameState = async (): Promise<void> => {
     try {
@@ -147,6 +148,7 @@ export function GameProvider({
     
     // For non-wild cards, play immediately
     await playCard(roomId, currentPlayerId, cardId)
+    toast({ description: `Played ${card.type === "number" ? card.value : card.type.toUpperCase()} ${card.color.toUpperCase()}` })
   }
 
   const handleDrawCard = async () => {
@@ -155,6 +157,7 @@ export function GameProvider({
       return
     }
     await drawCard(roomId, currentPlayerId)
+    toast({ description: "You drew a card" })
   }
 
   const handleSayUno = async () => {
@@ -163,6 +166,7 @@ export function GameProvider({
       return
     }
     await sayUno(roomId, currentPlayerId)
+    toast({ description: "UNO!" })
   }
 
   const handleCallUnoOnPlayer = async (targetPlayerId: string) => {
@@ -172,6 +176,7 @@ export function GameProvider({
     }
     try {
       await callUnoOnPlayer(roomId, currentPlayerId, targetPlayerId)
+      toast({ description: "Called UNO on player" })
     } catch (error) {
       console.error("[GameProvider] Error calling UNO:", error)
     }
@@ -185,6 +190,7 @@ export function GameProvider({
     
     // First play the card
     await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+    toast({ description: `Changed color to ${color.toUpperCase()}` })
     
     // Reset wild card state
     setIsColorSelectionOpen(false)

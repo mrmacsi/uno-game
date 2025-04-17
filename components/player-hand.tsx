@@ -3,9 +3,11 @@
 import { useGame } from "./game-context"
 import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 export default function PlayerHand() {
   const { state, currentPlayerId, playCard, sayUno } = useGame()
+  const [animatingCard, setAnimatingCard] = useState<string | null>(null)
 
   if (!currentPlayerId) return null
 
@@ -28,7 +30,7 @@ export default function PlayerHand() {
             return (
               <div 
                 key={card.id} 
-                className={`transition-all duration-300 ${isPlayable ? 'hover:translate-y-[-30px]' : ''}`} 
+                className={`transition-all duration-300 ${animatingCard === card.id ? 'animate-play-card' : 'animate-deal-card'} ${isPlayable ? 'hover:translate-y-[-30px]' : ''}`} 
                 style={{ 
                   zIndex: index,
                   animationDelay: animationDelay,
@@ -38,7 +40,15 @@ export default function PlayerHand() {
                 <div className={isPlayable ? 'animate-glow' : ''}>
                   <UnoCard
                     card={card}
-                    onClick={() => isMyTurn && playCard(card.id)}
+                    onClick={() => {
+                      if (isMyTurn && state.isValidPlay(card)) {
+                        setAnimatingCard(card.id)
+                        setTimeout(() => {
+                          playCard(card.id)
+                          setAnimatingCard(null)
+                        }, 500)
+                      }
+                    }}
                     disabled={!isMyTurn || !state.isValidPlay(card)}
                   />
                 </div>

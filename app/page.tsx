@@ -9,36 +9,6 @@ import { PlusCircle, LogIn, ArrowRight } from "lucide-react"
 export default function Home() {
   // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
-  const [resetting, setResetting] = useState(false)
-  const [resetMessage, setResetMessage] = useState("")
-  
-  const resetDefaultRoom = async () => {
-    try {
-      setResetting(true)
-      setResetMessage("")
-      
-      const response = await fetch("/api/reset-room", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ roomId: defaultRoomId })
-      })
-      
-      const data = await response.json()
-      
-      if (response.ok) {
-        setResetMessage("Default room reset successfully!")
-      } else {
-        setResetMessage(`Error: ${data.error || "Failed to reset room"}`)
-      }
-    } catch (error) {
-      setResetMessage("Error: Something went wrong")
-      console.error(error)
-    } finally {
-      setResetting(false)
-    }
-  }
   
   return (
     <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 p-4 sm:p-6 md:p-8">
@@ -84,7 +54,7 @@ export default function Home() {
                     </Button>
                   </Link>
                   <p className="text-xs text-gray-500 text-center">
-                    A public room that's always available for quick play
+                    A public room that&apos;s always available for quick play
                   </p>
                 </div>
               </div>

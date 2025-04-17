@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "./ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "./ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import { X } from "lucide-react"
 
 interface ColorSelectorProps {
