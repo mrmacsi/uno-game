@@ -9,7 +9,7 @@ import GameControls from "./game-controls"
 import GameOver from "./game-over"
 import ColorSelector from "./color-selector"
 import { Button } from "@/components/ui/button"
-import { Home, Menu, MessageCircle, X } from "lucide-react"
+import { Home, MessageCircle, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
