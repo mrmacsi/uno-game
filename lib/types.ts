@@ -27,6 +27,10 @@ export interface GameState {
   currentColor: CardColor
   winner: string | null
   isValidPlay: (card: Card) => boolean
+  drawCardEffect?: {
+    active: boolean
+    type: "draw2" | "wild4"
+  }
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

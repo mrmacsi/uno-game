@@ -1,0 +1,86 @@
+@keyframes dealCard {
+  0% {
+    transform: translateY(-500px) translateX(500px) rotate(180deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes drawCard {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+    opacity: 1;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes playCard {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-100px) scale(1.2);
+  }
+  100% {
+    transform: translateY(0) scale(1) translateX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes glowEffect {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.animate-deal-card {
+  animation: dealCard 0.5s ease-out forwards;
+}
+
+.animate-draw-card {
+  animation: drawCard 0.5s ease-out forwards;
+}
+
+.animate-play-card {
+  animation: playCard 0.5s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glowEffect 2s infinite;
+}
+
+.card-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-20px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+.card-stack {
+  position: relative;
+}
+
+.card-stack > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

@@ -184,29 +184,44 @@ export async function startGame(roomId: string): Promise<void> {
     
     if (!currentPlayer) return false
 
-    // Wild cards can be played with some restrictions
+    // Rule 0: Special case - If player just drew cards from a draw card effect,
+    // they can play a matching draw card
+    if (this.drawCardEffect?.active) {
+      if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
+        return true
+      }
+      if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
+        return true
+      }
+    }
+
+    // Rule 1: Pure Wild cards can always be played
     if (card.type === "wild" || card.type === "wildSwap") {
       return true
     }
     
-    // Wild Draw Four can be played on any card, but with restrictions
+    // Rule 2: Wild Draw Four has special stacking and color matching rules
     if (card.type === "wild4") {
-      // If the top card is a Draw 2, we can play a Wild Draw 4 without color restrictions
+      // Allow stacking: Wild Draw Four can be played on Draw Two
       if (topCard.type === "draw2") {
         return true
       }
-      
-      // Otherwise, follow the standard rule that you can only play it if you don't have matching color
+      // Regular rule: Wild Draw Four can only be played if no matching color
       const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
       return !hasMatchingColor
     }
     
-    // Draw Two can only be played on a matching color or another Draw Two
+    // Rule 3: Draw Two stacking and color matching
     if (card.type === "draw2") {
-      return card.color === this.currentColor || topCard.type === "draw2"
+      // Allow stacking Draw Two on Draw Two
+      if (topCard.type === "draw2") {
+        return true
+      }
+      // Regular color matching rule
+      return card.color === this.currentColor
     }
 
-    // Cards must match color or value/type for number cards
+    // Rule 4: Standard cards must match color or value/type
     return (
       card.color === this.currentColor ||
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
@@ -261,6 +276,9 @@ export async function playCard(roomId: string, playerId: string, cardId: string)
 
   // Add the card to the discard pile
   gameState.discardPile.push(card)
+  
+  // Clear any draw card effect state
+  gameState.drawCardEffect = undefined
 
   // Update the current color if it's a wild card
   if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
@@ -320,14 +338,28 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
     throw new Error("Player not found")
   }
 
+  // Check if drawing due to a card effect
+  const topCard = gameState.discardPile[gameState.discardPile.length - 1]
+  const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
+  
   // Draw a card
   const newCard = drawCardFromPile()
   gameState.players[playerIndex].cards.push(newCard)
   gameState.drawPileCount--
-
-  // Move to the next player
-  const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-  gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+  
+  // If drawing because of a draw card effect, set flag to allow playing draw cards
+  if (isDrawEffect) {
+    gameState.drawCardEffect = {
+      active: true,
+      type: topCard.type as "draw2" | "wild4"
+    }
+  } else {
+    // Normal draw - move to next player
+    const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+    gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+    // Clear any draw effect tracking
+    gameState.drawCardEffect = undefined
+  }
 
   // Update the game state in the database
   await updateGameState(roomId, gameState)
@@ -711,24 +743,44 @@ try {
           
           if (!currentPlayer) return false;
           
-          // Wild cards can be played with some restrictions
+          // Rule 0: Special case - If player just drew cards from a draw card effect,
+          // they can play a matching draw card
+          if (this.drawCardEffect?.active) {
+            if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
+              return true;
+            }
+            if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
+              return true;
+            }
+          }
+          
+          // Rule 1: Pure Wild cards can always be played
           if (card.type === "wild" || card.type === "wildSwap") {
             return true;
           }
           
-          // Wild Draw Four can only be played if you have no cards matching the current color
+          // Rule 2: Wild Draw Four has special stacking and color matching rules
           if (card.type === "wild4") {
-            // Check if player has any cards matching the current color
+            // Allow stacking: Wild Draw Four can be played on Draw Two
+            if (topCard.type === "draw2") {
+              return true;
+            }
+            // Regular rule: Wild Draw Four can only be played if no matching color
             const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor);
             return !hasMatchingColor;
           }
           
-          // Draw Two can only be played on a matching color or another Draw Two
+          // Rule 3: Draw Two stacking and color matching
           if (card.type === "draw2") {
-            return card.color === this.currentColor || topCard.type === "draw2";
+            // Allow stacking Draw Two on Draw Two
+            if (topCard.type === "draw2") {
+              return true;
+            }
+            // Regular color matching rule
+            return card.color === this.currentColor;
           }
 
-          // Cards must match color or value/type for number cards
+          // Rule 4: Standard cards must match color or value/type
           return (
             card.color === this.currentColor || 
             (card.type === "number" && topCard.type === "number" && card.value === topCard.value)

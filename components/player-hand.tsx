@@ -18,24 +18,42 @@ export default function PlayerHand() {
 
   return (
     <div className="relative">
-      <h2 className="text-white text-lg mb-2">Your Hand</h2>
-      <div className="flex items-center justify-center overflow-x-auto pb-4">
-        <div className="flex space-x-[-40px]">
-          {currentPlayer.cards.map((card, index) => (
-            <div key={card.id} className="transition-transform hover:translate-y-[-20px]" style={{ zIndex: index }}>
-              <UnoCard
-                card={card}
-                onClick={() => isMyTurn && playCard(card.id)}
-                disabled={!isMyTurn || !state.isValidPlay(card)}
-              />
-            </div>
-          ))}
+      <h2 className="text-white text-xl font-bold mb-4 text-shadow">Your Hand</h2>
+      <div className="flex items-center justify-center overflow-x-auto pb-8">
+        <div className="flex space-x-[-30px] px-4">
+          {currentPlayer.cards.map((card, index) => {
+            const isPlayable = isMyTurn && state.isValidPlay(card);
+            const animationDelay = `${index * 0.05}s`;
+            
+            return (
+              <div 
+                key={card.id} 
+                className={`transition-all duration-300 ${isPlayable ? 'hover:translate-y-[-30px]' : ''}`} 
+                style={{ 
+                  zIndex: index,
+                  animationDelay: animationDelay,
+                  transformOrigin: 'bottom center'
+                }}
+              >
+                <div className={isPlayable ? 'animate-glow' : ''}>
+                  <UnoCard
+                    card={card}
+                    onClick={() => isMyTurn && playCard(card.id)}
+                    disabled={!isMyTurn || !state.isValidPlay(card)}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {canSayUno && (
-        <div className="absolute bottom-4 right-4">
-          <Button onClick={sayUno} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+        <div className="absolute bottom-8 right-8">
+          <Button 
+            onClick={sayUno} 
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 rounded-full shadow-lg animate-pulse"
+          >
             UNO!
           </Button>
         </div>

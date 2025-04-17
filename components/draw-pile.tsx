@@ -6,7 +6,6 @@ interface DrawPileProps {
 }
 
 export default function DrawPile({ count }: DrawPileProps) {
-  // Create a dummy card for the draw pile
   const dummyCard: Card = {
     id: "draw-pile",
     type: "number",
@@ -14,11 +13,29 @@ export default function DrawPile({ count }: DrawPileProps) {
     value: 0,
   }
 
+  const cardStack = Array(Math.min(3, count)).fill(null);
+  
   return (
     <div className="relative">
-      <UnoCard card={dummyCard} faceDown={true} disabled={true} />
+      <div className="card-stack">
+        {cardStack.map((_, index) => (
+          <div 
+            key={`stack-${index}`} 
+            className="absolute" 
+            style={{
+              transform: `translateY(${index * -2}px) translateX(${index * -2}px)`,
+              zIndex: 10 - index
+            }}
+          >
+            <UnoCard card={dummyCard} faceDown={true} disabled={true} />
+          </div>
+        ))}
+      </div>
+      
       <div className="absolute -bottom-4 left-0 right-0 text-center">
-        <span className="text-white text-xs bg-black/50 px-2 py-1 rounded-full">Draw Pile ({count})</span>
+        <span className="text-white text-sm font-bold bg-black/70 px-3 py-1 rounded-full shadow-lg">
+          {count}
+        </span>
       </div>
     </div>
   )

@@ -11,21 +11,21 @@ interface UnoCardProps {
 
 export default function UnoCard({ card, onClick, disabled = false, faceDown = false }: UnoCardProps) {
   const getCardColor = () => {
-    if (faceDown) return "bg-blue-800"
+    if (faceDown) return "bg-gradient-to-br from-blue-900 to-blue-700"
 
     switch (card.color) {
       case "red":
-        return "bg-red-600"
+        return "bg-gradient-to-br from-red-700 to-red-500"
       case "blue":
-        return "bg-blue-600"
+        return "bg-gradient-to-br from-blue-700 to-blue-500"
       case "green":
-        return "bg-green-600"
+        return "bg-gradient-to-br from-green-700 to-green-500"
       case "yellow":
-        return "bg-yellow-500"
+        return "bg-gradient-to-br from-yellow-600 to-yellow-400"
       case "black":
-        return "bg-black"
+        return "bg-gradient-to-br from-gray-900 to-gray-700"
       default:
-        return "bg-gray-800"
+        return "bg-gradient-to-br from-gray-800 to-gray-600"
     }
   }
   
@@ -117,12 +117,15 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
 
   return (
     <div
-      className={`w-24 h-36 rounded-lg shadow-lg flex items-center justify-center ${getCardColor()} ${
-        !disabled && !faceDown ? "cursor-pointer hover:shadow-xl transform hover:scale-105" : "opacity-70"
-      } transition-all duration-200`}
+      className={`w-24 h-36 rounded-xl shadow-xl flex items-center justify-center ${getCardColor()} ${
+        !disabled && !faceDown ? "cursor-pointer card-hover-effect" : "opacity-90"
+      } card-transition animate-draw-card relative overflow-hidden`}
       onClick={!disabled && !faceDown ? onClick : undefined}
     >
-      <div className="bg-white w-20 h-32 rounded-lg flex items-center justify-center">{getCardContent()}</div>
+      <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-gradient-to-br from-white via-transparent to-transparent"></div>
+      <div className="bg-white w-20 h-32 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner relative z-10">
+        {getCardContent()}
+      </div>
     </div>
   )
 }
