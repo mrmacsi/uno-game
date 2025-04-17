@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { joinRoom } from "@/lib/game-actions"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
+import { generateRandomName } from "@/lib/name-generator"
 
 export default function JoinRoom() {
   const router = useRouter()
@@ -25,7 +26,14 @@ export default function JoinRoom() {
     if (roomIdParam) {
       setRoomId(roomIdParam)
     }
+    
+    // Generate a random name for the player
+    setPlayerName(generateRandomName())
   }, [searchParams])
+  
+  const generateNewRandomName = () => {
+    setPlayerName(generateRandomName())
+  }
 
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,7 +73,18 @@ export default function JoinRoom() {
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Your Name</Label>
+                <Label htmlFor="name" className="flex justify-between items-center">
+                  <span>Your Name</span>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs" 
+                    onClick={generateNewRandomName}
+                  >
+                    Random Name
+                  </Button>
+                </Label>
                 <Input
                   id="name"
                   placeholder="Enter your name"

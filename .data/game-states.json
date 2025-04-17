@@ -190,118 +190,112 @@
     "status": "playing",
     "players": [
       {
-        "id": "5d92aa58-1d8b-4c0c-a118-a9677eeac4f0",
-        "name": "564564564",
+        "id": "a4e46fe6-d4dc-430c-ba1c-5d62135e0ca7",
+        "name": "WildSloth",
         "cards": [
           {
-            "id": "54c0a1db-010c-4f61-8a3a-c1c617d7b764",
+            "id": "52e465ab-cd8e-450e-ba5d-29df7b98cd02",
+            "type": "draw2",
+            "color": "green"
+          },
+          {
+            "id": "1652c7a4-559f-47e6-9894-2a784e95b07d",
+            "type": "wild",
+            "color": "black"
+          },
+          {
+            "id": "aa31144e-002b-4854-8df3-2d3219f720a5",
+            "type": "number",
+            "color": "red",
+            "value": 2
+          },
+          {
+            "id": "1f1681bc-03c2-4bbd-8c2b-53f00c919ee6",
+            "type": "number",
+            "color": "red",
+            "value": 5
+          },
+          {
+            "id": "da342908-a146-4116-87e7-990e7382560b",
             "type": "number",
             "color": "yellow",
             "value": 2
           },
           {
-            "id": "c2c70b3b-3a1d-437b-92b5-1d1753b02419",
+            "id": "35211e0c-24d7-4492-b1c4-7575e3fde107",
+            "type": "number",
+            "color": "yellow",
+            "value": 8
+          },
+          {
+            "id": "73459885-22da-4922-ad61-00f1f6eb464a",
             "type": "number",
             "color": "red",
-            "value": 7
-          },
-          {
-            "id": "408d1dd1-c8ef-4baa-a20c-d19e9249b85a",
-            "type": "number",
-            "color": "yellow",
-            "value": 4
-          },
-          {
-            "id": "80bcc738-e619-4353-81c9-56a460eccc12",
-            "type": "draw2",
-            "color": "green"
-          },
-          {
-            "id": "a59857fc-c07b-4d5d-be80-5842ec39fa6e",
-            "type": "number",
-            "color": "yellow",
-            "value": 9
-          },
-          {
-            "id": "4c18f249-7100-41f7-86f1-c50040d794b0",
-            "type": "number",
-            "color": "yellow",
             "value": 9
           }
         ],
         "isHost": true
       },
       {
-        "id": "acb70455-d8dc-4838-a19a-e724dd635d9f",
-        "name": "4556465",
+        "id": "81928ccb-2a48-4fa7-aa36-92ece17c8b22",
+        "name": "ShinyDragon",
         "cards": [
           {
-            "id": "b8902226-a3b8-4956-b76a-1ffe85a7542f",
-            "type": "number",
-            "color": "red",
-            "value": 9
+            "id": "c067f3b3-1cc4-45c4-af35-30c486b6268c",
+            "type": "skip",
+            "color": "yellow"
           },
           {
-            "id": "6c3f63b4-76c4-43d1-bec1-49e9bebdaefc",
+            "id": "a50def04-25e8-4aa6-9ab7-11f0bfe33fc7",
             "type": "number",
             "color": "red",
-            "value": 7
+            "value": 2
           },
           {
-            "id": "b6e8dd84-8db2-4595-bff1-fcd29049572b",
+            "id": "b61050dd-31d8-4742-9128-7b60137c4cb0",
             "type": "number",
             "color": "red",
-            "value": 9
+            "value": 8
           },
           {
-            "id": "831a2237-5431-4947-b955-570200edfa6d",
+            "id": "ba9d0d95-02d8-46be-a090-6924288a500e",
             "type": "number",
             "color": "green",
-            "value": 7
+            "value": 3
           },
           {
-            "id": "747a7a69-242b-4f77-b391-a34c0e315538",
-            "type": "draw2",
-            "color": "blue"
+            "id": "ea81b640-c2f3-4579-ac70-4336b3b6d78c",
+            "type": "number",
+            "color": "green",
+            "value": 8
           },
           {
-            "id": "e748463e-649d-49db-9908-334e62cd1f9d",
-            "type": "draw2",
-            "color": "green"
+            "id": "e3ecdd2b-e25d-4afe-acbe-3e39098f1b5f",
+            "type": "wild",
+            "color": "black"
           },
           {
-            "id": "1511bd1f-da26-486b-ad73-5a881cac1cba",
+            "id": "2208b99d-77a3-43b3-8616-c4d3338792a0",
             "type": "number",
             "color": "yellow",
             "value": 7
-          },
-          {
-            "id": "9dfecdc9-3f64-4495-9d65-b3c27e763e25",
-            "type": "draw2",
-            "color": "green"
           }
         ],
         "isHost": false
       }
     ],
-    "currentPlayer": "5d92aa58-1d8b-4c0c-a118-a9677eeac4f0",
+    "currentPlayer": "a4e46fe6-d4dc-430c-ba1c-5d62135e0ca7",
     "direction": 1,
-    "drawPileCount": 92,
+    "drawPileCount": 93,
     "discardPile": [
       {
-        "id": "acc80250-1ef3-4c17-89ae-9f1f5bd3e904",
+        "id": "d0815880-f5be-482f-801c-731febdb51c7",
         "type": "number",
         "color": "blue",
-        "value": 7
-      },
-      {
-        "id": "eace19bf-af45-4279-aeab-60594a990889",
-        "type": "number",
-        "color": "yellow",
         "value": 4
       }
     ],
-    "currentColor": "yellow",
+    "currentColor": "blue",
     "winner": null
   }
 }

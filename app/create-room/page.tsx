@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,11 +11,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { createRoom } from "@/lib/game-actions"
 import { Home } from "lucide-react"
 import { storePlayerIdInLocalStorage, generateClientUUID } from "@/lib/client-utils"
+import { generateRandomName } from "@/lib/name-generator"
 
 export default function CreateRoom() {
   const router = useRouter()
   const [playerName, setPlayerName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  
+  useEffect(() => {
+    // Generate a random name for the player on component mount
+    setPlayerName(generateRandomName())
+  }, [])
+  
+  const generateNewRandomName = () => {
+    setPlayerName(generateRandomName())
+  }
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +70,18 @@ export default function CreateRoom() {
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Your Name</Label>
+                <Label htmlFor="name" className="flex justify-between items-center">
+                  <span>Your Name</span>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs" 
+                    onClick={generateNewRandomName}
+                  >
+                    Random Name
+                  </Button>
+                </Label>
                 <Input
                   id="name"
                   placeholder="Enter your name"
