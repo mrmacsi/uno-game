@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
 export default function GameBoard() {
-  const { state, selectWildCardColor, isColorSelectionOpen, closeColorSelector } = useGame()
+  const { state, selectWildCardColor, isColorSelectionOpen, closeColorSelector, currentPlayerId } = useGame()
   const router = useRouter()
   const [showLog, setShowLog] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -39,8 +39,10 @@ export default function GameBoard() {
     return <GameOver />
   }
 
-  const currentPlayer = state.players.find(p => p.id === state.currentPlayer)
-  const otherPlayers = state.players.filter(p => p.id !== state.currentPlayer)
+  // Find the player that belongs to the user
+  const myPlayer = state.players.find(p => p.id === currentPlayerId)
+  // Filter out the user's player from the list of players displayed at the top
+  const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-green-800 to-green-900 relative overflow-hidden">
@@ -115,11 +117,11 @@ export default function GameBoard() {
         </div>
         
         {/* Current player info - shows above hand on mobile */}
-        {isMobile && currentPlayer && (
+        {isMobile && myPlayer && (
           <div className="px-3 py-2">
             <PlayerInfo 
-              player={currentPlayer} 
-              isCurrentTurn={currentPlayer.id === state.currentPlayer} 
+              player={myPlayer} 
+              isCurrentTurn={myPlayer.id === state.currentPlayer} 
             />
           </div>
         )}
