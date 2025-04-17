@@ -9,3 +9,4 @@ node_modules
 .data/game-states.json
 .data/*
 .next/trace
+.vercel
