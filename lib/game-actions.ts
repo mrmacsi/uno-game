@@ -309,9 +309,11 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     // Apply card effects
     applyCardEffects(gameState, card)
 
-    // Move to the next player
-    const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-    gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+    // Move to the next player only if the card is not a skip card
+    if (card.type !== "skip") {
+      const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+      gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+    }
   }
 
   // Update the game state in the database
@@ -623,18 +625,9 @@ function drawCardFromPile(): Card {
 function applyCardEffects(gameState: GameState, card: Card): void {
   switch (card.type) {
     case "skip":
-      // No action needed, the next player's turn will be skipped
-      // by moving the current player forward by 2
-      gameState.currentPlayer =
-        gameState.players[
-          getNextPlayerIndex(
-            gameState,
-            getNextPlayerIndex(
-              gameState,
-              gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
-            ),
-          )
-        ].id
+      // When a skip card is played, keep the turn with the current player
+      // instead of advancing to the next player
+      // No need to modify gameState.currentPlayer as it will stay the same
       break
 
     case "reverse":
