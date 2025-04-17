@@ -4,7 +4,7 @@ import type { GameState, Card } from "./types"
 const gameStates: Record<string, GameState> = {}
 
 // Initialize database with isValidPlay function
-const initializeGameState = (gameState: GameState) => {
+export const initializeGameState = (gameState: GameState) => {
   if (gameState.status === 'playing') {
     gameState.isValidPlay = function (card: Card) {
       const topCard = this.discardPile[this.discardPile.length - 1]

@@ -853,8 +853,10 @@ try {
 }
 
 
+import { initializeGameState } from "./db"
+
 async function storeGameState(roomId: string, gameState: Partial<GameState>): Promise<void> {
-  gameStates[roomId] = gameState as GameState;
+  gameStates[roomId] = initializeGameState(gameState as GameState);
   await persistGameStates();
 }
 
