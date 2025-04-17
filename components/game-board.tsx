@@ -7,12 +7,13 @@ import DrawPile from "./draw-pile"
 import PlayerInfo from "./player-info"
 import GameControls from "./game-controls"
 import GameOver from "./game-over"
+import ColorSelector from "./color-selector"
 import { Button } from "@/components/ui/button"
 import { Home } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function GameBoard() {
-  const { state } = useGame()
+  const { state, selectWildCardColor, isColorSelectionOpen } = useGame()
   const router = useRouter()
 
   const goToHome = () => {
@@ -58,6 +59,9 @@ export default function GameBoard() {
 
       {/* Game Controls */}
       <GameControls />
+      
+      {/* Color selector dialog for wild cards */}
+      <ColorSelector isOpen={isColorSelectionOpen} onSelectColor={selectWildCardColor} />
     </div>
   )
 }

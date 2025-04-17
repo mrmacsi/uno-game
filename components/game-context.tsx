@@ -14,6 +14,9 @@ type GameContextType = {
   callUnoOnPlayer: (targetPlayerId: string) => Promise<void>
   currentPlayerId: string | null
   refreshGameState: () => Promise<void>
+  selectWildCardColor: (color: "red" | "blue" | "green" | "yellow") => Promise<void>
+  isColorSelectionOpen: boolean
+  pendingWildCardId: string | null
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -41,6 +44,10 @@ export function GameProvider({
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
     typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
   )
+  
+  // State for wild card color selection
+  const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
+  const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
 
   // Log initial player ID
   useEffect(() => {
@@ -122,6 +129,22 @@ export function GameProvider({
       console.error("[GameProvider] Cannot play card: No player ID")
       return
     }
+    
+    // Get the card from the player's hand
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+    if (!currentPlayer) return
+    
+    const card = currentPlayer.cards.find(c => c.id === cardId)
+    if (!card) return
+    
+    // If it's a wild card, open the color selector
+    if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
+      setIsColorSelectionOpen(true)
+      setPendingWildCardId(cardId)
+      return
+    }
+    
+    // For non-wild cards, play immediately
     await playCard(roomId, currentPlayerId, cardId)
   }
 
@@ -153,6 +176,20 @@ export function GameProvider({
     }
   }
 
+  const handleSelectWildCardColor = async (color: "red" | "blue" | "green" | "yellow") => {
+    if (!pendingWildCardId || !currentPlayerId) {
+      console.error("[GameProvider] Cannot select color: No pending wild card or player ID")
+      return
+    }
+    
+    // First play the card
+    await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+    
+    // Reset wild card state
+    setIsColorSelectionOpen(false)
+    setPendingWildCardId(null)
+  }
+  
   return (
     <GameContext.Provider
       value={{
@@ -162,7 +199,10 @@ export function GameProvider({
         sayUno: handleSayUno,
         callUnoOnPlayer: handleCallUnoOnPlayer,
         currentPlayerId,
-        refreshGameState
+        refreshGameState,
+        selectWildCardColor: handleSelectWildCardColor,
+        isColorSelectionOpen,
+        pendingWildCardId
       }}
     >
       {children}

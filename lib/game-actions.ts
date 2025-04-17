@@ -236,7 +236,7 @@ export async function startGame(roomId: string): Promise<void> {
 }
 
 // Play a card
-export async function playCard(roomId: string, playerId: string, cardId: string): Promise<void> {
+export async function playCard(roomId: string, playerId: string, cardId: string, selectedColor?: "red" | "blue" | "green" | "yellow"): Promise<void> {
   // Get the current game state
   const gameState = await getGameState(roomId)
 
@@ -282,9 +282,15 @@ export async function playCard(roomId: string, playerId: string, cardId: string)
 
   // Update the current color if it's a wild card
   if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
-    // For simplicity, we'll just pick the first non-wild color
-    const colors: ("red" | "blue" | "green" | "yellow")[] = ["red", "blue", "green", "yellow"]
-    gameState.currentColor = colors[Math.floor(Math.random() * colors.length)]
+    if (selectedColor) {
+      // Use the color selected by the player
+      gameState.currentColor = selectedColor
+    } else {
+      // Fallback to a random color if no selection was made (shouldn't happen)
+      const colors: ("red" | "blue" | "green" | "yellow")[] = ["red", "blue", "green", "yellow"]
+      gameState.currentColor = colors[Math.floor(Math.random() * colors.length)]
+      console.warn(`No color selected for wild card, randomly chose ${gameState.currentColor}`)
+    }
   } else {
     gameState.currentColor = card.color
   }
