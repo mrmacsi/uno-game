@@ -88,6 +88,23 @@ export default function GameBoard() {
             <X className="h-4 w-4" />
           </Button>
         </div>
+        
+        <div className="p-3 space-y-2">
+          {state.log && state.log.slice().reverse().map((entry, index) => (
+            <div 
+              key={index}
+              className="bg-black/40 text-white/90 rounded px-3 py-2 text-sm border border-white/5"
+            >
+              {entry}
+            </div>
+          ))}
+          
+          {(!state.log || state.log.length === 0) && (
+            <div className="text-white/50 text-center py-4 italic text-sm">
+              No game actions yet
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Players section - reorganized for better layout */}
@@ -107,12 +124,20 @@ export default function GameBoard() {
             <div className="w-96 h-96 rounded-full border border-white/10 absolute animate-spin-slow" />
           </div>
           
-          <div className="relative z-10">
-            <DrawPile count={state.drawPileCount} />
-          </div>
+          {/* Animated card path - a visual guide for the card animation */}
+          <div className="absolute top-1/2 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent z-0"></div>
           
-          <div className="relative z-10">
-            <DiscardPile topCard={state.discardPile[state.discardPile.length - 1]} />
+          {/* Card piles container - position them for better animation */}
+          <div className="flex justify-center items-center gap-16 sm:gap-24 lg:gap-32 relative z-10">
+            {/* Draw pile positioned on the left for better animation path */}
+            <div className="relative">
+              <DrawPile count={state.drawPileCount} />
+            </div>
+            
+            {/* Discard pile on the right */}
+            <div className="relative">
+              <DiscardPile topCard={state.discardPile[state.discardPile.length - 1]} />
+            </div>
           </div>
         </div>
         

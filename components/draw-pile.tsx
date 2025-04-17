@@ -2,24 +2,50 @@ import { useEffect, useState } from "react"
 import UnoCard from "./uno-card"
 import type { Card } from "@/lib/types"
 import { Layers } from "lucide-react"
+import { useGame } from "./game-context"
 
 interface DrawPileProps {
   count: number
 }
 
 export default function DrawPile({ count }: DrawPileProps) {
+  const { state, currentPlayerId, drawCard } = useGame()
   const [prevCount, setPrevCount] = useState(count)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [showFlyingCard, setShowFlyingCard] = useState(false)
+  const [recentDrawCount, setRecentDrawCount] = useState(0)
+  const [showDrawCount, setShowDrawCount] = useState(false)
+  
+  const isMyTurn = state.currentPlayer === currentPlayerId
+  const canDraw = isMyTurn && !state.hasDrawnThisTurn
   
   // Detect when cards are drawn
   useEffect(() => {
     if (count < prevCount) {
+      const difference = prevCount - count
+      setRecentDrawCount(difference)
+      setShowDrawCount(true)
       setIsDrawing(true)
-      const timer = setTimeout(() => setIsDrawing(false), 500)
-      return () => clearTimeout(timer)
+      setShowFlyingCard(true)
+      
+      const drawTimer = setTimeout(() => setIsDrawing(false), 500)
+      const flyingCardTimer = setTimeout(() => setShowFlyingCard(false), 600)
+      const countTimer = setTimeout(() => setShowDrawCount(false), 2000)
+      
+      return () => {
+        clearTimeout(drawTimer)
+        clearTimeout(flyingCardTimer)
+        clearTimeout(countTimer)
+      }
     }
     setPrevCount(count)
   }, [count, prevCount])
+
+  const handleDrawClick = () => {
+    if (canDraw) {
+      drawCard()
+    }
+  }
 
   const dummyCard: Card = {
     id: "draw-pile",
@@ -53,7 +79,30 @@ export default function DrawPile({ count }: DrawPileProps) {
   
   return (
     <div className="relative flex flex-col items-center">
-      <div className="h-40 relative">
+      {/* Draw count indicator */}
+      {showDrawCount && (
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-50 animate-float-up">
+          <div className="bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm animate-pulse">
+            +{recentDrawCount}
+          </div>
+        </div>
+      )}
+      
+      <div 
+        className={`h-40 relative ${canDraw ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}
+        onClick={handleDrawClick}
+      >
+        {/* Flying card animation */}
+        {showFlyingCard && (
+          <div className="absolute top-0 left-0 z-50 animate-fly-to-hand pointer-events-none">
+            <UnoCard 
+              card={dummyCard} 
+              faceDown={true} 
+              disabled={true}
+            />
+          </div>
+        )}
+        
         {/* Card stack with slight offset for visual depth */}
         {cardStack.map((_, index) => {
           const stackOffset = (visibleCardCount - index - 1) * 1.5
@@ -99,6 +148,15 @@ export default function DrawPile({ count }: DrawPileProps) {
         <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
           <div className="animate-ping absolute h-3 w-3 rounded-full bg-red-500 opacity-75"></div>
           <div className="h-3 w-3 rounded-full bg-red-500"></div>
+        </div>
+      )}
+      
+      {/* Draw card prompt when it's your turn */}
+      {canDraw && (
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+          <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full animate-bounce-gentle">
+            Click to draw
+          </div>
         </div>
       )}
     </div>

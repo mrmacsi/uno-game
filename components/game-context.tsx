@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef } from "react"
 import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction } from "@/lib/types"
-import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer } from "@/lib/game-actions"
+import type { GameState, GameAction, Card } from "@/lib/types"
+import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer, endTurn } from "@/lib/game-actions"
 import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
 import { toast } from "@/hooks/use-toast"
 
@@ -20,6 +20,7 @@ type GameContextType = {
   pendingWildCardId: string | null
   closeColorSelector: () => void
   endTurn: () => Promise<void>
+  hasPlayableCard: () => boolean
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -154,6 +155,17 @@ export function GameProvider({
     }
   }
 
+  // Add a function to check if current player has any playable cards
+  const hasPlayableCard = (): boolean => {
+    if (!currentPlayerId || currentPlayerId !== state.currentPlayer) return false
+    
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+    if (!currentPlayer) return false
+    
+    // Check if any card in player's hand can be played
+    return currentPlayer.cards.some(card => state.isValidPlay(card))
+  }
+
   const handlePlayCard = async (cardId: string) => {
     if (!currentPlayerId) {
       console.error("[GameProvider] Cannot play card: No player ID")
@@ -176,7 +188,6 @@ export function GameProvider({
     
     // For non-wild cards, play immediately
     await playCard(roomId, currentPlayerId, cardId)
-    toast({ description: `Played ${card.type === "number" ? card.value : card.type.toUpperCase()} ${card.color.toUpperCase()}` })
   }
 
   const handleDrawCard = async () => {
@@ -184,8 +195,53 @@ export function GameProvider({
       console.error("[GameProvider] Cannot draw card: No player ID")
       return
     }
-    await drawCard(roomId, currentPlayerId)
-    toast({ description: "You drew a card" })
+    
+    if (!roomId) {
+      console.error("[GameProvider] Cannot draw card: No room ID")
+      return
+    }
+    
+    if (state.hasDrawnThisTurn) {
+      console.error("[GameProvider] Cannot draw again: Player has already drawn this turn")
+      return
+    }
+    
+    try {
+      await drawCard(roomId, currentPlayerId)
+      
+      // Add toast notification that the player drew a card
+      toast({
+        title: "Card Drawn",
+        description: "You drew a card from the pile",
+        variant: "default",
+      })
+      
+      // After drawing, check if the player can play any card
+      // If not, automatically end their turn
+      setTimeout(async () => {
+        const refreshedState = await getRoom(roomId)
+        dispatch({ type: "UPDATE_GAME_STATE", payload: refreshedState })
+        
+        // If the player doesn't have a playable card after drawing, automatically end turn
+        if (refreshedState.hasDrawnThisTurn && refreshedState.currentPlayer === currentPlayerId) {
+          const currentPlayer = refreshedState.players.find(p => p.id === currentPlayerId)
+          if (currentPlayer) {
+            const canPlayAnyCard = currentPlayer.cards.some(card => refreshedState.isValidPlay(card))
+            if (!canPlayAnyCard) {
+              // Automatically end turn if player can't play any card
+              await handleEndTurn()
+            }
+          }
+        }
+      }, 500) // Short delay to allow state to update
+    } catch (error) {
+      console.error("[GameProvider] Failed to draw card:", error)
+      toast({
+        title: "Error",
+        description: "Failed to draw card",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSayUno = async () => {
@@ -194,7 +250,6 @@ export function GameProvider({
       return
     }
     await sayUno(roomId, currentPlayerId)
-    toast({ description: "UNO!" })
   }
 
   const handleCallUnoOnPlayer = async (targetPlayerId: string) => {
@@ -204,7 +259,6 @@ export function GameProvider({
     }
     try {
       await callUnoOnPlayer(roomId, currentPlayerId, targetPlayerId)
-      toast({ description: "Called UNO on player" })
     } catch (error) {
       console.error("[GameProvider] Error calling UNO:", error)
     }
@@ -218,7 +272,6 @@ export function GameProvider({
     
     // First play the card
     await playCard(roomId, currentPlayerId, pendingWildCardId, color)
-    toast({ description: `Changed color to ${color.toUpperCase()}` })
     
     // Reset wild card state
     setIsColorSelectionOpen(false)
@@ -252,15 +305,8 @@ export function GameProvider({
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to end turn")
       }
-      
-      toast({ description: "Ended your turn" })
     } catch (error) {
       console.error("[GameProvider] Failed to end turn:", error)
-      toast({ 
-        title: "Error",
-        description: "Failed to end turn",
-        variant: "destructive"
-      })
     }
   }
   
@@ -278,7 +324,8 @@ export function GameProvider({
         isColorSelectionOpen,
         pendingWildCardId,
         closeColorSelector: handleCloseColorSelector,
-        endTurn: handleEndTurn
+        endTurn: handleEndTurn,
+        hasPlayableCard
       }}
     >
       {children}

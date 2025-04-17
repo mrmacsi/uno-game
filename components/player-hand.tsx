@@ -3,14 +3,16 @@
 import { useGame } from "./game-context"
 import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Play } from "lucide-react"
 
 export default function PlayerHand() {
   const { state, currentPlayerId, playCard, sayUno } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const [handWidth, setHandWidth] = useState(0)
-
+  const [recentlyDrawnCard, setRecentlyDrawnCard] = useState<string | null>(null)
+  const prevCardsRef = useRef<string[]>([])
+  
   // Responsive hand layout
   useEffect(() => {
     const updateWidth = () => {
@@ -22,6 +24,31 @@ export default function PlayerHand() {
     
     return () => window.removeEventListener('resize', updateWidth)
   }, [])
+  
+  // Detect when a new card is added to the hand
+  useEffect(() => {
+    if (!currentPlayerId) return
+    
+    const player = state.players.find(p => p.id === currentPlayerId)
+    if (!player) return
+    
+    const currentCardIds = player.cards.map(card => card.id)
+    
+    // Check if a new card was added
+    if (prevCardsRef.current.length < currentCardIds.length) {
+      // Find the new card id (the one not in the previous array)
+      const newCardId = currentCardIds.find(id => !prevCardsRef.current.includes(id))
+      if (newCardId) {
+        setRecentlyDrawnCard(newCardId)
+        setTimeout(() => {
+          setRecentlyDrawnCard(null)
+        }, 3000)
+      }
+    }
+    
+    // Update the reference to the current cards
+    prevCardsRef.current = currentCardIds
+  }, [state.players, currentPlayerId])
 
   if (!currentPlayerId) return null
 
@@ -64,11 +91,12 @@ export default function PlayerHand() {
                 const isPlayable = isMyTurn && state.isValidPlay(card);
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
+                const isRecentlyDrawn = card.id === recentlyDrawnCard;
                 
                 return (
                   <div 
                     key={card.id} 
-                    className={`transform transition-all duration-300 ease-out`} 
+                    className={`transform transition-all duration-300 ease-out relative`} 
                     style={{ 
                       marginLeft: index === 0 ? 0 : `-${overlap}px`,
                       zIndex: isPlayable ? 50 + index : index,
@@ -76,10 +104,13 @@ export default function PlayerHand() {
                       transformOrigin: 'bottom center'
                     }}
                   >
+                    {isRecentlyDrawn && (
+                      <div className="absolute -inset-2 rounded-xl bg-yellow-400/50 animate-pulse-subtle z-0"></div>
+                    )}
                     <div 
-                      className={`transition-all duration-300 ${
+                      className={`transition-all duration-300 z-10 relative ${
                         isPlayable ? 'hover:translate-y-[-40px] hover:scale-110 relative' : ''
-                      }`}
+                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-20px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
@@ -95,7 +126,7 @@ export default function PlayerHand() {
                             }
                           }}
                           disabled={!isMyTurn || !state.isValidPlay(card)}
-                          animationClass={animatingCard === card.id ? 'animate-play-card' : 'animate-deal-card'}
+                          animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : 'animate-deal-card'}
                         />
                         {isPlayable && (
                           <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -104,6 +135,13 @@ export default function PlayerHand() {
                         )}
                       </div>
                     </div>
+                    {isRecentlyDrawn && (
+                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-20 whitespace-nowrap">
+                        <span className="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded animate-bounce-gentle">
+                          New card
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
