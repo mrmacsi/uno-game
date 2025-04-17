@@ -51,47 +51,36 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
   const getCardContent = () => {
     if (faceDown) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-white text-4xl font-bold">UNO</div>
+        <div className="bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 w-full h-full flex items-center justify-center">
+          <div className="text-white text-4xl font-black">UNO</div>
         </div>
       )
     }
 
-    const textColorClass = getTextColor()
-
     if (card.type === "number") {
-      return <div className={`${textColorClass} text-4xl font-bold`}>{card.value}</div>
+      return <div className={`text-4xl font-bold ${getTextColor()}`}>{card.value}</div>
     }
 
     if (card.type === "skip") {
-      return (
-        <div className={`${textColorClass} text-2xl font-bold`}>
-          <div className={`rounded-full border-4 border-current w-16 h-16 flex items-center justify-center`}>
-            <div className="transform rotate-45 w-12 h-1 bg-current absolute"></div>
-          </div>
-        </div>
-      )
+      return <div className={`text-4xl font-bold ${getTextColor()}`}>⃠</div>
     }
 
     if (card.type === "reverse") {
-      return (
-        <div className={`${textColorClass} text-2xl font-bold`}>
-          <div className="flex flex-col items-center">
-            <div className="transform rotate-180">↺</div>
-            <div>↺</div>
-          </div>
-        </div>
-      )
+      return <div className={`text-2xl font-bold ${getTextColor()}`}>↺</div>
     }
 
     if (card.type === "draw2") {
-      return <div className={`${textColorClass} text-2xl font-bold`}>+2</div>
+      return (
+        <div className={`text-2xl font-bold ${getTextColor()}`}>
+          <div>+2</div>
+        </div>
+      )
     }
 
     if (card.type === "wild") {
       return (
-        <div className="text-3xl font-bold bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">
-          WILD
+        <div className="text-2xl font-bold">
+          <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">WILD</div>
         </div>
       )
     }
@@ -100,14 +89,6 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
       return (
         <div className="text-2xl font-bold">
           <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">+4</div>
-        </div>
-      )
-    }
-    
-    if (card.type === "wildSwap") {
-      return (
-        <div className="text-2xl font-bold">
-          <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">SWAP</div>
         </div>
       )
     }

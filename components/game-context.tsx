@@ -168,7 +168,7 @@ export function GameProvider({
     if (!card) return
     
     // If it's a wild card, open the color selector
-    if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
+    if (card.type === "wild" || card.type === "wild4") {
       setIsColorSelectionOpen(true)
       setPendingWildCardId(cardId)
       return

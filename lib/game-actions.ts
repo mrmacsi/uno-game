@@ -192,7 +192,7 @@ export async function startGame(roomId: string): Promise<void> {
     }
 
     // Rule 1: Pure Wild cards can always be played
-    if (card.type === "wild" || card.type === "wildSwap") {
+    if (card.type === "wild") {
       return true
     }
     
@@ -276,7 +276,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   // Log the action
   if (!gameState.log) gameState.log = []
   let actionMsg = `${gameState.players[playerIndex].name} played ${card.type === "number" ? card.value : card.type.toUpperCase()} ${card.color.toUpperCase()}`
-  if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
+  if (card.type === "wild" || card.type === "wild4") {
     if (selectedColor) actionMsg += ` (changed color to ${selectedColor.toUpperCase()})`
   }
   gameState.log.push(actionMsg)
@@ -286,7 +286,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   gameState.drawCardEffect = undefined
 
   // Update the current color if it's a wild card
-  if (card.type === "wild" || card.type === "wild4" || card.type === "wildSwap") {
+  if (card.type === "wild" || card.type === "wild4") {
     if (selectedColor) {
       // Use the color selected by the player
       gameState.currentColor = selectedColor
@@ -669,13 +669,6 @@ function createDeck(): Card[] {
       color: "black",
     })
   }
-  
-  // Wild Swap Hands card - 1
-  deck.push({
-    id: uuidv4(),
-    type: "wildSwap",
-    color: "black",
-  })
 
   return deck
 }
@@ -692,7 +685,7 @@ function drawCardFromPile(): Card {
   // In a real game, we would draw from the actual pile
   // For this simplified example, we'll just create a new random card
   const colors: CardColor[] = ["red", "blue", "green", "yellow"]
-  const types = ["number", "skip", "reverse", "draw2", "wild", "wild4", "wildSwap"]
+  const types = ["number", "skip", "reverse", "draw2", "wild", "wild4"]
   const type = types[Math.floor(Math.random() * types.length)] as
     | "number"
     | "skip"
@@ -700,9 +693,8 @@ function drawCardFromPile(): Card {
     | "draw2"
     | "wild"
     | "wild4"
-    | "wildSwap"
 
-  if (type === "wild" || type === "wild4" || type === "wildSwap") {
+  if (type === "wild" || type === "wild4") {
     return {
       id: uuidv4(),
       type,
@@ -779,26 +771,6 @@ function applyCardEffects(gameState: GameState, card: Card): void {
           )
         ].id
       break
-      
-    case "wildSwap":
-      // Randomly choose another player to swap hands with
-      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
-      
-      // Get all other player indices
-      const otherPlayerIndices = gameState.players
-        .map((_, index) => index)
-        .filter(index => index !== currentPlayerIndex)
-      
-      // If there are other players, swap hands with a random one
-      if (otherPlayerIndices.length > 0) {
-        const randomPlayerIndex = otherPlayerIndices[Math.floor(Math.random() * otherPlayerIndices.length)]
-        
-        // Swap the cards
-        const tempCards = [...gameState.players[currentPlayerIndex].cards]
-        gameState.players[currentPlayerIndex].cards = [...gameState.players[randomPlayerIndex].cards]
-        gameState.players[randomPlayerIndex].cards = tempCards
-      }
-      break
   }
 }
 
@@ -850,7 +822,7 @@ try {
           }
           
           // Rule 1: Pure Wild cards can always be played
-          if (card.type === "wild" || card.type === "wildSwap") {
+          if (card.type === "wild") {
             return true;
           }
           

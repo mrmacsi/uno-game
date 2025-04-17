@@ -45,8 +45,7 @@ export function generateClientUUID(): string {
  * Adds the isValidPlay function to a game state object received from the server
  */
 export function addIsValidPlayFunction(gameState: GameState): GameState {
-  if (gameState.status === 'playing' && !gameState.isValidPlay) {
-    // Add the isValidPlay function
+  if (gameState.status === 'playing') {
     gameState.isValidPlay = function(card: Card) {
       const topCard = this.discardPile[this.discardPile.length - 1]
       const currentPlayer = this.players.find(p => p.id === this.currentPlayer)
@@ -54,7 +53,7 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
       if (!currentPlayer) return false
 
       // Wild cards can be played with some restrictions
-      if (card.type === "wild" || card.type === "wildSwap") {
+      if (card.type === "wild") {
         return true
       }
       

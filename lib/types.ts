@@ -1,5 +1,5 @@
 export type CardColor = "red" | "blue" | "green" | "yellow" | "black" | "wild"
-export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4" | "wildSwap"
+export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4"
 
 export interface Card {
   id: string
