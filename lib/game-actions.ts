@@ -249,8 +249,11 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     throw new Error("Game is not in progress")
   }
 
-  if (gameState.currentPlayer !== playerId) {
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn")
+  }
+  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") {
+    gameState.currentPlayer = playerId
   }
 
   // Find the player
@@ -363,8 +366,11 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
     throw new Error("Game is not in progress")
   }
 
-  if (gameState.currentPlayer !== playerId) {
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn")
+  }
+  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") {
+    gameState.currentPlayer = playerId
   }
 
   // Find the player
@@ -422,8 +428,11 @@ export async function endTurn(roomId: string, playerId: string): Promise<void> {
     throw new Error("Game is not in progress")
   }
 
-  if (gameState.currentPlayer !== playerId) {
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn")
+  }
+  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") {
+    gameState.currentPlayer = playerId
   }
 
   // Find the player

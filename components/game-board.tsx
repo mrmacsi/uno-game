@@ -110,14 +110,14 @@ export default function GameBoard() {
       {/* Players section - reorganized for better layout */}
       <div className="flex-1 flex flex-col">
         {/* Other players - top section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2 sm:p-3">
           {otherPlayers.map((player) => (
             <PlayerInfo key={player.id} player={player} isCurrentTurn={player.id === state.currentPlayer} />
           ))}
         </div>
         
         {/* Game area - middle section with card piles */}
-        <div className="flex-1 flex items-center justify-center gap-8 sm:gap-16 p-4 relative" style={{ minHeight: isMobile ? "200px" : "300px" }}>
+        <div className="flex-1 flex items-center justify-center gap-6 sm:gap-16 p-2 sm:p-4 relative" style={{ minHeight: isMobile ? "150px" : "250px" }}>
           {/* Decorative elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-64 h-64 rounded-full bg-white/5 absolute animate-pulse-slow" />
@@ -143,7 +143,7 @@ export default function GameBoard() {
         
         {/* Current player info - shows above hand on mobile */}
         {isMobile && myPlayer && (
-          <div className="px-3 py-2">
+          <div className="px-3 py-1">
             <PlayerInfo 
               player={myPlayer} 
               isCurrentTurn={myPlayer.id === state.currentPlayer} 

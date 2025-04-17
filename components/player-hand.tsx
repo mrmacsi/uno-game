@@ -81,9 +81,9 @@ export default function PlayerHand() {
           <div 
             className="flex justify-center mx-auto"
             style={{ 
-              paddingBottom: "1rem", 
-              paddingTop: "1rem",
-              minHeight: "200px"
+              paddingBottom: "0.5rem", 
+              paddingTop: "0.5rem",
+              minHeight: "180px"
             }}
           >
             <div className="flex" style={{ marginLeft: `${overlap/2}px` }}>
@@ -109,8 +109,8 @@ export default function PlayerHand() {
                     )}
                     <div 
                       className={`transition-all duration-300 z-10 relative ${
-                        isPlayable ? 'hover:translate-y-[-40px] hover:scale-110 relative' : ''
-                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-20px]' : ''}`}
+                        isPlayable ? 'hover:translate-y-[-20px] sm:hover:translate-y-[-40px] hover:scale-105 sm:hover:scale-110 relative' : ''
+                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-15px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
@@ -151,10 +151,10 @@ export default function PlayerHand() {
       </div>
 
       {canSayUno && (
-        <div className="absolute bottom-6 right-6 z-50">
+        <div className="absolute bottom-4 right-4 z-50">
           <Button 
             onClick={sayUno} 
-            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-3 rounded-full shadow-lg animate-pulse border-2 border-white/30"
+            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-5 py-2 rounded-full shadow-lg animate-pulse border-2 border-white/30"
           >
             UNO!
           </Button>

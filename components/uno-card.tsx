@@ -98,13 +98,13 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
 
   return (
     <div
-      className={`w-24 h-36 rounded-xl shadow-xl flex items-center justify-center ${getCardColor()} ${
+      className={`w-20 sm:w-24 h-32 sm:h-36 rounded-xl shadow-xl flex items-center justify-center ${getCardColor()} ${
         !disabled && !faceDown ? "cursor-pointer card-hover-effect" : "opacity-90"
       } card-transition ${animationClass} relative overflow-hidden`}
       onClick={!disabled && !faceDown ? onClick : undefined}
     >
       <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-gradient-to-br from-white via-transparent to-transparent"></div>
-      <div className="bg-white w-20 h-32 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner relative z-10">
+      <div className="bg-white w-16 sm:w-20 h-28 sm:h-32 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner relative z-10">
         {getCardContent()}
       </div>
     </div>

@@ -22,8 +22,8 @@ export default function GameControls() {
   const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2
 
   return (
-    <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 mt-2 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-      <div className="text-white text-center sm:text-left">
+    <div className="bg-black/30 backdrop-blur-sm rounded-lg p-3 mt-1 mb-2 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div className="text-white text-center sm:text-left text-sm">
         <p>
           Current Color: <span className="font-bold">{state.currentColor.toUpperCase()}</span>
         </p>
