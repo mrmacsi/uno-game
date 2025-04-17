@@ -199,11 +199,6 @@
             "color": "green"
           },
           {
-            "id": "1652c7a4-559f-47e6-9894-2a784e95b07d",
-            "type": "wild",
-            "color": "black"
-          },
-          {
             "id": "aa31144e-002b-4854-8df3-2d3219f720a5",
             "type": "number",
             "color": "red",
@@ -232,6 +227,22 @@
             "type": "number",
             "color": "red",
             "value": 9
+          },
+          {
+            "id": "054160e3-69dc-4968-ba29-0ecb1d5738d6",
+            "type": "draw2",
+            "color": "green"
+          },
+          {
+            "id": "ecc2339d-9b82-4404-bf8d-6dd7cb5c176e",
+            "type": "wild4",
+            "color": "black"
+          },
+          {
+            "id": "5d5c75e9-b81e-40ad-89cd-b8447c733a5a",
+            "type": "number",
+            "color": "blue",
+            "value": 8
           }
         ],
         "isHost": true
@@ -270,32 +281,121 @@
             "value": 8
           },
           {
-            "id": "e3ecdd2b-e25d-4afe-acbe-3e39098f1b5f",
-            "type": "wild",
-            "color": "black"
-          },
-          {
             "id": "2208b99d-77a3-43b3-8616-c4d3338792a0",
             "type": "number",
             "color": "yellow",
             "value": 7
+          },
+          {
+            "id": "bd26f361-4bdc-4972-89eb-b240dfd31e4a",
+            "type": "wild",
+            "color": "black"
+          },
+          {
+            "id": "c4fe4a43-80f1-496c-8ca3-2e08974e5d00",
+            "type": "number",
+            "color": "yellow",
+            "value": 3
+          },
+          {
+            "id": "465057f1-4ecf-4ae5-b110-d8a6f9f03e7c",
+            "type": "wild",
+            "color": "black"
+          },
+          {
+            "id": "e17a4d10-6e59-44a5-bb6c-67822d8d47d3",
+            "type": "wild",
+            "color": "black"
           }
         ],
         "isHost": false
       }
     ],
-    "currentPlayer": "a4e46fe6-d4dc-430c-ba1c-5d62135e0ca7",
+    "currentPlayer": "81928ccb-2a48-4fa7-aa36-92ece17c8b22",
     "direction": 1,
-    "drawPileCount": 93,
+    "drawPileCount": 83,
     "discardPile": [
       {
         "id": "d0815880-f5be-482f-801c-731febdb51c7",
         "type": "number",
         "color": "blue",
         "value": 4
+      },
+      {
+        "id": "1652c7a4-559f-47e6-9894-2a784e95b07d",
+        "type": "wild",
+        "color": "black"
+      },
+      {
+        "id": "e3ecdd2b-e25d-4afe-acbe-3e39098f1b5f",
+        "type": "wild",
+        "color": "black"
+      },
+      {
+        "id": "fd1a2129-11ea-46f1-8e37-e7c022f6373b",
+        "type": "wild4",
+        "color": "black"
+      },
+      {
+        "id": "60929e7c-8b29-4f68-a940-190e2009ab73",
+        "type": "wild4",
+        "color": "black"
+      },
+      {
+        "id": "3db506c4-88e0-4eb0-980a-bf3fccb9e719",
+        "type": "wild",
+        "color": "black"
       }
     ],
-    "currentColor": "blue",
+    "currentColor": "red",
+    "winner": null
+  },
+  "XYRBEY": {
+    "roomId": "XYRBEY",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "3404751b-88ea-4e08-a6b6-0a55ebbd2158",
+        "name": "HappyDragon",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "8b30c475-517b-41e6-b1a2-26b176226059",
+        "name": "EagerRhino",
+        "cards": [],
+        "isHost": false
+      },
+      {
+        "id": "b6dac75f-8f19-4be4-8c15-96346e8faa8a",
+        "name": "LuckyKoala",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "B3P7ZM": {
+    "roomId": "B3P7ZM",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "7079ce4c-fb6d-479e-b819-a97c47e7628b",
+        "name": "BrightCaptain",
+        "cards": [],
+        "isHost": true
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
     "winner": null
   }
 }
