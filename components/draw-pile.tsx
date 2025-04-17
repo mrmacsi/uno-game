@@ -22,24 +22,23 @@ export default function DrawPile({ count }: DrawPileProps) {
   // Detect when cards are drawn
   useEffect(() => {
     if (count < prevCount) {
-      const difference = prevCount - count
-      setRecentDrawCount(difference)
-      setShowDrawCount(true)
-      setIsDrawing(true)
       setShowFlyingCard(true)
-      
-      const drawTimer = setTimeout(() => setIsDrawing(false), 500)
-      const flyingCardTimer = setTimeout(() => setShowFlyingCard(false), 600)
-      const countTimer = setTimeout(() => setShowDrawCount(false), 2000)
-      
-      return () => {
-        clearTimeout(drawTimer)
-        clearTimeout(flyingCardTimer)
-        clearTimeout(countTimer)
-      }
+      setRecentDrawCount(prev => prev + 1)
+      setTimeout(() => setShowFlyingCard(false), 800)
+      setPrevCount(count)
+      setShowDrawCount(true)
+      setTimeout(() => setShowDrawCount(false), 1500)
     }
     setPrevCount(count)
   }, [count, prevCount])
+
+  useEffect(() => {
+    const onDrawCardClick = () => {
+      if (canDraw) drawCard()
+    }
+    window.addEventListener('draw-card-click', onDrawCardClick)
+    return () => window.removeEventListener('draw-card-click', onDrawCardClick)
+  }, [canDraw, drawCard])
 
   const handleDrawClick = () => {
     if (canDraw) {

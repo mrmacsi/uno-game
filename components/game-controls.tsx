@@ -32,10 +32,10 @@ export default function GameControls() {
   }[state.currentColor] || "from-gray-600 to-gray-700 text-white";
 
   return (
-    <div className="bg-black/40 backdrop-blur-md rounded-xl p-4 mt-2 mb-4 shadow-xl border border-white/10">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="text-white">
-          <div className="flex items-center gap-3">
+    <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 mt-0 shadow-xl border border-white/10 sm:static fixed bottom-0 left-0 right-0 z-50 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="text-white w-full sm:w-auto">
+          <div className="flex items-center justify-center sm:justify-start gap-3 mb-2 sm:mb-0">
             <div className="flex gap-2 items-center">
               <span className="text-white/80 text-sm">Color:</span>
               <span className={`inline-block px-3 py-1 rounded-full font-bold text-sm bg-gradient-to-r ${colorStyles}`}>
@@ -43,7 +43,7 @@ export default function GameControls() {
               </span>
             </div>
             
-            <div className="h-6 w-px bg-white/20"></div>
+            <div className="hidden sm:block h-6 w-px bg-white/20"></div>
             
             <div className="flex gap-2 items-center">
               <span className="text-white/80 text-sm">Direction:</span>
@@ -54,7 +54,7 @@ export default function GameControls() {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap justify-center">
+        <div className="flex gap-2 flex-wrap justify-center w-full sm:w-auto">
           {canSayUno && (
             <Button 
               onClick={sayUno} 
@@ -69,44 +69,45 @@ export default function GameControls() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="text-white px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/80 to-blue-600/80 text-sm animate-pulse-subtle shadow-md">
-                    Draw a card
+                  <div className={`text-white/80 px-3 py-1 rounded-full ${noPlayableCards ? 'bg-blue-600 animate-pulse' : 'bg-blue-600/30'} text-sm ${noPlayableCards ? 'animate-pulse' : 'animate-pulse-subtle'}`}>
+                    {noPlayableCards ? 'You must draw a card' : 'Draw a card'}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="bg-black/90 border-white/20 text-white">
-                  You need to draw a card this turn
+                <TooltipContent>
+                  {noPlayableCards ? 
+                    "You have no playable cards. You must draw a card from the draw pile." : 
+                    "You need to draw a card this turn"}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button 
-                    onClick={endTurn} 
-                    disabled={!canEndTurn} 
-                    className={`
-                      transition-all duration-300
-                      ${canEndTurn 
-                        ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 hover:scale-105 shadow-lg" 
-                        : "bg-gray-700/50 text-white/50"}
-                    `}
-                  >
-                    <ArrowDown className="h-4 w-4 mr-1.5" />
-                    End Turn
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="bg-black/90 border-white/20 text-white">
-                {canEndTurn ? 
-                  "End your turn and pass to the next player" : 
-                  "You must draw a card before ending your turn"
-                }
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
+          {(isMyTurn && state.hasDrawnThisTurn) && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button 
+                      onClick={endTurn} 
+                      disabled={!canEndTurn} 
+                      className={`
+                        transition-all duration-300
+                        ${canEndTurn
+                          ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 hover:scale-105 shadow-lg" 
+                          : "bg-gray-700/50 text-white/50"}
+                      `}
+                    >
+                      <ArrowDown className="h-4 w-4 mr-1.5" />
+                      End Turn
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  End your turn and pass to the next player
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
 
           <TooltipProvider>
             <Tooltip>
