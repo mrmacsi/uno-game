@@ -9,13 +9,10 @@ import {
   ToastTitle
 } from "@/components/ui/toast"
 
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useState } from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
-  const [historyOpen, setHistoryOpen] = useState(false)
-
   const sortedToasts = [...toasts].reverse()
   const latestToast = sortedToasts.length > 0 ? [sortedToasts[0]] : []
   const hasHistory = sortedToasts.length > 1
