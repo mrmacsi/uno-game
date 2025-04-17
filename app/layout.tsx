@@ -4,7 +4,6 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import "@/styles/animations.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 const inter = Inter({ subsets: ["latin"] })
 
