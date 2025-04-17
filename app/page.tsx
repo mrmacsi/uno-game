@@ -14,8 +14,9 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-4xl mx-auto my-4 sm:my-8">
-        <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-xl overflow-hidden">
-          <div className="px-6 py-8 sm:px-8 sm:pt-10 sm:pb-6">
+        <div className="backdrop-blur-sm bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[600px]">
+          {/* Header section */}
+          <div className="px-8 pt-12 pb-6 sm:px-12">
             <div className="flex items-center justify-center gap-2 mb-8">
               <Link href="/" className="text-3xl font-bold text-gray-800 hover:text-red-600 transition-colors">UNO</Link>
               <ThemeToggle />
@@ -24,10 +25,12 @@ export default function Home() {
             <p className="mt-3 text-gray-600 text-lg">Play the classic card game online with friends</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <h2 className="font-bold text-xl text-gray-800 mb-4">Quick Actions</h2>
-              <div className="space-y-3">
+          {/* Main content section */}
+          <div className="flex-grow px-8 sm:px-12 pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h2 className="font-bold text-xl text-gray-800 mb-4">Quick Actions</h2>
+                <div className="space-y-3 stagger-fade-in-up">
                   <Link href="/create-room" className="w-full block">
                     <Button className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-5 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 text-base">
                       <PlusCircle className="h-5 w-5" />
@@ -63,16 +66,18 @@ export default function Home() {
                 </div>
               </div>
               
-              <div>
+              <div className="animate-fade-in-up">
                 <RoomList />
               </div>
             </div>
           </div>
           
-          <div className="bg-gray-50 px-6 py-4 text-center text-sm text-gray-500">
+          {/* Footer - now integrated with the card design */}
+          <div className="px-8 py-6 text-center text-sm text-gray-500 w-full mt-auto border-t border-gray-200">
             <p>Built with love in London</p>
           </div>
         </div>
+      </div>
     </main>
   )
 }

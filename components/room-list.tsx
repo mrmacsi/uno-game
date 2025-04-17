@@ -195,8 +195,8 @@ export default function RoomList() {
           const statusColorClass = getStatusColor(room.status)
           
           return (
-            <Card key={room.roomId} className="overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-all duration-200 rounded-xl">
-              <CardHeader className="pb-2 pt-4 px-4">
+            <Card key={room.roomId} className="overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl">
+              <CardHeader className="pb-3 pt-5 px-5">
                 <div className="flex justify-between items-start">
                   <CardTitle className="flex items-center text-base">
                     <div className="flex-1">
@@ -210,8 +210,8 @@ export default function RoomList() {
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="space-y-3">
+              <CardContent className="px-5 pb-5">
+                <div className="space-y-4">
                   <div className="flex flex-wrap gap-3 text-xs">
                     <div className="flex items-center px-2 py-1 bg-blue-50 rounded-full">
                       <Users className="h-3 w-3 mr-1 text-blue-600" />
@@ -227,7 +227,7 @@ export default function RoomList() {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 mt-2">
                     <Link href={`/join-room?roomId=${room.roomId}`} className="flex-1">
                       <Button variant="default" size="sm" className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-1">
                         <ArrowRightCircle className="h-3.5 w-3.5" />
