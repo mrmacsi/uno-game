@@ -289,6 +289,28 @@ export function GameProvider({
       return
     }
     
+    // Check if the game is in playing status
+    if (state.status !== "playing") {
+      console.error("[GameProvider] Cannot end turn: Game is not in progress")
+      toast({
+        title: "Cannot End Turn",
+        description: "Game is not in progress yet",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    // Check if it's the player's turn
+    if (state.currentPlayer !== currentPlayerId) {
+      console.error("[GameProvider] Cannot end turn: Not your turn")
+      toast({
+        title: "Cannot End Turn",
+        description: "It's not your turn",
+        variant: "destructive",
+      })
+      return
+    }
+    
     try {
       const response = await fetch("/api/end-turn", {
         method: "POST",
@@ -307,6 +329,11 @@ export function GameProvider({
       }
     } catch (error) {
       console.error("[GameProvider] Failed to end turn:", error)
+      toast({
+        title: "Error",
+        description: "Failed to end turn",
+        variant: "destructive",
+      })
     }
   }
   

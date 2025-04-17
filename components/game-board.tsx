@@ -117,7 +117,7 @@ export default function GameBoard() {
         </div>
         
         {/* Game area - middle section with card piles */}
-        <div className="flex-1 flex items-center justify-center gap-8 sm:gap-16 p-4 relative">
+        <div className="flex-1 flex items-center justify-center gap-8 sm:gap-16 p-4 relative" style={{ minHeight: isMobile ? "200px" : "300px" }}>
           {/* Decorative elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-64 h-64 rounded-full bg-white/5 absolute animate-pulse-slow" />

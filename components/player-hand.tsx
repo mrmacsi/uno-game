@@ -81,9 +81,9 @@ export default function PlayerHand() {
           <div 
             className="flex justify-center mx-auto"
             style={{ 
-              paddingBottom: "2rem", 
+              paddingBottom: "1rem", 
               paddingTop: "1rem",
-              minHeight: "190px"
+              minHeight: "200px"
             }}
           >
             <div className="flex" style={{ marginLeft: `${overlap/2}px` }}>

@@ -22,15 +22,15 @@ export default function GameControls() {
   const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2
 
   return (
-    <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 mt-4 flex justify-between items-center">
-      <div className="text-white">
+    <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 mt-2 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div className="text-white text-center sm:text-left">
         <p>
           Current Color: <span className="font-bold">{state.currentColor.toUpperCase()}</span>
         </p>
         <p>Direction: {state.direction === 1 ? "Clockwise" : "Counter-Clockwise"}</p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap justify-center">
         {canSayUno && (
           <Button 
             onClick={sayUno} 
@@ -46,7 +46,7 @@ export default function GameControls() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-white/80 px-3 py-1 rounded-full bg-blue-600/30 text-sm animate-pulse-subtle">
-                  Click the draw pile to draw a card
+                  Draw a card
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -95,8 +95,8 @@ export default function GameControls() {
               <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
                 <li>Match the top card by color, number, or action</li>
                 <li>Click the draw pile to draw a card</li>
-                <li>After drawing, if you can't play, end your turn</li>
-                <li>Don't forget to say "UNO" when you have 1 card left!</li>
+                <li>After drawing, if you cannot play, end your turn</li>
+                <li>Say "UNO" when you have 1 card left!</li>
               </ul>
             </TooltipContent>
           </Tooltip>
