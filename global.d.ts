@@ -8,4 +8,7 @@ declare module 'next/headers' {
 
 declare module 'next/navigation' {
   export function redirect(url: string): never;
+  export function useSearchParams(): URLSearchParams;
+  export function useParams(): { [key: string]: string | undefined };
+  export function useRouter(): { push: (url: string) => void; replace: (url: string) => void; prefetch: (url: string) => Promise<void> };
 }

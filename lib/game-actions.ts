@@ -1,7 +1,7 @@
 "use server"
 
 import { v4 as uuidv4 } from "uuid"
-import type { GameState, Player, Card, CardColor, CardType, MatchResult } from "./types"
+import type { GameState, Player, Card, CardColor, MatchResult } from "./types"
 import { pusherServer } from "./pusher-server"
 import * as fs from "fs"
 import * as path from "path"
@@ -282,10 +282,8 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       // Use the color selected by the player
       gameState.currentColor = selectedColor
     } else {
-      // Fallback to a random color if no selection was made (shouldn't happen)
-      const colors: ("red" | "blue" | "green" | "yellow")[] = ["red", "blue", "green", "yellow"]
-      gameState.currentColor = colors[Math.floor(Math.random() * colors.length)]
-      console.warn(`No color selected for wild card, randomly chose ${gameState.currentColor}`)
+      // Fallback: do not play the card if no color is selected (should not happen in official flow)
+      throw new Error("No color selected for wild card")
     }
   } else {
     gameState.currentColor = card.color
@@ -470,17 +468,11 @@ export async function getRoom(roomId: string): Promise<GameState> {
     redirect("/join-room")
   }
 
-  // If isValidPlay exists, create a serializable version without it
-  let serializableGameState: GameState;
+  // Create a serializable version without the isValidPlay function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isValidPlay, ...serializableGameState } = room;
   
-  if (typeof room.isValidPlay === 'function') {
-    const { isValidPlay, ...rest } = room;
-    serializableGameState = rest as GameState;
-  } else {
-    serializableGameState = room;
-  }
-
-  return serializableGameState
+  return serializableGameState as GameState;
 }
 
 // Helper functions
@@ -858,10 +850,11 @@ async function getGameState(roomId: string): Promise<GameState | null> {
 async function persistGameStates(): Promise<void> {
   try {
     // Create a serializable copy of the game states
-    const serializableStates: Record<string, any> = {};
+    const serializableStates: Record<string, Omit<GameState, 'isValidPlay'>> = {};
     
     Object.keys(gameStates).forEach(roomId => {
       // Clone the game state without the function property
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { isValidPlay, ...rest } = gameStates[roomId];
       serializableStates[roomId] = rest;
     });
@@ -917,7 +910,9 @@ export async function getAllRooms(): Promise<GameState[]> {
   for (const roomId of allRoomIds) {
     const room = await getGameState(roomId)
     if (room) {
-      const { isValidPlay, ...serializableRoom } = room
+      // Create a version without the isValidPlay function
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { isValidPlay, ...serializableRoom } = room;
       rooms.push(serializableRoom as GameState)
     }
   }

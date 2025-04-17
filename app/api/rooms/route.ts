@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getAllRooms } from "@/lib/game-actions"
 
 export async function GET() {

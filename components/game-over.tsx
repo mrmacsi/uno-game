@@ -2,9 +2,8 @@
 
 import { useGame } from "./game-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { format } from "date-fns"
 import Link from "next/link"
 
 export default function GameOver() {
@@ -87,8 +86,8 @@ export default function GameOver() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-center">Points Calculation</h3>
               <p className="text-sm text-center mb-4">
-                In UNO, the winner gets points based on cards left in other players' hands.
-                Here's how each card is valued:
+                In UNO, the winner gets points based on cards left in other players&apos; hands.
+                Here&apos;s how each card is valued:
               </p>
               
               <div className="bg-white rounded-md p-4">
@@ -104,7 +103,7 @@ export default function GameOver() {
               </div>
               
               <div className="bg-white rounded-md p-4 mt-4">
-                <h4 className="font-medium mb-2">Players' Cards Point Breakdown:</h4>
+                <h4 className="font-medium mb-2">Players&apos; Cards Point Breakdown:</h4>
                 {state.players
                   .filter(player => player.id !== state.winner && player.cards.length > 0)
                   .map((player) => {
@@ -122,7 +121,7 @@ export default function GameOver() {
                     
                     return (
                       <div key={player.id} className="mt-3 pt-3 border-t">
-                        <h5 className="font-medium mb-1">{player.name}'s Cards:</h5>
+                        <h5 className="font-medium mb-1">{player.name}&apos;s Cards:</h5>
                         <ul className="text-sm space-y-1">
                           {numberCards.length > 0 && (
                             <li className="flex justify-between">

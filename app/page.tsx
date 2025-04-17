@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useState } from "react"
 import RoomList from "@/components/room-list"
 import { PlusCircle, LogIn, ArrowRight } from "lucide-react"
 

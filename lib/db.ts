@@ -1,4 +1,4 @@
-import type { GameState } from "./types"
+import type { GameState, Card } from "./types"
 
 // In-memory database
 const gameStates: Record<string, GameState> = {}
@@ -6,7 +6,7 @@ const gameStates: Record<string, GameState> = {}
 // Initialize database with isValidPlay function
 const initializeGameState = (gameState: GameState) => {
   if (gameState.status === 'playing') {
-    gameState.isValidPlay = function (card: any) {
+    gameState.isValidPlay = function (card: Card) {
       const topCard = this.discardPile[this.discardPile.length - 1]
       if (card.type === "wild" || card.type === "wild4") {
         return true

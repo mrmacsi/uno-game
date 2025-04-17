@@ -9,7 +9,7 @@ interface UnoCardProps {
   faceDown?: boolean
 }
 
-export default function UnoCard({ card, onClick, disabled = false, faceDown = false }: UnoCardProps) {
+export default function UnoCard({ card, onClick, disabled = false, faceDown = false, animationClass = "" }: UnoCardProps & { animationClass?: string }) {
   const getCardColor = () => {
     if (faceDown) return "bg-gradient-to-br from-blue-900 to-blue-700"
 
@@ -119,7 +119,7 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
     <div
       className={`w-24 h-36 rounded-xl shadow-xl flex items-center justify-center ${getCardColor()} ${
         !disabled && !faceDown ? "cursor-pointer card-hover-effect" : "opacity-90"
-      } card-transition animate-draw-card relative overflow-hidden`}
+      } card-transition ${animationClass} relative overflow-hidden`}
       onClick={!disabled && !faceDown ? onClick : undefined}
     >
       <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-gradient-to-br from-white via-transparent to-transparent"></div>

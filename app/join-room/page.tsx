@@ -1,10 +1,10 @@
 "use client"
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,23 +16,22 @@ import { Home, User, Sparkles, KeyRound, ShieldAlert, ArrowRight } from "lucide-
 
 export default function JoinRoom() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [playerName, setPlayerName] = useState("")
   const [roomId, setRoomId] = useState("")
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    // Get roomId from URL query parameter if available
-    const roomIdParam = searchParams.get("roomId")
-    if (roomIdParam) {
-      setRoomId(roomIdParam)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const roomIdParam = params.get('roomId')
+      if (roomIdParam) {
+        setRoomId(roomIdParam)
+      }
     }
-    
-    // Generate a random name for the player
     setPlayerName(generateRandomName())
-  }, [searchParams])
-  
+  }, [])
+
   const generateNewRandomName = () => {
     setPlayerName(generateRandomName())
   }

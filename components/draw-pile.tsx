@@ -1,6 +1,5 @@
 import UnoCard from "./uno-card"
 import type { Card } from "@/lib/types"
-import { useEffect, useState } from 'react'
 
 interface DrawPileProps {
   count: number

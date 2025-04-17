@@ -1,7 +1,8 @@
 "use client"
 
+"use client"
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { GameProvider } from "@/components/game-context"
 import GameBoard from "@/components/game-board"
 import WaitingRoom from "@/components/waiting-room"
@@ -10,8 +11,8 @@ import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
 import type { GameState } from "@/lib/types"
 
 export default function RoomPage() {
-  const { id } = useParams()
   const router = useRouter()
+  const id = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : undefined
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")

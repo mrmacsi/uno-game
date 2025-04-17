@@ -54,6 +54,7 @@ export function GameProvider({
   // Log initial player ID
   useEffect(() => {
     console.log("[GameProvider] Initial player ID:", currentPlayerId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Listen for localStorage changes

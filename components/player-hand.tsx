@@ -30,11 +30,14 @@ export default function PlayerHand() {
             return (
               <div 
                 key={card.id} 
-                className={`transition-all duration-300 ${animatingCard === card.id ? 'animate-play-card' : 'animate-deal-card'} ${isPlayable ? 'hover:translate-y-[-30px]' : ''}`} 
+                className={`transition-all duration-300 ${isPlayable ? 'hover:translate-y-[-30px]' : ''}`} 
                 style={{ 
                   zIndex: index,
                   animationDelay: animationDelay,
                   transformOrigin: 'bottom center'
+                }}
+                onAnimationEnd={() => {
+                  if (animatingCard === card.id) setAnimatingCard(null)
                 }}
               >
                 <div className={isPlayable ? 'animate-glow' : ''}>
@@ -43,13 +46,11 @@ export default function PlayerHand() {
                     onClick={() => {
                       if (isMyTurn && state.isValidPlay(card)) {
                         setAnimatingCard(card.id)
-                        setTimeout(() => {
-                          playCard(card.id)
-                          setAnimatingCard(null)
-                        }, 500)
+                        playCard(card.id)
                       }
                     }}
                     disabled={!isMyTurn || !state.isValidPlay(card)}
+                    animationClass={animatingCard === card.id ? 'animate-play-card' : 'animate-deal-card'}
                   />
                 </div>
               </div>
