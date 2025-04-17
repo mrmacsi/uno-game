@@ -1,6 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import React from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room-list"
 import { PlusCircle, LogIn, ArrowRight } from "lucide-react"
@@ -14,7 +16,10 @@ export default function Home() {
       <div className="w-full max-w-4xl mx-auto my-4 sm:my-8">
         <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-xl overflow-hidden">
           <div className="px-6 py-8 sm:px-8 sm:pt-10 sm:pb-6">
-            <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-8">
+  <a href="/" className="text-3xl font-bold text-gray-800 hover:text-red-600 transition-colors">UNO</a>
+  <ThemeToggle />
+</div>
               <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600">UNO</h1>
               <p className="mt-3 text-gray-600 text-lg">Play the classic card game online with friends</p>
             </div>

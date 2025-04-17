@@ -23,7 +23,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      <div className="fixed top-0 left-0 right-0 z-[100] flex flex-col items-end p-4 space-y-2 max-h-60 overflow-y-auto sm:items-end sm:right-0 sm:left-auto sm:top-0 sm:max-w-[420px]">
+      <div className="fixed top-0 left-0 right-0 z-[100] flex flex-col items-end p-2 space-y-1 max-h-32 overflow-y-auto sm:items-end sm:right-0 sm:left-auto sm:top-0 sm:max-w-[360px]">
         {latestToast.map(({ id, title, description, action, ...props }) => (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
