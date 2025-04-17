@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { createRoom } from "@/lib/game-actions"
+import { Home } from "lucide-react"
+import { storePlayerIdInLocalStorage, generateClientUUID } from "@/lib/client-utils"
 
 export default function CreateRoom() {
   const router = useRouter()
@@ -22,6 +24,12 @@ export default function CreateRoom() {
     setIsCreating(true)
     try {
       const roomId = await createRoom(playerName)
+      
+      // Generate a client-side ID and store it in localStorage
+      const clientPlayerId = generateClientUUID()
+      storePlayerIdInLocalStorage(clientPlayerId)
+      
+      // Navigate to the room
       router.push(`/room/${roomId}`)
     } catch (error) {
       console.error("Failed to create room:", error)
@@ -29,10 +37,22 @@ export default function CreateRoom() {
     }
   }
 
+  const goToHome = () => {
+    router.push("/")
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-b from-red-500 to-yellow-500">
       <Card className="max-w-md w-full">
-        <CardHeader>
+        <CardHeader className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute top-4 right-4" 
+            onClick={goToHome}
+          >
+            <Home className="h-5 w-5" />
+          </Button>
           <CardTitle>Create a New Game Room</CardTitle>
           <CardDescription>Set up a new UNO game and invite your friends to join</CardDescription>
         </CardHeader>
@@ -51,9 +71,17 @@ export default function CreateRoom() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isCreating}>
               {isCreating ? "Creating..." : "Create Room"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={goToHome}
+            >
+              Back to Home
             </Button>
           </CardFooter>
         </form>

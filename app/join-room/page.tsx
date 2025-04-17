@@ -2,20 +2,30 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { joinRoom } from "@/lib/game-actions"
+import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 
 export default function JoinRoom() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [playerName, setPlayerName] = useState("")
   const [roomId, setRoomId] = useState("")
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    // Get roomId from URL query parameter if available
+    const roomIdParam = searchParams.get("roomId")
+    if (roomIdParam) {
+      setRoomId(roomIdParam)
+    }
+  }, [searchParams])
 
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +35,12 @@ export default function JoinRoom() {
     setError("")
 
     try {
-      await joinRoom(roomId, playerName)
+      const playerId = await joinRoom(roomId, playerName)
+      
+      // Store the player ID in localStorage using our utility function
+      storePlayerIdInLocalStorage(playerId)
+      
+      // Navigate to the room
       router.push(`/room/${roomId}`)
     } catch (error) {
       console.error("Failed to join room:", error)
@@ -39,7 +54,12 @@ export default function JoinRoom() {
       <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle>Join a Game Room</CardTitle>
-          <CardDescription>Enter a room code to join an existing UNO game</CardDescription>
+          <CardDescription>
+            {roomId === "DEFAULT" ? 
+              "Join the public default room - no code needed!" : 
+              "Enter a room code to join an existing UNO game"
+            }
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleJoinRoom}>
           <CardContent>
@@ -55,21 +75,30 @@ export default function JoinRoom() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="roomId">Room Code</Label>
+                <Label htmlFor="roomId">Room Code {roomId === "DEFAULT" && "(Pre-filled)"}</Label>
                 <Input
                   id="roomId"
                   placeholder="Enter room code"
                   value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
                   required
+                  disabled={roomId === "DEFAULT"}
                 />
               </div>
               {error && <p className="text-red-600 text-sm">{error}</p>}
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isJoining}>
-              {isJoining ? "Joining..." : "Join Room"}
+              {isJoining ? "Joining..." : `Join ${roomId === "DEFAULT" ? "Default " : ""}Room`}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => router.push("/")}
+            >
+              Back to Home
             </Button>
           </CardFooter>
         </form>

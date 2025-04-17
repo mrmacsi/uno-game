@@ -1,9 +1,10 @@
 "use client"
 
-import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useReducer, useState, type ReactNode } from "react"
 import pusherClient from "@/lib/pusher-client"
 import type { GameState, GameAction } from "@/lib/types"
-import { playCard, drawCard, sayUno } from "@/lib/game-actions"
+import { playCard, drawCard, sayUno, getRoom } from "@/lib/game-actions"
+import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
 
 type GameContextType = {
   state: GameState
@@ -11,6 +12,7 @@ type GameContextType = {
   drawCard: () => Promise<void>
   sayUno: () => Promise<void>
   currentPlayerId: string | null
+  refreshGameState: () => Promise<void>
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -18,7 +20,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined)
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "UPDATE_GAME_STATE":
-      return { ...action.payload }
+      return addIsValidPlayFunction({ ...action.payload })
     default:
       return state
   }
@@ -33,40 +35,108 @@ export function GameProvider({
   initialState: GameState
   roomId: string
 }) {
-  const [state, dispatch] = useReducer(gameReducer, initialState)
-  const currentPlayerId = typeof window !== "undefined" ? localStorage.getItem("playerId") : null
+  const processedInitialState = addIsValidPlayFunction(initialState)
+  const [state, dispatch] = useReducer(gameReducer, processedInitialState)
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
+    typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
+  )
 
+  // Log initial player ID
   useEffect(() => {
-    // Initialize Pusher
-    if (pusherClient) {
-      // Subscribe to the game room channel
-      const channel = pusherClient.subscribe(`game-${roomId}`)
+    console.log("[GameProvider] Initial player ID:", currentPlayerId)
+  }, [])
 
-      // Listen for game state updates
-      channel.bind("game-updated", (data: GameState) => {
-        dispatch({ type: "UPDATE_GAME_STATE", payload: data })
-      })
+  // Listen for localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedPlayerId = getPlayerIdFromLocalStorage()
+      console.log("[GameProvider] Storage event detected, player ID:", storedPlayerId)
+      setCurrentPlayerId(storedPlayerId)
+    }
 
-      return () => {
-        channel.unbind_all()
-        channel.unsubscribe()
-        pusherClient.disconnect()
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleStorageChange)
+      
+      // Also check once on mount
+      const storedPlayerId = getPlayerIdFromLocalStorage()
+      if (storedPlayerId !== currentPlayerId) {
+        console.log("[GameProvider] Updated player ID on mount:", storedPlayerId)
+        setCurrentPlayerId(storedPlayerId)
       }
     }
-  }, [roomId])
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", handleStorageChange)
+      }
+    }
+  }, [currentPlayerId])
+
+  // Debug the player ID and host status
+  useEffect(() => {
+    if (currentPlayerId) {
+      const playerInGame = state.players.find(p => p.id === currentPlayerId)
+      console.log("[GameProvider] Current player ID:", currentPlayerId)
+      console.log("[GameProvider] Current player in game:", playerInGame)
+      console.log("[GameProvider] Players in room:", state.players)
+      console.log("[GameProvider] Is host:", playerInGame?.isHost)
+      console.log("[GameProvider] Total players:", state.players.length)
+    } else {
+      console.warn("[GameProvider] No player ID available")
+    }
+  }, [currentPlayerId, state.players])
+
+  useEffect(() => {
+    if (!pusherClient || !roomId) return;
+
+    const channelName = `game-${roomId}`;
+    console.log(`[GameProvider] Subscribing to Pusher channel: ${channelName}`);
+
+    const channel = pusherClient.subscribe(channelName);
+
+    channel.bind("game-updated", (data: GameState) => {
+      console.log("[GameProvider] Received game update via Pusher:", data);
+      dispatch({ type: "UPDATE_GAME_STATE", payload: data });
+    });
+
+    return () => {
+      console.log(`[GameProvider] Unsubscribing from Pusher channel: ${channelName}`);
+      channel.unbind_all();
+      pusherClient?.unsubscribe(channelName);
+    };
+  }, [roomId]);
+
+  const refreshGameState = async (): Promise<void> => {
+    try {
+      console.log("[GameProvider] Manually refreshing game state for room:", roomId)
+      const gameState = await getRoom(roomId)
+      dispatch({ type: "UPDATE_GAME_STATE", payload: gameState })
+    } catch (error) {
+      console.error("[GameProvider] Failed to refresh game state:", error)
+    }
+  }
 
   const handlePlayCard = async (cardId: string) => {
-    if (!currentPlayerId) return
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot play card: No player ID")
+      return
+    }
     await playCard(roomId, currentPlayerId, cardId)
   }
 
   const handleDrawCard = async () => {
-    if (!currentPlayerId) return
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot draw card: No player ID")
+      return
+    }
     await drawCard(roomId, currentPlayerId)
   }
 
   const handleSayUno = async () => {
-    if (!currentPlayerId) return
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot say UNO: No player ID")
+      return
+    }
     await sayUno(roomId, currentPlayerId)
   }
 
@@ -78,6 +148,7 @@ export function GameProvider({
         drawCard: handleDrawCard,
         sayUno: handleSayUno,
         currentPlayerId,
+        refreshGameState
       }}
     >
       {children}

@@ -1,0 +1,307 @@
+{
+  "ABOZFJ": {
+    "roomId": "ABOZFJ",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "76344cab-44b2-46bd-a786-587fe757812c",
+        "name": "asd",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "42ff64f0-c63e-473a-8656-2f81eea9fd4a",
+        "name": "123123",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "EM88VT": {
+    "roomId": "EM88VT",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "e1355da4-6871-4fda-bc24-2e1e4d0c8422",
+        "name": "123",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "49e295b1-7e39-4b78-9d1e-d1e6c3ca9efb",
+        "name": "123123",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "FPZ8G8": {
+    "roomId": "FPZ8G8",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "47dad107-3757-4be2-b42a-9ec63a272b50",
+        "name": "123",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "626d53d3-1a21-4a1b-ad1f-f5d12673a54f",
+        "name": "asdasd",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "AHCV1C": {
+    "roomId": "AHCV1C",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "e3410fcf-cda7-4674-b247-99f0cd3172c0",
+        "name": "test",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "cc55245c-7a20-4c31-a9b4-dce3cff40fde",
+        "name": "AHCV1C",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "2UW3DP": {
+    "roomId": "2UW3DP",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "edc1827d-8abf-4442-8644-59b370dca407",
+        "name": "asd",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "c4e92c8d-6f1c-4d06-96a9-d8aa8d00f61c",
+        "name": "123123",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "59KU5T": {
+    "roomId": "59KU5T",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "8ddc1d39-67f2-4fb2-b8b9-148a5a040b25",
+        "name": "asdasd",
+        "cards": [],
+        "isHost": true
+      },
+      {
+        "id": "17dab80b-a591-467d-927d-07db26693874",
+        "name": "123123",
+        "cards": [],
+        "isHost": false
+      },
+      {
+        "id": "db371b4f-8106-4713-a75d-357a4fee0489",
+        "name": "asdasd",
+        "cards": [],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "2Y6A84": {
+    "roomId": "2Y6A84",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "e98c7609-d021-4143-863d-12a468349e2e",
+        "name": "213",
+        "cards": [],
+        "isHost": true
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "RNQ8FV": {
+    "roomId": "RNQ8FV",
+    "status": "waiting",
+    "players": [
+      {
+        "id": "ab47290f-c127-41c7-8a97-798b6125029b",
+        "name": "132",
+        "cards": [],
+        "isHost": true
+      }
+    ],
+    "currentPlayer": "",
+    "direction": 1,
+    "drawPileCount": 0,
+    "discardPile": [],
+    "currentColor": "red",
+    "winner": null
+  },
+  "DEFAULT": {
+    "roomId": "DEFAULT",
+    "status": "playing",
+    "players": [
+      {
+        "id": "5d92aa58-1d8b-4c0c-a118-a9677eeac4f0",
+        "name": "564564564",
+        "cards": [
+          {
+            "id": "54c0a1db-010c-4f61-8a3a-c1c617d7b764",
+            "type": "number",
+            "color": "yellow",
+            "value": 2
+          },
+          {
+            "id": "c2c70b3b-3a1d-437b-92b5-1d1753b02419",
+            "type": "number",
+            "color": "red",
+            "value": 7
+          },
+          {
+            "id": "408d1dd1-c8ef-4baa-a20c-d19e9249b85a",
+            "type": "number",
+            "color": "yellow",
+            "value": 4
+          },
+          {
+            "id": "80bcc738-e619-4353-81c9-56a460eccc12",
+            "type": "draw2",
+            "color": "green"
+          },
+          {
+            "id": "a59857fc-c07b-4d5d-be80-5842ec39fa6e",
+            "type": "number",
+            "color": "yellow",
+            "value": 9
+          },
+          {
+            "id": "4c18f249-7100-41f7-86f1-c50040d794b0",
+            "type": "number",
+            "color": "yellow",
+            "value": 9
+          }
+        ],
+        "isHost": true
+      },
+      {
+        "id": "acb70455-d8dc-4838-a19a-e724dd635d9f",
+        "name": "4556465",
+        "cards": [
+          {
+            "id": "b8902226-a3b8-4956-b76a-1ffe85a7542f",
+            "type": "number",
+            "color": "red",
+            "value": 9
+          },
+          {
+            "id": "6c3f63b4-76c4-43d1-bec1-49e9bebdaefc",
+            "type": "number",
+            "color": "red",
+            "value": 7
+          },
+          {
+            "id": "b6e8dd84-8db2-4595-bff1-fcd29049572b",
+            "type": "number",
+            "color": "red",
+            "value": 9
+          },
+          {
+            "id": "831a2237-5431-4947-b955-570200edfa6d",
+            "type": "number",
+            "color": "green",
+            "value": 7
+          },
+          {
+            "id": "747a7a69-242b-4f77-b391-a34c0e315538",
+            "type": "draw2",
+            "color": "blue"
+          },
+          {
+            "id": "e748463e-649d-49db-9908-334e62cd1f9d",
+            "type": "draw2",
+            "color": "green"
+          },
+          {
+            "id": "1511bd1f-da26-486b-ad73-5a881cac1cba",
+            "type": "number",
+            "color": "yellow",
+            "value": 7
+          },
+          {
+            "id": "9dfecdc9-3f64-4495-9d65-b3c27e763e25",
+            "type": "draw2",
+            "color": "green"
+          }
+        ],
+        "isHost": false
+      }
+    ],
+    "currentPlayer": "5d92aa58-1d8b-4c0c-a118-a9677eeac4f0",
+    "direction": 1,
+    "drawPileCount": 92,
+    "discardPile": [
+      {
+        "id": "acc80250-1ef3-4c17-89ae-9f1f5bd3e904",
+        "type": "number",
+        "color": "blue",
+        "value": 7
+      },
+      {
+        "id": "eace19bf-af45-4279-aeab-60594a990889",
+        "type": "number",
+        "color": "yellow",
+        "value": 4
+      }
+    ],
+    "currentColor": "yellow",
+    "winner": null
+  }
+}
