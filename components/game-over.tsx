@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function GameOver() {
   const { state, refreshGameState } = useGame()
+  const router = useRouter()
 
   const winner = state.players.find((p) => p.id === state.winner)
   
@@ -21,6 +23,7 @@ export default function GameOver() {
         body: JSON.stringify({ roomId: state.roomId })
       })
       await refreshGameState()
+      router.replace(`/room/${state.roomId}`)
     } catch (error) {
       console.error("Error starting rematch:", error)
     }
