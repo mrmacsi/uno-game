@@ -59,13 +59,15 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
       
       // Wild Draw Four can be played on any card, but with restrictions
       if (card.type === "wild4") {
-        // If the top card is a Draw 2, we can play a Wild Draw 4 without color restrictions
-        if (topCard.type === "draw2") {
-          return true
-        }
-        
-        // Otherwise, follow the standard rule that you can only play it if you don't have matching color
+        // According to official rules, you can only play Wild Draw 4 if you don't have any cards matching the current color
         const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
+        
+        // Can't stack +4 on +2 according to official rules
+        // if (topCard.type === "draw2") {
+        //   return true
+        // }
+        
+        // You can only play a Wild Draw 4 if you don't have any cards matching the current color
         return !hasMatchingColor
       }
       

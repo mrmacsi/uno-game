@@ -180,51 +180,28 @@ export async function startGame(roomId: string): Promise<void> {
     
     if (!currentPlayer) return false
 
-    // Rule 0: Special case - If player just drew cards from a draw card effect,
-    // they can play a matching draw card
-    if (this.drawCardEffect?.active) {
-      if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
-        return true
-      }
-      if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
-        return true
-      }
-    }
-
     // Rule 1: Pure Wild cards can always be played
     if (card.type === "wild") {
       return true
     }
     
-    // Rule 2: Wild Draw Four has special stacking and color matching rules
+    // Rule 2: Wild Draw Four has special rules
     if (card.type === "wild4") {
-      // Allow stacking: Wild Draw Four can be played on Draw Two
-      if (topCard.type === "draw2") {
-        return true
-      }
-      // Regular rule: Wild Draw Four can only be played if no matching color
+      // Official rule: Wild Draw Four can only be played if no matching color
       const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor)
       return !hasMatchingColor
     }
     
-    // Rule 3: Draw Two stacking and color matching
+    // Rule 3: Draw Two must match color (no stacking per official rules)
     if (card.type === "draw2") {
-      // Allow stacking Draw Two on Draw Two
-      if (topCard.type === "draw2") {
-        return true
-      }
       // Regular color matching rule
       return card.color === this.currentColor
     }
     
-    // Rule 4: Reverse cards can be played on any other reverse card regardless of color
-    if (card.type === "reverse" && topCard.type === "reverse") {
-      return true
-    }
-
-    // Rule 5: Standard cards must match color or value/type
+    // Rule 4: Standard cards must match color or type/value
     return (
       card.color === this.currentColor ||
+      (card.type === topCard.type) ||
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
     )
   }
@@ -339,6 +316,12 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   } else {
     // Apply card effects
     applyCardEffects(gameState, card)
+    
+    // Log who played the card and what effect was applied
+    if (card.type === "wild4") {
+      console.log(`[DEBUG] ${gameState.players[playerIndex].name} played Wild Draw 4. Next player should draw 4 cards.`)
+    }
+
     // Move to the next player only if the card is not a skip card, reverse card, draw2 or wild4
     // Wild4 and draw2 cards already handle turn advancement in applyCardEffects
     if (card.type !== "skip" && card.type !== "reverse" && card.type !== "draw2" && card.type !== "wild4") {
@@ -688,6 +671,7 @@ function createDeck(): Card[] {
   return deck
 }
 
+
 function shuffle<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -697,37 +681,58 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 function drawCardFromPile(): Card {
-  // In a real game, we would draw from the actual pile
-  // For this simplified example, we'll just create a new random card
-  const colors: CardColor[] = ["red", "blue", "green", "yellow"]
-  const types = ["number", "skip", "reverse", "draw2", "wild", "wild4"]
-  const type = types[Math.floor(Math.random() * types.length)] as
-    | "number"
-    | "skip"
-    | "reverse"
-    | "draw2"
-    | "wild"
-    | "wild4"
-
+  // Create a weighted distribution of card types similar to a real Uno deck
+  // In a real Uno deck (108 cards):
+  // - 76 Number cards (70.4%)
+  // - 8 Skip cards (7.4%)
+  // - 8 Reverse cards (7.4%)
+  // - 8 Draw Two cards (7.4%)
+  // - 4 Wild cards (3.7%)
+  // - 4 Wild Draw Four cards (3.7%)
+  
+  const random = Math.random() * 100;
+  
+  let type: "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4";
+  
+  if (random < 70.4) {
+    type = "number";
+  } else if (random < 77.8) {
+    type = "skip";
+  } else if (random < 85.2) {
+    type = "reverse";
+  } else if (random < 92.6) {
+    type = "draw2";
+  } else if (random < 96.3) {
+    type = "wild";
+  } else {
+    type = "wild4";
+  }
+  
+  const colors: CardColor[] = ["red", "blue", "green", "yellow"];
+  
   if (type === "wild" || type === "wild4") {
     return {
       id: uuidv4(),
       type,
       color: "black",
-    }
+    };
   } else if (type === "number") {
+    // For number cards, distribute 0-9 with appropriate weights
+    // One 0 per color (10%), two each of 1-9 per color (90%)
+    const value = Math.random() < 0.1 ? 0 : Math.floor(Math.random() * 9) + 1;
+    
     return {
       id: uuidv4(),
       type,
       color: colors[Math.floor(Math.random() * colors.length)],
-      value: Math.floor(Math.random() * 10),
-    }
+      value,
+    };
   } else {
     return {
       id: uuidv4(),
       type,
       color: colors[Math.floor(Math.random() * colors.length)],
-    }
+    };
   }
 }
 
@@ -773,28 +778,24 @@ function applyCardEffects(gameState: GameState, card: Card): void {
       break
 
     case "wild4":
-      // Next player draws 4 cards and loses their turn
-      const nextPlayerIdx = getNextPlayerIndex(
+      // Next player draws 4 cards and loses their turn (official UNO rule)
+      const wild4NextPlayerIdx = getNextPlayerIndex(
         gameState,
         gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
       )
-      
-      // Log the action
       if (!gameState.log) gameState.log = []
-      gameState.log.push(`${gameState.players[nextPlayerIdx].name} has to draw 4 cards!`)
+      gameState.log.push(`${gameState.players[wild4NextPlayerIdx].name} has to draw 4 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-      
       for (let i = 0; i < 4; i++) {
-        gameState.players[nextPlayerIdx].cards.push(drawCardFromPile())
+        gameState.players[wild4NextPlayerIdx].cards.push(drawCardFromPile())
         gameState.drawPileCount--
       }
-      
       // Skip the next player's turn
       gameState.currentPlayer = 
         gameState.players[
           getNextPlayerIndex(
             gameState,
-            nextPlayerIdx
+            wild4NextPlayerIdx
           )
         ].id
       break
@@ -838,50 +839,38 @@ try {
           if (!currentPlayer) return false;
           
           // Rule 0: Special case - If player just drew cards from a draw card effect,
-          // they can play a matching draw card
-          if (this.drawCardEffect?.active) {
-            if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
-              return true;
-            }
-            if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
-              return true;
-            }
-          }
+          // they can't play a matching draw card (no stacking in official rules)
+          // if (this.drawCardEffect?.active) {
+          //   if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
+          //     return true;
+          //   }
+          //   if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
+          //     return true;
+          //   }
+          // }
           
           // Rule 1: Pure Wild cards can always be played
           if (card.type === "wild") {
             return true;
           }
           
-          // Rule 2: Wild Draw Four has special stacking and color matching rules
+          // Rule 2: Wild Draw Four has special rules
           if (card.type === "wild4") {
-            // Allow stacking: Wild Draw Four can be played on Draw Two
-            if (topCard.type === "draw2") {
-              return true;
-            }
-            // Regular rule: Wild Draw Four can only be played if no matching color
+            // Official rule: Wild Draw Four can only be played if no matching color
             const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor);
             return !hasMatchingColor;
           }
           
-          // Rule 3: Draw Two stacking and color matching
+          // Rule 3: Draw Two must match color (no stacking per official rules)
           if (card.type === "draw2") {
-            // Allow stacking Draw Two on Draw Two
-            if (topCard.type === "draw2") {
-              return true;
-            }
             // Regular color matching rule
             return card.color === this.currentColor;
           }
 
-          // Rule 4: Reverse cards can be played on any other reverse card regardless of color
-          if (card.type === "reverse" && topCard.type === "reverse") {
-            return true;
-          }
-
-          // Rule 5: Standard cards must match color or value/type
+          // Rule 4: Standard cards must match color or type/value
           return (
             card.color === this.currentColor || 
+            (card.type === topCard.type) ||
             (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
           );
         };
