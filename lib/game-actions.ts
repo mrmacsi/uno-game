@@ -390,12 +390,54 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
       type: topCard.type as "draw2" | "wild4"
     }
   } else {
-    // Normal draw - move to next player
-    const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-    gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+    // For normal draw, let the player try to play the drawn card
+    // Set a flag that player has drawn this turn
+    gameState.hasDrawnThisTurn = true
     // Clear any draw effect tracking
     gameState.drawCardEffect = undefined
   }
+
+  // Update the game state in the database
+  await updateGameState(roomId, gameState)
+
+  // Notify players
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+}
+
+// End turn (pass to next player)
+export async function endTurn(roomId: string, playerId: string): Promise<void> {
+  // Get the current game state
+  const gameState = await getGameState(roomId)
+
+  if (!gameState) {
+    throw new Error("Room not found")
+  }
+
+  if (gameState.status !== "playing") {
+    throw new Error("Game is not in progress")
+  }
+
+  if (gameState.currentPlayer !== playerId) {
+    throw new Error("Not your turn")
+  }
+
+  // Find the player
+  const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
+  if (playerIndex === -1) {
+    throw new Error("Player not found")
+  }
+
+  // Move to the next player
+  const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+  gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+  
+  // Reset the draw flag for next turn
+  gameState.hasDrawnThisTurn = false
+
+  // Log the action
+  if (!gameState.log) gameState.log = []
+  gameState.log.push(`${gameState.players[playerIndex].name} ended their turn`)
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
 
   // Update the game state in the database
   await updateGameState(roomId, gameState)

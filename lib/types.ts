@@ -42,6 +42,7 @@ export interface GameState {
     active: boolean
     type: "draw2" | "wild4"
   }
+  hasDrawnThisTurn?: boolean
   matchHistory?: MatchResult[]
   log?: string[]
 }

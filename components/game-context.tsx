@@ -19,6 +19,7 @@ type GameContextType = {
   isColorSelectionOpen: boolean
   pendingWildCardId: string | null
   closeColorSelector: () => void
+  endTurn: () => Promise<void>
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -228,6 +229,40 @@ export function GameProvider({
     setIsColorSelectionOpen(false)
     setPendingWildCardId(null)
   }
+
+  const handleEndTurn = async () => {
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot end turn: No player ID")
+      return
+    }
+    
+    try {
+      const response = await fetch("/api/end-turn", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomId,
+          playerId: currentPlayerId,
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to end turn")
+      }
+      
+      toast({ description: "Ended your turn" })
+    } catch (error) {
+      console.error("[GameProvider] Failed to end turn:", error)
+      toast({ 
+        title: "Error",
+        description: "Failed to end turn",
+        variant: "destructive"
+      })
+    }
+  }
   
   return (
     <GameContext.Provider
@@ -242,7 +277,8 @@ export function GameProvider({
         selectWildCardColor: handleSelectWildCardColor,
         isColorSelectionOpen,
         pendingWildCardId,
-        closeColorSelector: handleCloseColorSelector
+        closeColorSelector: handleCloseColorSelector,
+        endTurn: handleEndTurn
       }}
     >
       {children}
