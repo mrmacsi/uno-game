@@ -154,7 +154,7 @@ export default function GameBoard() {
         )}
         
         {/* Player's Hand - bottom section */}
-        <div className="mt-auto mb-16 sm:mb-0">
+        <div className="mt-auto mb-12 sm:mb-0">
           <PlayerHand />
         </div>
         

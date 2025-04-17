@@ -88,7 +88,7 @@ export default function DrawPile({ count }: DrawPileProps) {
       )}
       
       <div 
-        className={`h-40 relative ${canDraw 
+        className={`h-40 relative draw-pile ${canDraw 
           ? 'cursor-pointer hover:scale-105 transition-transform duration-300 ease-out' 
           : ''}`}
         onClick={handleDrawClick}

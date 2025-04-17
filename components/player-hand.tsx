@@ -66,7 +66,7 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className={`relative px-3 pb-4 sm:pb-4 ${handWidth < 640 ? 'pb-28' : ''} bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`}>
+    <div className={`relative px-3 pb-4 sm:pb-4 ${handWidth < 640 ? 'pb-16' : ''} bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`}>
       <div className="flex flex-col items-center">
         <div className="w-full flex justify-between items-center mb-3">
           <h2 className="text-white text-lg font-semibold tracking-tight flex items-center gap-2">

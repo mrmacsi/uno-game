@@ -32,81 +32,62 @@ export default function GameControls() {
   }[state.currentColor] || "from-gray-600 to-gray-700 text-white";
 
   return (
-    <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 mt-0 shadow-xl border border-white/10 sm:static fixed bottom-0 left-0 right-0 z-50 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-        <div className="text-white w-full sm:w-auto">
-          <div className="flex items-center justify-center sm:justify-start gap-3 mb-2 sm:mb-0">
-            <div className="flex gap-2 items-center">
-              <span className="text-white/80 text-sm">Color:</span>
-              <span className={`inline-block px-3 py-1 rounded-full font-bold text-sm bg-gradient-to-r ${colorStyles}`}>
-                {state.currentColor.toUpperCase()}
-              </span>
-            </div>
-            
-            <div className="hidden sm:block h-6 w-px bg-white/20"></div>
-            
-            <div className="flex gap-2 items-center">
-              <span className="text-white/80 text-sm">Direction:</span>
-              <span className="text-sm font-medium">
-                {state.direction === 1 ? "➡️ Clockwise" : "⬅️ Counter-Clockwise"}
-              </span>
-            </div>
-          </div>
+    <div className="bg-black/60 backdrop-blur-md p-2 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-30">
+      <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 min-h-10">
+        <div className="flex items-center">
+          <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${colorStyles} mr-2`}>
+            {state.currentColor.toUpperCase()}
+          </span>
+          
+          <span className="text-white/80 text-xs sm:text-sm hidden sm:inline">
+            {state.direction === 1 ? "➡️ Clockwise" : "⬅️ Counter-Clockwise"}
+          </span>
         </div>
 
-        <div className="flex gap-2 flex-wrap justify-center w-full sm:w-auto">
+        <div className="flex gap-1 items-center">
           {canSayUno && (
             <Button 
               onClick={sayUno} 
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow-lg shadow-red-500/20 transition-all duration-300 hover:scale-105"
+              size="sm"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-8 text-xs"
             >
-              <Hand className="h-4 w-4 mr-1.5" />
+              <Hand className="h-3 w-3 mr-1" />
               UNO!
             </Button>
           )}
           
           {isMyTurn && !state.hasDrawnThisTurn && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className={`text-white/80 px-3 py-1 rounded-full ${noPlayableCards ? 'bg-blue-600 animate-pulse' : 'bg-blue-600/30'} text-sm ${noPlayableCards ? 'animate-pulse' : 'animate-pulse-subtle'}`}>
-                    {noPlayableCards ? 'You must draw a card' : 'Draw a card'}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {noPlayableCards ? 
-                    "You have no playable cards. You must draw a card from the draw pile." : 
-                    "You need to draw a card this turn"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button
+              variant={noPlayableCards ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  // Simulate click on draw pile
+                  document.querySelector('.draw-pile')?.dispatchEvent(
+                    new MouseEvent('click', { bubbles: true })
+                  );
+                }
+              }}
+              className={`h-8 px-2 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600/20 text-white/90'}`}
+            >
+              {noPlayableCards ? 'Draw!' : 'Draw Card'}
+            </Button>
           )}
 
           {(isMyTurn && state.hasDrawnThisTurn) && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button 
-                      onClick={endTurn} 
-                      disabled={!canEndTurn} 
-                      className={`
-                        transition-all duration-300
-                        ${canEndTurn
-                          ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 hover:scale-105 shadow-lg" 
-                          : "bg-gray-700/50 text-white/50"}
-                      `}
-                    >
-                      <ArrowDown className="h-4 w-4 mr-1.5" />
-                      End Turn
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  End your turn and pass to the next player
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button 
+              onClick={endTurn} 
+              disabled={!canEndTurn}
+              size="sm"
+              className={`h-8 px-2 text-xs
+                ${canEndTurn
+                  ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800" 
+                  : "bg-gray-700/50 text-white/50"}
+              `}
+            >
+              <ArrowDown className="h-3 w-3 mr-1" />
+              End Turn
+            </Button>
           )}
 
           <TooltipProvider>
@@ -115,9 +96,9 @@ export default function GameControls() {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="text-white/80 hover:bg-white/10 rounded-full h-9 w-9 border border-white/20 backdrop-blur-sm"
+                  className="text-white/80 hover:bg-white/10 rounded-full h-8 w-8 border border-white/20"
                 >
-                  <HelpCircle className="h-5 w-5" />
+                  <HelpCircle className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs bg-black/90 border-white/20 text-white">
