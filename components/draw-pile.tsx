@@ -62,14 +62,14 @@ export default function DrawPile({ count }: DrawPileProps) {
   if (count === 0) {
     return (
       <div className="relative flex flex-col items-center">
-        <div className="w-28 h-40 rounded-lg border-2 border-dashed border-white/30 flex items-center justify-center">
+        <div className="w-28 h-40 rounded-xl border-2 border-dashed border-white/30 flex items-center justify-center bg-black/10 backdrop-blur-md">
           <div className="flex flex-col items-center justify-center text-white/60">
             <Layers className="w-6 h-6 mb-2" />
             <p className="text-xs text-center font-medium">Draw Pile</p>
           </div>
         </div>
         <div className="mt-2">
-          <span className="text-white/80 text-sm font-medium bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+          <span className="text-white/80 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
             Empty
           </span>
         </div>
@@ -82,14 +82,16 @@ export default function DrawPile({ count }: DrawPileProps) {
       {/* Draw count indicator */}
       {showDrawCount && (
         <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-50 animate-float-up">
-          <div className="bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm animate-pulse">
+          <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm shadow-lg animate-pulse">
             +{recentDrawCount}
           </div>
         </div>
       )}
       
       <div 
-        className={`h-40 relative ${canDraw ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}
+        className={`h-40 relative ${canDraw 
+          ? 'cursor-pointer hover:scale-105 transition-transform duration-300 ease-out' 
+          : ''}`}
         onClick={handleDrawClick}
       >
         {/* Flying card animation */}
@@ -112,8 +114,8 @@ export default function DrawPile({ count }: DrawPileProps) {
             <div 
               key={`stack-${index}`} 
               className={`
-                absolute transition-all duration-300
-                ${isDrawing && isTopCard ? "opacity-60 translate-x-8" : "opacity-100"}
+                absolute transition-all duration-300 ease-out
+                ${isDrawing && isTopCard ? "opacity-0 translate-x-8" : "opacity-100"}
               `} 
               style={{
                 transform: `translateY(${-stackOffset}px) translateX(${-stackOffset}px)`,
@@ -123,21 +125,28 @@ export default function DrawPile({ count }: DrawPileProps) {
               <UnoCard 
                 card={dummyCard} 
                 faceDown={true} 
-                disabled={true} 
+                disabled={!canDraw} 
                 animationClass={isDrawing && isTopCard ? "animate-draw" : ""}
               />
             </div>
           )
         })}
+        
+        {/* Glow effect when it's the player's turn to draw */}
+        {canDraw && (
+          <div className="absolute inset-0 rounded-xl bg-blue-500/20 animate-pulse-subtle z-0"></div>
+        )}
       </div>
       
       {/* Count indicator */}
-      <div className="mt-2">
+      <div className="mt-3">
         <span className={`
           text-white text-sm font-medium 
-          bg-black/60 backdrop-blur-sm px-3 py-1 
+          backdrop-blur-md px-3 py-1.5
           rounded-full shadow-md transition-all duration-300
-          ${count <= 5 ? "bg-red-500/60 text-white" : ""}
+          ${count <= 5 
+            ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white" 
+            : "bg-black/70"}
         `}>
           {count} {count === 1 ? "card" : "cards"}
         </span>
@@ -154,7 +163,7 @@ export default function DrawPile({ count }: DrawPileProps) {
       {/* Draw card prompt when it's your turn */}
       {canDraw && (
         <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-          <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full animate-bounce-gentle">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-full animate-bounce-gentle shadow-lg shadow-blue-500/20">
             Click to draw
           </div>
         </div>

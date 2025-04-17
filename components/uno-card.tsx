@@ -52,26 +52,26 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
     if (faceDown) {
       return (
         <div className="bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 w-full h-full flex items-center justify-center">
-          <div className="text-white text-4xl font-black">UNO</div>
+          <div className="text-white text-3xl sm:text-4xl font-black">UNO</div>
         </div>
       )
     }
 
     if (card.type === "number") {
-      return <div className={`text-4xl font-bold ${getTextColor()}`}>{card.value}</div>
+      return <div className={`text-3xl sm:text-4xl font-bold ${getTextColor()}`}>{card.value}</div>
     }
 
     if (card.type === "skip") {
-      return <div className={`text-4xl font-bold ${getTextColor()}`}>⃠</div>
+      return <div className={`text-3xl sm:text-4xl font-bold ${getTextColor()}`}>⃠</div>
     }
 
     if (card.type === "reverse") {
-      return <div className={`text-2xl font-bold ${getTextColor()}`}>↺</div>
+      return <div className={`text-xl sm:text-2xl font-bold ${getTextColor()}`}>↺</div>
     }
 
     if (card.type === "draw2") {
       return (
-        <div className={`text-2xl font-bold ${getTextColor()}`}>
+        <div className={`text-xl sm:text-2xl font-bold ${getTextColor()}`}>
           <div>+2</div>
         </div>
       )
@@ -79,7 +79,7 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
 
     if (card.type === "wild") {
       return (
-        <div className="text-2xl font-bold">
+        <div className="text-xl sm:text-2xl font-bold">
           <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">WILD</div>
         </div>
       )
@@ -87,7 +87,7 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
 
     if (card.type === "wild4") {
       return (
-        <div className="text-2xl font-bold">
+        <div className="text-xl sm:text-2xl font-bold">
           <div className="bg-gradient-to-br from-red-600 via-blue-600 to-green-600 bg-clip-text text-transparent">+4</div>
         </div>
       )

@@ -10,33 +10,37 @@ export function ThemeToggle({ className }: { className?: string }) {
   const isLight = theme === "light"
 
   return (
-    <div className={className}>
+    <div className={`p-1 bg-black/10 backdrop-blur-md rounded-full flex ${className}`}>
       <Button
-        variant={isLight ? "default" : "ghost"}
+        variant="ghost"
         size="icon"
         aria-label="Switch to light mode"
         onClick={() => setTheme("light")}
-        style={{
-          background: isLight ? "#fff" : undefined,
-          color: isLight ? "#222" : undefined,
-          borderRadius: 8,
-          marginRight: 6,
-        }}
+        className={`
+          rounded-full h-8 w-8
+          transition-all duration-300 ease-in-out
+          ${isLight 
+            ? "bg-white text-amber-500 shadow-md" 
+            : "text-white/70 hover:text-amber-300 hover:bg-white/10"}
+        `}
       >
-        <Sun className="h-5 w-5" />
+        <Sun className="h-4 w-4" />
       </Button>
+      
       <Button
-        variant={isDark ? "default" : "ghost"}
+        variant="ghost"
         size="icon"
         aria-label="Switch to dark mode"
         onClick={() => setTheme("dark")}
-        style={{
-          background: isDark ? "#222" : undefined,
-          color: isDark ? "#fff" : undefined,
-          borderRadius: 8,
-        }}
+        className={`
+          rounded-full h-8 w-8
+          transition-all duration-300 ease-in-out
+          ${isDark 
+            ? "bg-gray-800 text-blue-400 shadow-md" 
+            : "text-white/70 hover:text-blue-300 hover:bg-white/10"}
+        `}
       >
-        <Moon className="h-5 w-5" />
+        <Moon className="h-4 w-4" />
       </Button>
     </div>
   )

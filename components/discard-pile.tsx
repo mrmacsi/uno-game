@@ -24,14 +24,14 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
   if (!topCard) {
     return (
       <div className="relative flex flex-col items-center">
-        <div className="w-28 h-40 rounded-lg border-2 border-dashed border-white/30 flex items-center justify-center">
+        <div className="w-28 h-40 rounded-xl border-2 border-dashed border-white/30 flex items-center justify-center bg-black/10 backdrop-blur-md">
           <div className="flex flex-col items-center justify-center text-white/60">
             <LayoutDashboard className="w-6 h-6 mb-2" />
             <p className="text-xs text-center font-medium">Discard Pile</p>
           </div>
         </div>
         <div className="mt-2">
-          <span className="text-white/80 text-sm font-medium bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+          <span className="text-white/80 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
             Empty
           </span>
         </div>
@@ -49,24 +49,37 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
     wild: "shadow-purple-500/50",
   }[topCard.color || "wild"]
 
+  // Dynamic card stack count based on discard pile size
+  const stackCount = 3;
+
   return (
     <div className="relative flex flex-col items-center">
       {/* Placeholder cards to create stack effect */}
-      <div className="absolute top-1 left-0 w-28 h-40 bg-white/5 rounded-lg rotate-3 transform -translate-x-1" />
-      <div className="absolute top-0.5 left-0 w-28 h-40 bg-white/10 rounded-lg rotate-1.5 transform -translate-x-0.5" />
+      {Array.from({ length: stackCount }).map((_, index) => (
+        <div 
+          key={`stack-${index}`}
+          className="absolute bg-white/5 rounded-xl border border-white/10"
+          style={{
+            width: '7rem',
+            height: '10rem',
+            transform: `rotate(${(index - stackCount/2) * 3}deg) translateY(${index * -1}px)`,
+            zIndex: index,
+          }}
+        />
+      ))}
       
       {/* Top card with animation */}
       <div 
-        className={`relative transition-all duration-500 ${
+        className={`relative transition-all duration-500 ease-out z-10 ${
           animateCard ? "scale-110 rotate-3" : "scale-100 rotate-0"
-        } ${glowColor ? `shadow-lg ${glowColor}` : ""}`}
+        } ${glowColor ? `shadow-xl ${glowColor}` : ""}`}
       >
         <UnoCard card={topCard} disabled={true} animationClass={animateCard ? "animate-discard" : ""} />
       </div>
       
       {/* Label */}
-      <div className="mt-2">
-        <span className="text-white/90 text-sm font-medium bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+      <div className="mt-3">
+        <span className="text-white/90 text-sm font-medium bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md">
           Discard
         </span>
       </div>

@@ -10,26 +10,32 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
   return (
     <div 
       className={`
-        backdrop-blur-md rounded-xl overflow-hidden transition-all duration-300
+        backdrop-blur-lg rounded-xl overflow-hidden transition-all duration-300
         ${isCurrentTurn 
-          ? "bg-gradient-to-r from-yellow-500/30 to-amber-600/30 border border-yellow-400/50 shadow-[0_0_15px_rgba(253,224,71,0.3)]" 
+          ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-yellow-400/30 shadow-lg shadow-yellow-500/10" 
           : "bg-black/20 border border-white/10 hover:bg-black/30"}
       `}
     >
-      <div className="p-2 sm:p-3">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="p-3.5">
+        <div className="flex items-center gap-3">
           <div className={`
-            w-6 sm:w-8 h-6 sm:h-8 rounded-full flex items-center justify-center shrink-0
-            ${isCurrentTurn ? "bg-yellow-500 text-yellow-900" : "bg-white/10 text-white/70"}
+            w-10 h-10 rounded-full flex items-center justify-center shrink-0
+            transition-all duration-300
+            ${isCurrentTurn 
+              ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-yellow-900 shadow-md" 
+              : "bg-white/10 text-white/70"}
           `}>
-            <User className="w-3 sm:w-4 h-3 sm:h-4" />
+            <User className="w-5 h-5" />
           </div>
           
           <div className="flex-1 min-w-0">
-            <p className="text-white font-medium truncate text-sm sm:text-base">{player.name}</p>
-            <div className="flex items-center text-white/70 text-xs mt-0.5">
+            <p className="text-white font-medium truncate">{player.name}</p>
+            <div className="flex items-center text-white/70 text-xs mt-1">
               <div className="flex items-center">
-                <div className={`flex items-center gap-1 ${isCurrentTurn ? "text-yellow-300" : ""}`}>
+                <div className={`
+                  flex items-center gap-1.5
+                  ${isCurrentTurn ? "text-yellow-300 font-medium" : ""}
+                `}>
                   {player.cards.length} cards
                 </div>
               </div>
@@ -37,7 +43,7 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
           </div>
           
           {isCurrentTurn && (
-            <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium shrink-0">
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs px-3 py-1.5 rounded-full font-medium shrink-0 shadow-sm">
               <Clock className="w-3 h-3" />
               <span>Turn</span>
             </div>
@@ -46,12 +52,14 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
       </div>
       
       {/* Card count visualization */}
-      <div className="h-1.5 bg-black/20">
+      <div className="h-1.5 bg-black/30">
         <div 
-          className={`h-full ${isCurrentTurn ? "bg-yellow-400" : "bg-white/30"}`} 
+          className={`h-full ${isCurrentTurn 
+            ? "bg-gradient-to-r from-amber-400 to-yellow-500" 
+            : "bg-white/30"}`} 
           style={{
             width: `${Math.min(100, player.cards.length * 10)}%`,
-            transition: "width 0.5s ease-out"
+            transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
         />
       </div>

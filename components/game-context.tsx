@@ -172,12 +172,49 @@ export function GameProvider({
       return
     }
     
+    if (state.status !== "playing") {
+      console.error("[GameProvider] Cannot play card: Game is not in progress")
+      toast({
+        title: "Cannot Play Card",
+        description: "Game is not in progress",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (state.currentPlayer !== currentPlayerId) {
+      console.error("[GameProvider] Cannot play card: Not your turn")
+      toast({
+        title: "Cannot Play Card",
+        description: "It's not your turn",
+        variant: "destructive",
+      })
+      return
+    }
+    
     // Get the card from the player's hand
     const currentPlayer = state.players.find(p => p.id === currentPlayerId)
-    if (!currentPlayer) return
+    if (!currentPlayer) {
+      console.error("[GameProvider] Cannot play card: Player not found")
+      return
+    }
     
     const card = currentPlayer.cards.find(c => c.id === cardId)
-    if (!card) return
+    if (!card) {
+      console.error("[GameProvider] Cannot play card: Card not found in player's hand")
+      return
+    }
+    
+    // Verify the card is playable
+    if (!state.isValidPlay(card)) {
+      console.error("[GameProvider] Cannot play card: Card is not valid to play")
+      toast({
+        title: "Cannot Play Card",
+        description: "This card cannot be played now",
+        variant: "destructive",
+      })
+      return
+    }
     
     // If it's a wild card, open the color selector
     if (card.type === "wild" || card.type === "wild4") {
@@ -187,7 +224,16 @@ export function GameProvider({
     }
     
     // For non-wild cards, play immediately
-    await playCard(roomId, currentPlayerId, cardId)
+    try {
+      await playCard(roomId, currentPlayerId, cardId)
+    } catch (error) {
+      console.error("[GameProvider] Error playing card:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to play card",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleDrawCard = async () => {
@@ -270,12 +316,43 @@ export function GameProvider({
       return
     }
     
-    // First play the card
-    await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+    // Verify the wild card is still in player's hand
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+    if (!currentPlayer) {
+      console.error("[GameProvider] Cannot select color: Player not found")
+      setIsColorSelectionOpen(false)
+      setPendingWildCardId(null)
+      return
+    }
     
-    // Reset wild card state
-    setIsColorSelectionOpen(false)
-    setPendingWildCardId(null)
+    const card = currentPlayer.cards.find(c => c.id === pendingWildCardId)
+    if (!card) {
+      console.error("[GameProvider] Cannot select color: Wild card not found in player's hand")
+      toast({
+        title: "Error",
+        description: "The card is no longer available",
+        variant: "destructive",
+      })
+      setIsColorSelectionOpen(false)
+      setPendingWildCardId(null)
+      return
+    }
+    
+    // First play the card
+    try {
+      await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+    } catch (error) {
+      console.error("[GameProvider] Error playing wild card:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to play wild card",
+        variant: "destructive",
+      })
+    } finally {
+      // Reset wild card state
+      setIsColorSelectionOpen(false)
+      setPendingWildCardId(null)
+    }
   }
   
   const handleCloseColorSelector = () => {

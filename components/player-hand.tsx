@@ -66,24 +66,30 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className="relative px-2">
+    <div className="relative px-3 py-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10">
       <div className="flex flex-col items-center">
         <div className="w-full flex justify-between items-center mb-3">
-          <h2 className="text-white text-xl font-semibold tracking-tight">Your Hand</h2>
+          <h2 className="text-white text-lg font-semibold tracking-tight flex items-center gap-2">
+            Your Hand
+            <span className="text-xs text-white/60 font-normal">
+              ({currentPlayer.cards.length} cards)
+            </span>
+          </h2>
+          
           {isMyTurn && (
-            <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-medium px-3 py-1 rounded-full">
+            <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-medium px-3 py-1 rounded-full shadow-md">
               Your Turn
             </div>
           )}
         </div>
 
-        <div className="relative w-full overflow-x-auto py-1 px-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="relative w-full overflow-x-auto py-1 px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           <div 
             className="flex justify-center mx-auto"
             style={{ 
-              paddingBottom: "0.5rem", 
-              paddingTop: "0.5rem",
-              minHeight: "180px"
+              paddingBottom: "1rem", 
+              paddingTop: "1rem",
+              minHeight: "200px"
             }}
           >
             <div className="flex" style={{ marginLeft: `${overlap/2}px` }}>
@@ -105,39 +111,53 @@ export default function PlayerHand() {
                     }}
                   >
                     {isRecentlyDrawn && (
-                      <div className="absolute -inset-2 rounded-xl bg-yellow-400/50 animate-pulse-subtle z-0"></div>
+                      <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
                     )}
                     <div 
                       className={`transition-all duration-300 z-10 relative ${
-                        isPlayable ? 'hover:translate-y-[-20px] sm:hover:translate-y-[-40px] hover:scale-105 sm:hover:scale-110 relative' : ''
-                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-15px]' : ''}`}
+                        isPlayable 
+                          ? 'hover:translate-y-[-40px] hover:scale-110 group cursor-pointer' 
+                          : ''
+                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-20px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
+                      }}
+                      onClick={() => {
+                        if (isMyTurn && state.isValidPlay(card)) {
+                          // Add a double check to ensure the card is still in the player's hand
+                          const currentPlayerState = state.players.find(p => p.id === currentPlayerId);
+                          if (currentPlayerState && currentPlayerState.cards.some(c => c.id === card.id)) {
+                            setAnimatingCard(card.id);
+                            playCard(card.id).catch(error => {
+                              console.error("Error playing card:", error);
+                              setAnimatingCard(null);
+                              // Could add a toast here to notify the user
+                            });
+                          } else {
+                            console.error("Card no longer in hand, may have been already played or removed");
+                          }
+                        }
                       }}
                     >
                       <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
                         <UnoCard
                           card={card}
-                          onClick={() => {
-                            if (isMyTurn && state.isValidPlay(card)) {
-                              setAnimatingCard(card.id)
-                              playCard(card.id)
-                            }
-                          }}
                           disabled={!isMyTurn || !state.isValidPlay(card)}
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : 'animate-deal-card'}
                         />
                         {isPlayable && (
-                          <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="w-4 h-4 text-white/80" />
+                          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="bg-gradient-to-r from-green-500 to-green-600 p-1.5 rounded-full text-white shadow-lg group-hover:animate-bounce-gentle">
+                              <Play className="w-3 h-3" />
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
                     {isRecentlyDrawn && (
                       <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-20 whitespace-nowrap">
-                        <span className="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded animate-bounce-gentle">
+                        <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-md animate-bounce-gentle">
                           New card
                         </span>
                       </div>
@@ -151,10 +171,10 @@ export default function PlayerHand() {
       </div>
 
       {canSayUno && (
-        <div className="absolute bottom-4 right-4 z-50">
+        <div className="absolute bottom-6 right-6 z-50">
           <Button 
             onClick={sayUno} 
-            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-5 py-2 rounded-full shadow-lg animate-pulse border-2 border-white/30"
+            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-3 rounded-full shadow-lg animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-110"
           >
             UNO!
           </Button>
