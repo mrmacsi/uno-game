@@ -379,7 +379,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
 
   // Log the action
   if (!gameState.log) gameState.log = []
-  let drawMsg = `${gameState.players[playerIndex].name} drew a card`
+  const drawMsg = `${gameState.players[playerIndex].name} drew a card`
   gameState.log.push(drawMsg)
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
 
