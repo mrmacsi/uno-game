@@ -1,51 +1,58 @@
-let userConfig = undefined
+/** @type {import('next').NextConfig} */
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import url from 'node:url'
+
+const require = createRequire(import.meta.url)
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
+
+// Import user config dynamically to support .ts config
+// bloody ESM...
+let userConfig
+const userConfigPath = path.resolve(process.cwd(), 'next.config.user.mjs')
 try {
-  // try to import ESM first
-  userConfig = await import('./v0-user-next.config.mjs')
-} catch (e) {
-  try {
-    // fallback to CJS import
-    userConfig = await import("./v0-user-next.config");
-  } catch (innerError) {
-    // ignore error
-  }
+  userConfig = (await import(`${userConfigPath}?t=${Date.now()}`)).default
+} catch (error) {
+  console.warn('Could not load user config, using default:', error)
+  // Use empty object as fallback
+  userConfig = {}
 }
 
-/** @type {import('next').NextConfig} */
+// Base config with defaults
 const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  output: 'standalone',
   eslint: {
-    ignoreDuringBuilds: true,
+    dirs: [
+      'app',
+      'components',
+      'contexts',
+      'hooks',
+      'lib',
+      'pages',
+      'providers',
+      'types',
+      'utils',
+    ],
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
-    unoptimized: true,
-  },
-  experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
 }
 
-if (userConfig) {
-  // ESM imports will have a "default" property
-  const config = userConfig.default || userConfig
-
-  for (const key in config) {
-    if (
-      typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
-    ) {
-      nextConfig[key] = {
-        ...nextConfig[key],
-        ...config[key],
-      }
-    } else {
-      nextConfig[key] = config[key]
-    }
-  }
+// Merge user config
+const mergedConfig = {
+  ...nextConfig,
+  ...userConfig,
 }
 
-export default nextConfig
+export default mergedConfig
