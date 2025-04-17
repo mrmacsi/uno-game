@@ -17,6 +17,7 @@ type GameContextType = {
   selectWildCardColor: (color: "red" | "blue" | "green" | "yellow") => Promise<void>
   isColorSelectionOpen: boolean
   pendingWildCardId: string | null
+  closeColorSelector: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -190,6 +191,11 @@ export function GameProvider({
     setPendingWildCardId(null)
   }
   
+  const handleCloseColorSelector = () => {
+    setIsColorSelectionOpen(false)
+    setPendingWildCardId(null)
+  }
+  
   return (
     <GameContext.Provider
       value={{
@@ -202,7 +208,8 @@ export function GameProvider({
         refreshGameState,
         selectWildCardColor: handleSelectWildCardColor,
         isColorSelectionOpen,
-        pendingWildCardId
+        pendingWildCardId,
+        closeColorSelector: handleCloseColorSelector
       }}
     >
       {children}

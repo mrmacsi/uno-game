@@ -13,7 +13,7 @@ import { Home } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function GameBoard() {
-  const { state, selectWildCardColor, isColorSelectionOpen } = useGame()
+  const { state, selectWildCardColor, isColorSelectionOpen, closeColorSelector } = useGame()
   const router = useRouter()
 
   const goToHome = () => {
@@ -61,7 +61,11 @@ export default function GameBoard() {
       <GameControls />
       
       {/* Color selector dialog for wild cards */}
-      <ColorSelector isOpen={isColorSelectionOpen} onSelectColor={selectWildCardColor} />
+      <ColorSelector 
+        isOpen={isColorSelectionOpen} 
+        onSelectColor={selectWildCardColor} 
+        onClose={closeColorSelector}
+      />
     </div>
   )
 }
