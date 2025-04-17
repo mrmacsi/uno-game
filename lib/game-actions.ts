@@ -189,9 +189,14 @@ export async function startGame(roomId: string): Promise<void> {
       return true
     }
     
-    // Wild Draw Four can only be played if you have no cards matching the current color
+    // Wild Draw Four can be played on any card, but with restrictions
     if (card.type === "wild4") {
-      // Check if player has any cards matching the current color
+      // If the top card is a Draw 2, we can play a Wild Draw 4 without color restrictions
+      if (topCard.type === "draw2") {
+        return true
+      }
+      
+      // Otherwise, follow the standard rule that you can only play it if you don't have matching color
       const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
       return !hasMatchingColor
     }
