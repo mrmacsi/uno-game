@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useReducer, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef } from "react"
 import pusherClient from "@/lib/pusher-client"
 import type { GameState, GameAction } from "@/lib/types"
 import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer } from "@/lib/game-actions"
@@ -50,6 +50,32 @@ export function GameProvider({
   // State for wild card color selection
   const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
   const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
+  
+  // Keep track of last seen log entries to display new ones as toasts
+  const previousLogRef = useRef<string[]>([]);
+  
+  // Monitor log changes and show toasts for new entries
+  useEffect(() => {
+    if (!state.log) return;
+    
+    const prevLog = previousLogRef.current;
+    const currentLog = state.log;
+    
+    // Only show toast for new log entries
+    if (prevLog.length > 0 && currentLog.length > prevLog.length) {
+      // Get the newest log entry
+      const newestEntry = currentLog[currentLog.length - 1];
+      if (!prevLog.includes(newestEntry)) {
+        toast({
+          description: newestEntry,
+          duration: 3000,
+        });
+      }
+    }
+    
+    // Update ref for next comparison
+    previousLogRef.current = currentLog;
+  }, [state.log]);
 
   // Log initial player ID
   useEffect(() => {
