@@ -6,8 +6,7 @@ import {
   ToastClose,
   ToastDescription,
   ToastProvider,
-  ToastTitle,
-
+  ToastTitle
 } from "@/components/ui/toast"
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
