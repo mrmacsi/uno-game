@@ -906,7 +906,7 @@ export async function resetRoom(roomId: string): Promise<void> {
   const gameState: Partial<GameState> = {
     roomId,
     status: "waiting",
-    players: currentGameState?.players || [], // Keep existing players
+    players: roomId === "DEFAULT" ? [] : (currentGameState?.players || []), // Clear players for DEFAULT room
     currentPlayer: "",
     direction: 1,
     drawPileCount: 0,
