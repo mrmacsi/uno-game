@@ -339,8 +339,9 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   } else {
     // Apply card effects
     applyCardEffects(gameState, card)
-    // Move to the next player only if the card is not a skip card or reverse card
-    if (card.type !== "skip" && card.type !== "reverse") {
+    // Move to the next player only if the card is not a skip card, reverse card, draw2 or wild4
+    // Wild4 and draw2 cards already handle turn advancement in applyCardEffects
+    if (card.type !== "skip" && card.type !== "reverse" && card.type !== "draw2" && card.type !== "wild4") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
@@ -750,6 +751,12 @@ function applyCardEffects(gameState: GameState, card: Card): void {
         gameState,
         gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
       )
+      
+      // Log the action
+      if (!gameState.log) gameState.log = []
+      gameState.log.push(`${gameState.players[nextPlayer].name} has to draw 2 cards!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
       for (let i = 0; i < 2; i++) {
         gameState.players[nextPlayer].cards.push(drawCardFromPile())
         gameState.drawPileCount--
@@ -771,6 +778,12 @@ function applyCardEffects(gameState: GameState, card: Card): void {
         gameState,
         gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
       )
+      
+      // Log the action
+      if (!gameState.log) gameState.log = []
+      gameState.log.push(`${gameState.players[nextPlayerIdx].name} has to draw 4 cards!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
       for (let i = 0; i < 4; i++) {
         gameState.players[nextPlayerIdx].cards.push(drawCardFromPile())
         gameState.drawPileCount--

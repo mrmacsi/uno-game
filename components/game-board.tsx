@@ -153,13 +153,17 @@ export default function GameBoard() {
           </div>
         )}
         
-        {/* Player's Hand - bottom section */}
-        <div className="mt-auto mb-12 sm:mb-0">
-          <PlayerHand />
+        <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto">
+          <div className="relative z-30">
+            <PlayerHand />
+            <div className="w-full block sm:hidden sticky bottom-0 left-0 right-0 bg-transparent z-40">
+              <GameControls />
+            </div>
+          </div>
+          <div className="w-full hidden sm:block">
+            <GameControls />
+          </div>
         </div>
-        
-        {/* Game Controls */}
-        <GameControls />
       </div>
       
       {/* Color selector dialog for wild cards */}
