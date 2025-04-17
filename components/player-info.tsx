@@ -1,4 +1,5 @@
 import type { Player } from "@/lib/types"
+import { User, Clock } from "lucide-react"
 
 interface PlayerInfoProps {
   player: Player
@@ -7,13 +8,52 @@ interface PlayerInfoProps {
 
 export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
   return (
-    <div className={`bg-white/10 backdrop-blur-sm rounded-lg p-3 ${isCurrentTurn ? "ring-2 ring-yellow-400" : ""}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white font-medium truncate">{player.name}</p>
-          <p className="text-white/70 text-sm">{player.cards.length} cards</p>
+    <div 
+      className={`
+        backdrop-blur-md rounded-xl overflow-hidden transition-all duration-300
+        ${isCurrentTurn 
+          ? "bg-gradient-to-r from-yellow-500/30 to-amber-600/30 border border-yellow-400/50 shadow-[0_0_15px_rgba(253,224,71,0.3)]" 
+          : "bg-black/20 border border-white/10 hover:bg-black/30"}
+      `}
+    >
+      <div className="p-3">
+        <div className="flex items-center gap-3">
+          <div className={`
+            w-8 h-8 rounded-full flex items-center justify-center shrink-0
+            ${isCurrentTurn ? "bg-yellow-500 text-yellow-900" : "bg-white/10 text-white/70"}
+          `}>
+            <User className="w-4 h-4" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-medium truncate">{player.name}</p>
+            <div className="flex items-center text-white/70 text-xs mt-0.5">
+              <div className="flex items-center">
+                <div className={`flex items-center gap-1 ${isCurrentTurn ? "text-yellow-300" : ""}`}>
+                  {player.cards.length} cards
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {isCurrentTurn && (
+            <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs px-2 py-1 rounded-full font-medium shrink-0">
+              <Clock className="w-3 h-3" />
+              <span>Turn</span>
+            </div>
+          )}
         </div>
-        {isCurrentTurn && <div className="bg-yellow-400 text-yellow-800 text-xs px-2 py-1 rounded-full">Turn</div>}
+      </div>
+      
+      {/* Card count visualization */}
+      <div className="h-1.5 bg-black/20">
+        <div 
+          className={`h-full ${isCurrentTurn ? "bg-yellow-400" : "bg-white/30"}`} 
+          style={{
+            width: `${Math.min(100, player.cards.length * 10)}%`,
+            transition: "width 0.5s ease-out"
+          }}
+        />
       </div>
     </div>
   )
