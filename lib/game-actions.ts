@@ -869,3 +869,41 @@ export async function resetRoom(roomId: string): Promise<void> {
   
   console.log(`Room ${roomId} has been reset to waiting state`)
 }
+
+// Get all rooms
+export async function getAllRooms(): Promise<GameState[]> {
+  const allRoomIds = Object.keys(gameStates)
+  const rooms: GameState[] = []
+  
+  for (const roomId of allRoomIds) {
+    const room = await getGameState(roomId)
+    if (room) {
+      const { isValidPlay, ...serializableRoom } = room
+      rooms.push(serializableRoom as GameState)
+    }
+  }
+  
+  return rooms
+}
+
+// Delete a game room
+export async function deleteRoom(roomId: string): Promise<void> {
+  if (roomId === "DEFAULT") {
+    // Don't delete the default room, just reset it
+    await resetRoom(roomId)
+    return
+  }
+  
+  console.log(`Deleting room ${roomId}`)
+  
+  // Delete the room from memory
+  delete gameStates[roomId]
+  
+  // Persist the changes
+  await persistGameStates()
+  
+  // Notify connected clients
+  await pusherServer.trigger(`game-${roomId}`, "room-deleted", { message: "This room has been deleted" })
+  
+  console.log(`Room ${roomId} has been deleted`)
+}

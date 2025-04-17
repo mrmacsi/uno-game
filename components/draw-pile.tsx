@@ -16,8 +16,8 @@ export default function DrawPile({ count }: DrawPileProps) {
   const cardStack = Array(Math.min(3, count)).fill(null);
   
   return (
-    <div className="relative">
-      <div className="card-stack">
+    <div className="relative" style={{ height: '170px', width: '120px' }}>
+      <div className="card-stack absolute top-10 left-0">
         {cardStack.map((_, index) => (
           <div 
             key={`stack-${index}`} 
@@ -32,7 +32,7 @@ export default function DrawPile({ count }: DrawPileProps) {
         ))}
       </div>
       
-      <div className="absolute -bottom-4 left-0 right-0 text-center">
+      <div className="absolute bottom-0 left-0 right-0 text-center">
         <span className="text-white text-sm font-bold bg-black/70 px-3 py-1 rounded-full shadow-lg">
           {count}
         </span>

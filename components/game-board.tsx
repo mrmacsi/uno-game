@@ -28,14 +28,13 @@ export default function GameBoard() {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 z-10" 
+        className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 z-20" 
         onClick={goToHome}
       >
         <Home className="h-5 w-5 text-white" />
       </Button>
       
-      {/* Opponents */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-16 mt-16">
         {state.players
           .filter((player) => player.id !== state.currentPlayer)
           .map((player, index) => (
@@ -43,10 +42,13 @@ export default function GameBoard() {
           ))}
       </div>
 
-      {/* Game Table */}
-      <div className="flex-1 flex items-center justify-center gap-8">
-        <DrawPile count={state.drawPileCount} />
-        <DiscardPile topCard={state.discardPile[state.discardPile.length - 1]} />
+      <div className="flex-1 flex items-center justify-center gap-24 my-auto">
+        <div className="mx-8">
+          <DrawPile count={state.drawPileCount} />
+        </div>
+        <div className="mx-8">
+          <DiscardPile topCard={state.discardPile[state.discardPile.length - 1]} />
+        </div>
       </div>
 
       {/* Current Player's Hand */}
