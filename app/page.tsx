@@ -96,7 +96,7 @@ export default function Home() {
           </div>
           
           <div className="bg-gray-50 px-6 py-4 text-center text-sm text-gray-500">
-            <p>Built with Next.js and Pusher</p>
+            <p>Built with love in London</p>
           </div>
         </div>
       </div>

@@ -14,6 +14,17 @@ export interface Player {
   cards: Card[]
   isHost: boolean
   saidUno?: boolean
+  points?: number
+}
+
+export interface MatchResult {
+  winner: string
+  date: string
+  playerResults: {
+    playerId: string
+    playerName: string
+    points: number
+  }[]
 }
 
 export interface GameState {
@@ -31,6 +42,7 @@ export interface GameState {
     active: boolean
     type: "draw2" | "wild4"
   }
+  matchHistory?: MatchResult[]
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

@@ -1,7 +1,7 @@
 "use server"
 
 import { v4 as uuidv4 } from "uuid"
-import type { GameState, Player, Card, CardColor, CardType } from "./types"
+import type { GameState, Player, Card, CardColor, CardType, MatchResult } from "./types"
 import { pusherServer } from "./pusher-server"
 import * as fs from "fs"
 import * as path from "path"
@@ -305,12 +305,32 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   if (gameState.players[playerIndex].cards.length === 0) {
     gameState.status = "finished"
     gameState.winner = playerId
+    
+    // Calculate points for each player
+    calculatePoints(gameState)
+    
+    // Add the result to match history
+    if (!gameState.matchHistory) {
+      gameState.matchHistory = []
+    }
+    
+    const matchResult: MatchResult = {
+      winner: playerId,
+      date: new Date().toISOString(),
+      playerResults: gameState.players.map(player => ({
+        playerId: player.id,
+        playerName: player.name,
+        points: player.points || 0
+      }))
+    }
+    
+    gameState.matchHistory.push(matchResult)
   } else {
     // Apply card effects
     applyCardEffects(gameState, card)
 
-    // Move to the next player only if the card is not a skip card
-    if (card.type !== "skip") {
+    // Move to the next player only if the card is not a skip card or reverse card
+    if (card.type !== "skip" && card.type !== "reverse") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
@@ -468,6 +488,36 @@ export async function getRoom(roomId: string): Promise<GameState> {
 }
 
 // Helper functions
+
+// Calculate points for each player based on cards left in their hands
+function calculatePoints(gameState: GameState): void {
+  const winner = gameState.players.find(player => player.id === gameState.winner)
+  if (!winner) return
+  
+  // Reset points for all players
+  gameState.players.forEach(player => {
+    // Calculate points based on the cards in their hand
+    let points = 0
+    
+    // In UNO, the winner gets points based on cards left in other players' hands
+    if (player.id !== gameState.winner) {
+      player.cards.forEach(card => {
+        if (card.type === "number") {
+          // Number cards: Face value
+          points += card.value || 0
+        } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
+          // Action cards: 20 points
+          points += 20
+        } else {
+          // Wild cards: 50 points
+          points += 50
+        }
+      })
+    }
+    
+    player.points = points
+  })
+}
 
 // Generate a random room code
 function generateRoomCode(): string {
@@ -633,13 +683,7 @@ function applyCardEffects(gameState: GameState, card: Card): void {
     case "reverse":
       // Reverse the direction of play
       gameState.direction *= -1
-      
-      // In a two-player game, Reverse acts like a Skip
-      if (gameState.players.length === 2) {
-        const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
-        // Skip the next player's turn
-        gameState.currentPlayer = gameState.players[currentPlayerIndex].id
-      }
+      // No need to modify currentPlayer as we want to keep the turn with the player who played it
       break
 
     case "draw2":
@@ -794,10 +838,10 @@ try {
   
   // Create default room on server start
   createDefaultRoom().catch(err => console.error("Failed to create default room:", err));
-  
 } catch (error) {
   console.error('Error loading persisted game states:', error);
 }
+
 
 async function storeGameState(roomId: string, gameState: Partial<GameState>): Promise<void> {
   gameStates[roomId] = gameState as GameState;
