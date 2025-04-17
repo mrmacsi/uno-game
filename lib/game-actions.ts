@@ -180,7 +180,7 @@ export async function startGame(roomId: string): Promise<void> {
   // Add the isValidPlay function
   gameState.isValidPlay = function (card: Card) {
     const topCard = this.discardPile[this.discardPile.length - 1]
-    const currentPlayer = this.players.find(p => p.id === this.currentPlayer)
+    const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer)
     
     if (!currentPlayer) return false
 
@@ -207,7 +207,7 @@ export async function startGame(roomId: string): Promise<void> {
         return true
       }
       // Regular rule: Wild Draw Four can only be played if no matching color
-      const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
+      const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor)
       return !hasMatchingColor
     }
     
@@ -782,7 +782,7 @@ try {
       if (gameState.status === 'playing') {
         gameState.isValidPlay = function (card: Card) {
           const topCard = this.discardPile[this.discardPile.length - 1];
-          const currentPlayer = this.players.find(p => p.id === this.currentPlayer);
+          const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer);
           
           if (!currentPlayer) return false;
           
@@ -809,7 +809,7 @@ try {
               return true;
             }
             // Regular rule: Wild Draw Four can only be played if no matching color
-            const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor);
+            const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor);
             return !hasMatchingColor;
           }
           
