@@ -422,30 +422,33 @@ export async function getRoom(roomId: string): Promise<GameState> {
 function calculatePoints(gameState: GameState): void {
   const winner = gameState.players.find(player => player.id === gameState.winner)
   if (!winner) return
-  
-  // Reset points for all players
+
+  let totalPoints = 0
+
   gameState.players.forEach(player => {
-    // Calculate points based on the cards in their hand
-    let points = 0
-    
-    // In UNO, the winner gets points based on cards left in other players' hands
+    // Calculate points based on the cards left in *losing* players' hands
     if (player.id !== gameState.winner) {
+      let playerHandPoints = 0
       player.cards.forEach(card => {
         if (card.type === "number") {
           // Number cards: Face value
-          points += card.value || 0
+          playerHandPoints += card.value || 0
         } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
           // Action cards: 20 points
-          points += 20
+          playerHandPoints += 20
         } else {
           // Wild cards: 50 points
-          points += 50
+          playerHandPoints += 50
         }
       })
+      // Assign 0 points to losing players (or could remove the property)
+      player.points = 0
+      totalPoints += playerHandPoints
     }
-    
-    player.points = points
   })
+
+  // Assign the total accumulated points to the winner
+  winner.points = totalPoints
 }
 
 // Generate a random room code
@@ -646,32 +649,11 @@ try {
     const data = fs.readFileSync(GAME_STATES_FILE, 'utf8');
     const savedStates = JSON.parse(data);
     
-    // Restore the isValidPlay function which can't be serialized
+    // Restore game states from JSON
     Object.keys(savedStates).forEach(roomId => {
-      const gameState = savedStates[roomId];
-      if (gameState.status === 'playing') {
-        gameState.isValidPlay = function (card: Card) {
-          const topCard = this.discardPile[this.discardPile.length - 1];
-          const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer);
-          if (!currentPlayer) return false;
-          if (card.type === "wild" || card.type === "wild4") {
-            return true;
-          }
-          if (card.type === "skip" && topCard.type === "skip") {
-            return true;
-          }
-          if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
-            return true;
-          }
-          return (
-            card.color === this.currentColor || 
-            (card.type === topCard.type)
-          );
-        };
-      }
-      gameStates[roomId] = gameState;
+      gameStates[roomId] = savedStates[roomId];
     });
-    
+
     console.log(`Loaded ${Object.keys(savedStates).length} game states from persistent storage`);
   }
   
@@ -703,7 +685,7 @@ async function getGameState(roomId: string): Promise<GameState | null> {
 async function persistGameStates(): Promise<void> {
   try {
     // Create a serializable copy of the game states
-    const serializableStates: Record<string, Omit<GameState, 'isValidPlay'>> = {};
+    const serializableStates: Record<string, GameState> = {};
     
     Object.keys(gameStates).forEach(roomId => {
       serializableStates[roomId] = gameStates[roomId];
@@ -790,9 +772,6 @@ export async function deleteRoom(roomId: string): Promise<void> {
 }
 
 function stripFunctionsFromGameState(gameState: GameState) {
-  const clone = { ...gameState }
-  if ('isValidPlay' in clone) {
-    delete (clone as any).isValidPlay
-  }
-  return clone
+  // No functions expected to be stripped anymore, just return the state
+  return gameState;
 }
