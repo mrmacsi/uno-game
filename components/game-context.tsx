@@ -228,6 +228,11 @@ export function GameProvider({
     const card = currentPlayer.cards.find(c => c.id === cardId)
     if (!card) {
       console.error("[GameProvider] Cannot play card: Card not found in player's hand")
+      toast({
+        title: "Cannot Play Card",
+        description: "This card is no longer in your hand",
+        variant: "destructive",
+      })
       return
     }
     
@@ -252,9 +257,21 @@ export function GameProvider({
     
     // For non-wild cards, play immediately
     try {
+      // Double-check card exists in hand before sending to server
+      const playerHasCard = currentPlayer.cards.some(c => c.id === cardId) 
+      if (!playerHasCard) {
+        console.error("[GameProvider] Cannot play card: Card no longer in hand")
+        toast({
+          title: "Card Error",
+          description: "This card is no longer in your hand",
+          variant: "destructive",
+        })
+        return
+      }
+      
       await playCard(roomId, currentPlayerId, cardId)
     } catch (error) {
-      console.error("[GameProvider] Error playing card:", error)
+      console.error("[GameProvider] Failed to play card:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to play card",
