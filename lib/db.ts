@@ -19,6 +19,11 @@ export const initializeGameState = (gameState: GameState) => {
         return true
       }
       
+      // Skip cards can be played on any other skip card regardless of color
+      if (card.type === "skip" && topCard.type === "skip") {
+        return true
+      }
+      
       // Standard matching rules
       return (
         card.color === this.currentColor ||

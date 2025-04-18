@@ -93,9 +93,6 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
       if (card.type === "wild") {
         return true
       }
-      if (this.drawCardEffect?.active && this.drawCardEffect.type === 'wild4') {
-        return false
-      }
       if (card.type === "draw2") {
         return card.color === this.currentColor || topCard.type === "draw2"
       }
