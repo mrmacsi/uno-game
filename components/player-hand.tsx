@@ -200,7 +200,7 @@ export default function PlayerHand() {
           >
             <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
               {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
-                const isPlayable = isMyTurn && state.isValidPlay(card);
+                const isPlayable = isMyTurn && state.isValidPlay && state.isValidPlay(card);
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
                 const isRecentlyDrawn = card.id === recentlyDrawnCard;
@@ -229,7 +229,7 @@ export default function PlayerHand() {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={() => {
-                        if (isMyTurn && state.isValidPlay(card)) {
+                        if (isMyTurn && state.isValidPlay && state.isValidPlay(card)) {
                           const currentPlayerState = state.players.find((p: { id: string }) => p.id === currentPlayerId);
                           if (currentPlayerState && currentPlayerState.cards.some((c: import("@/lib/types").Card) => c.id === card.id)) {
                             setAnimatingCard(card.id);
@@ -243,7 +243,7 @@ export default function PlayerHand() {
                       <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
                         <UnoCard
                           card={card}
-                          disabled={!isMyTurn || !state.isValidPlay(card)}
+                          disabled={!isMyTurn || !state.isValidPlay || !state.isValidPlay(card)}
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
                           isMobile={isMobile}
                         />
