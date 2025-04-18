@@ -17,7 +17,7 @@ export default function DrawPile({ count }: DrawPileProps) {
   const [showDrawCount, setShowDrawCount] = useState(false)
   
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn && count > 0
+  const canDraw = isMyTurn && count > 0 && !state.hasDrawnThisTurn
   
   // Detect when cards are drawn
   useEffect(() => {
@@ -41,11 +41,10 @@ export default function DrawPile({ count }: DrawPileProps) {
   }, [canDraw, drawCard])
 
   const handleDrawClick = () => {
-    if (canDraw) {
-      setIsDrawing(true)
-      drawCard()
-      setTimeout(() => setIsDrawing(false), 1000)
-    }
+    if (!canDraw) return
+    setIsDrawing(true)
+    drawCard()
+    setTimeout(() => setIsDrawing(false), 1000)
   }
 
   const dummyCard: Card = {

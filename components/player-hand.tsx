@@ -16,7 +16,6 @@ export default function PlayerHand() {
   const [handScrollPos, setHandScrollPos] = useState(0)
   const [recentlyDrawnCard, setRecentlyDrawnCard] = useState<string | null>(null)
   const [cardScale, setCardScale] = useState(100) // Card size as percentage
-  const [forceUpdate, setForceUpdate] = useState(0) // Add force update state to trigger re-render
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
@@ -31,11 +30,6 @@ export default function PlayerHand() {
       })
     }
   }, [gameError])
-  
-  // Force re-evaluation of playable cards when game state changes
-  useEffect(() => {
-    setForceUpdate(prev => prev + 1)
-  }, [state.discardPile, state.currentColor, state.currentPlayer])
   
   // Responsive hand layout
   useEffect(() => {
@@ -220,18 +214,6 @@ export default function PlayerHand() {
             <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
               {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
                 const isPlayable = isMyTurn && checkPlayValidity(state, card);
-                
-                // Enhanced logging to debug card playability
-                const topCard = state.discardPile[state.discardPile.length - 1];
-                console.log(`Card ${card.color}-${card.type}${card.value ?? ''} playability:`, {
-                  isMyTurn,
-                  checkResult: checkPlayValidity(state, card),
-                  currentColor: state.currentColor,
-                  topCardColor: topCard?.color,
-                  topCardType: topCard?.type,
-                  topCardValue: topCard?.value,
-                  forceUpdateCount: forceUpdate
-                });
                 
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
