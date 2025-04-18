@@ -29,15 +29,15 @@ export default function PlayerHand() {
   useEffect(() => {
     if (!currentPlayerId) return
     
-    const player = state.players.find(p => p.id === currentPlayerId)
+    const player = state.players.find((p: { id: string }) => p.id === currentPlayerId)
     if (!player) return
     
-    const currentCardIds = player.cards.map(card => card.id)
+    const currentCardIds = player.cards.map((card: { id: string }) => card.id)
     
     // Check if a new card was added
     if (prevCardsRef.current.length < currentCardIds.length) {
       // Find the new card id (the one not in the previous array)
-      const newCardId = currentCardIds.find(id => !prevCardsRef.current.includes(id))
+      const newCardId = currentCardIds.find((id: string) => !prevCardsRef.current.includes(id))
       if (newCardId) {
         setRecentlyDrawnCard(newCardId)
         setTimeout(() => {
@@ -52,7 +52,7 @@ export default function PlayerHand() {
 
   if (!currentPlayerId) return null
 
-  const currentPlayer = state.players.find((p) => p.id === currentPlayerId)
+  const currentPlayer = state.players.find((p: { id: string }) => p.id === currentPlayerId)
 
   if (!currentPlayer) return null
 
@@ -96,7 +96,7 @@ export default function PlayerHand() {
             }}
           >
             <div className={`flex gap-0 sm:gap-1 ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: `${overlap/2}px` }}>
-              {currentPlayer.cards.map((card, index) => {
+              {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
                 const isPlayable = isMyTurn && state.isValidPlay(card);
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
@@ -127,10 +127,10 @@ export default function PlayerHand() {
                       }}
                       onClick={() => {
                         if (isMyTurn && state.isValidPlay(card)) {
-                          const currentPlayerState = state.players.find(p => p.id === currentPlayerId);
-                          if (currentPlayerState && currentPlayerState.cards.some(c => c.id === card.id)) {
+                          const currentPlayerState = state.players.find((p: { id: string }) => p.id === currentPlayerId);
+                          if (currentPlayerState && currentPlayerState.cards.some((c: import("@/lib/types").Card) => c.id === card.id)) {
                             setAnimatingCard(card.id);
-                            playCard(card.id).catch(error => {
+                            playCard(card.id).catch((error: unknown) => {
                               setAnimatingCard(null);
                             });
                           }
