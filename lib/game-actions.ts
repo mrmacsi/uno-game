@@ -221,29 +221,38 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     applyCardEffects(gameState, card)
     if (gameState.status === 'playing') {
       let nextPlayerIndex = playerIndex
-      if (card.type === 'skip' || card.type === 'draw2' || card.type === 'wild4') {
+      const topCard = gameState.discardPile[gameState.discardPile.length - 2]
+
+      if (card.type === 'skip') {
+        if (topCard && topCard.type === 'skip') {
+          gameState.log.push(`${gameState.players[playerIndex].name} chained a skip card and keeps their turn.`)
+        } else {
+          const skippedPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+          const skippedPlayer = gameState.players[skippedPlayerIndex]
+          gameState.log.push(`${skippedPlayer.name} was skipped! ${gameState.players[playerIndex].name} plays again.`)
+        }
+      } else if (card.type === 'draw2' || card.type === 'wild4') {
         const skippedPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
         nextPlayerIndex = getNextPlayerIndex(gameState, skippedPlayerIndex)
         const affectedPlayer = gameState.players[skippedPlayerIndex]
-        if (card.type === 'skip') {
-          gameState.log.push(`${affectedPlayer.name} was skipped!`)
-        } else {
-          gameState.log.push(`${affectedPlayer.name} drew cards and was skipped!`)
-        }
-        if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+        gameState.log.push(`${affectedPlayer.name} drew cards and was skipped!`)
       } else if (card.type === 'reverse') {
         if (gameState.players.length === 2) {
-          nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-          gameState.log.push(`${gameState.players[nextPlayerIndex].name} was skipped (Reverse with 2 players)!`)
-          if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-          nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex)
+          nextPlayerIndex = playerIndex
+          const skippedPlayer = gameState.players[getNextPlayerIndex(gameState, playerIndex)]
+          gameState.log.push(`${skippedPlayer.name} was skipped (Reverse with 2 players)! ${gameState.players[playerIndex].name} plays again.`)
         } else {
           nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
         }
       } else {
         nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       }
-      gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+
+      if (!(card.type === 'skip' && topCard && topCard.type === 'skip')) {
+        gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+      }
       gameState.hasDrawnThisTurn = false
     }
   }
@@ -426,28 +435,24 @@ function calculatePoints(gameState: GameState): void {
   let totalPoints = 0
 
   gameState.players.forEach(player => {
-    // Calculate points based on the cards left in *losing* players' hands
     if (player.id !== gameState.winner) {
       let playerHandPoints = 0
       player.cards.forEach(card => {
         if (card.type === "number") {
-          // Number cards: Face value
           playerHandPoints += card.value || 0
         } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
-          // Action cards: 20 points
           playerHandPoints += 20
         } else {
-          // Wild cards: 50 points
           playerHandPoints += 50
         }
       })
-      // Assign 0 points to losing players (or could remove the property)
-      player.points = 0
+      player.points = playerHandPoints
       totalPoints += playerHandPoints
+    } else {
+      player.points = 0
     }
   })
 
-  // Assign the total accumulated points to the winner
   winner.points = totalPoints
 }
 

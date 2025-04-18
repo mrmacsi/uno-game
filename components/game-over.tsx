@@ -10,7 +10,22 @@ import { useState } from "react"
 import { Award, ChevronRight, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
 import UnoCard from "./uno-card"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
+import type { Card as UnoCardType } from "@/lib/types"
 
+// Helper function to calculate points from cards
+const calculateHandPoints = (cards: UnoCardType[]): number => {
+  let points = 0;
+  cards.forEach(card => {
+    if (card.type === "number") {
+      points += card.value || 0;
+    } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
+      points += 20;
+    } else { // wild, wild4
+      points += 50;
+    }
+  });
+  return points;
+};
 
 export default function GameOver() {
   const { state, refreshGameState, currentPlayerId } = useGame()
@@ -163,7 +178,7 @@ export default function GameOver() {
                             <div className="text-sm text-gray-600">{player.cards.length} cards</div>
                             {player.points !== undefined && (
                               <div className={`text-sm font-semibold ${player.id === state.winner ? "text-green-600" : "text-gray-800"}`}>
-                                {player.id === state.winner ? "Winner!" : `${player.points} points`}
+                                {player.id === state.winner ? "Winner!" : `${calculateHandPoints(player.cards)} points`}
                               </div>
                             )}
                           </div>
@@ -224,6 +239,8 @@ export default function GameOver() {
                       const draw2Points = draw2Cards.length * 20;
                       const wildPoints = wildCards.length * 50;
                       
+                      const calculatedTotalPoints = numberPoints + skipPoints + reversePoints + draw2Points + wildPoints;
+
                       return (
                         <div
                           key={player.id}
@@ -268,7 +285,7 @@ export default function GameOver() {
                             
                             <div className="flex justify-between font-medium pt-2 mt-1 border-t border-gray-100">
                               <span className="text-indigo-700">Total</span>
-                              <span className="text-indigo-700">{player.points} points</span>
+                              <span className="text-indigo-700">{calculatedTotalPoints} points</span>
                             </div>
                           </div>
                           <div className="mt-4 flex flex-wrap gap-1" style={{ maxWidth: 'calc(5 * 48px)' }}>

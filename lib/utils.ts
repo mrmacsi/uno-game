@@ -11,6 +11,7 @@ export function checkPlayValidity(gameState: GameState, card: Card): boolean {
   if (!topCard) return true
   if (card.type === "wild" || card.type === "wild4") return true
   if (card.type === "reverse" && topCard.type === "reverse") return true
+  if (card.type === "skip" && topCard.type === "skip") return true
   return (
     card.color === gameState.currentColor ||
     card.type === topCard.type ||
