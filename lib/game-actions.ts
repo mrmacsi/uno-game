@@ -249,7 +249,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   }
   gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", minimizeGameStateForPusher(gameState, playerId))
 }
 
 // Draw a card
@@ -818,4 +818,14 @@ export async function deleteRoom(roomId: string): Promise<void> {
   await pusherServer.trigger(`game-${roomId}`, "room-deleted", { message: "This room has been deleted" })
   
   console.log(`Room ${roomId} has been deleted`)
+}
+
+function minimizeGameStateForPusher(gameState: GameState, playerId: string) {
+  const minimized = { ...gameState }
+  minimized.drawPile = []
+  minimized.players = minimized.players.map((p) => {
+    if (p.id === playerId) return p
+    return { ...p, cards: [] }
+  })
+  return minimized
 }
