@@ -51,7 +51,7 @@ export default function GameBoard() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.4)_100%)]"></div>
       
       {/* Top navbar */}
-      <div className="flex items-center justify-between p-3 bg-black/30 backdrop-blur-md z-20 border-b border-white/10">
+      <div className="flex items-center justify-between p-2 sm:p-3 bg-black/30 backdrop-blur-md z-20 border-b border-white/10">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -61,7 +61,7 @@ export default function GameBoard() {
           <MessageCircle className="h-5 w-5" />
         </Button>
         
-        <div className="font-bold text-white text-lg bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">UNO Game</div>
+        <div className="font-bold text-white text-base sm:text-lg bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">UNO Game</div>
         
         <Button 
           variant="ghost" 
@@ -75,7 +75,7 @@ export default function GameBoard() {
       
       {/* Game log (slide-in panel) */}
       <div 
-        className={`fixed top-14 left-0 bottom-0 w-72 bg-black/70 backdrop-blur-lg z-30 transform transition-transform duration-300 ease-in-out overflow-auto border-r border-white/10 shadow-2xl
+        className={`fixed top-12 sm:top-14 left-0 bottom-0 w-64 sm:w-72 bg-black/70 backdrop-blur-lg z-30 transform transition-transform duration-300 ease-in-out overflow-auto border-r border-white/10 shadow-2xl
         ${showLog ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex justify-between items-center p-3 border-b border-white/10">
@@ -94,14 +94,14 @@ export default function GameBoard() {
           {state.log && state.log.slice().reverse().map((entry, index) => (
             <div 
               key={index}
-              className="bg-black/50 text-white/90 rounded-lg px-3 py-2 text-sm border border-white/10 shadow-md"
+              className="bg-black/50 text-white/90 rounded-lg px-3 py-2 text-xs sm:text-sm border border-white/10 shadow-md"
             >
               {entry}
             </div>
           ))}
           
           {(!state.log || state.log.length === 0) && (
-            <div className="text-white/50 text-center py-4 italic text-sm">
+            <div className="text-white/50 text-center py-4 italic text-xs sm:text-sm">
               No game actions yet
             </div>
           )}
@@ -111,26 +111,26 @@ export default function GameBoard() {
       {/* Players section - reorganized for better layout */}
       <div className="flex-1 flex flex-col">
         {/* Other players - top section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-2 sm:p-3">
           {otherPlayers.map((player) => (
             <PlayerInfo key={player.id} player={player} isCurrentTurn={player.id === state.currentPlayer} />
           ))}
         </div>
         
         {/* Game area - middle section with card piles */}
-        <div className="flex-1 flex items-center justify-center gap-8 sm:gap-16 p-4 relative" style={{ minHeight: isMobile ? "200px" : "300px" }}>
+        <div className="flex-1 flex items-center justify-center gap-4 sm:gap-16 p-2 sm:p-4 relative" style={{ minHeight: isMobile ? "160px" : "300px" }}>
           {/* Decorative elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-64 h-64 rounded-full bg-white/5 absolute animate-pulse-slow"></div>
-            <div className="w-96 h-96 rounded-full border border-white/10 absolute animate-spin-slow"></div>
-            <div className="w-48 h-48 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 rounded-full blur-3xl absolute"></div>
+            <div className="w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-white/5 absolute animate-pulse-slow"></div>
+            <div className="w-64 sm:w-96 h-64 sm:h-96 rounded-full border border-white/10 absolute animate-spin-slow"></div>
+            <div className="w-32 sm:w-48 h-32 sm:h-48 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 rounded-full blur-3xl absolute"></div>
           </div>
           
           {/* Animated card path - a visual guide for the card animation */}
           <div className="absolute top-1/2 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           
           {/* Card piles container - position them for better animation */}
-          <div className="flex justify-center items-center gap-16 sm:gap-24 lg:gap-32 relative z-10">
+          <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10">
             {/* Draw pile positioned on the left for better animation path */}
             <div className="relative">
               <DrawPile count={state.drawPileCount} />
@@ -145,7 +145,7 @@ export default function GameBoard() {
         
         {/* Current player info - shows above hand on mobile */}
         {isMobile && myPlayer && (
-          <div className="px-3 py-2">
+          <div className="px-2 sm:px-3 py-2">
             <PlayerInfo 
               player={myPlayer} 
               isCurrentTurn={myPlayer.id === state.currentPlayer} 

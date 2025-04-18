@@ -71,8 +71,8 @@ export default function RoomPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-500 to-yellow-500">
-        <div className="text-white text-xl">Loading game...</div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-500 to-yellow-500 p-2 sm:p-0">
+        <div className="text-white text-lg sm:text-xl">Loading game...</div>
       </div>
     )
   }
@@ -98,10 +98,10 @@ export default function RoomPage() {
       }
     }
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-500 to-yellow-500">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Error</h2>
-          <p className="text-gray-700 mb-4">{error}</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-500 to-yellow-500 p-2 sm:p-0">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h2 className="text-lg sm:text-xl font-bold text-red-600 mb-2">Error</h2>
+          <p className="text-gray-700 mb-4 text-sm sm:text-base">{error}</p>
           <form onSubmit={handleRejoin} className="space-y-2">
             <input
               className="w-full border rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -111,10 +111,10 @@ export default function RoomPage() {
               required
               disabled={isRejoining}
             />
-            {rejoinError && <div className="text-red-600 text-sm">{rejoinError}</div>}
+            {rejoinError && <div className="text-red-600 text-xs sm:text-sm">{rejoinError}</div>}
             <button
               type="submit"
-              className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60"
+              className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60 text-sm sm:text-base"
               disabled={isRejoining}
             >
               {isRejoining ? "Rejoining..." : "Rejoin Room"}
@@ -123,7 +123,7 @@ export default function RoomPage() {
           <div className="mt-4">
             <button 
               onClick={() => router.push("/")}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 w-full mt-2"
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 w-full mt-2 text-sm sm:text-base"
             >
               Back to Home
             </button>

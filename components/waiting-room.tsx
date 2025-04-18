@@ -114,9 +114,9 @@ export default function WaitingRoom() {
   // Special case: if player ID is null, show a warning
   if (!currentPlayerId) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+      <div className="flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
         <Card className="max-w-md w-full bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden">
-          <CardHeader className="relative bg-red-50 border-b border-red-100">
+          <CardHeader className="relative bg-red-50 border-b border-red-100 px-4 sm:px-6 pt-6 sm:pt-8">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -125,15 +125,15 @@ export default function WaitingRoom() {
             >
               <Home className="h-5 w-5" />
             </Button>
-            <CardTitle className="text-red-600 flex items-center gap-2">
+            <CardTitle className="text-red-600 flex items-center gap-2 text-lg sm:text-xl">
               <AlertCircle className="w-5 h-5" />
               <span>Connection Issue</span>
             </CardTitle>
-            <CardDescription className="text-red-600/80">
+            <CardDescription className="text-red-600/80 text-sm sm:text-base">
               Your player ID could not be found. Please try rejoining the room.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="flex flex-col gap-3 p-6">
+          <CardFooter className="flex flex-col gap-3 p-4 sm:p-6">
             <Button
               className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
               onClick={() => router.push(`/join-room?roomId=${state.roomId}`)}
@@ -154,11 +154,11 @@ export default function WaitingRoom() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+    <div className="flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-[10%] w-64 h-64 rounded-full bg-blue-400/10 animate-pulse-slow"></div>
-        <div className="absolute bottom-[20%] right-[10%] w-80 h-80 rounded-full bg-purple-400/10 animate-pulse-slow animation-delay-1000"></div>
+        <div className="absolute top-[20%] left-[10%] w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-blue-400/10 animate-pulse-slow"></div>
+        <div className="absolute bottom-[20%] right-[10%] w-56 sm:w-80 h-56 sm:h-80 rounded-full bg-purple-400/10 animate-pulse-slow animation-delay-1000"></div>
       </div>
       
       <Card className={`
@@ -166,7 +166,7 @@ export default function WaitingRoom() {
         transition-all duration-500 transform 
         ${playerJoined ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}
       `}>
-        <CardHeader className="relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white pb-6">
+        <CardHeader className="relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
           <div className="absolute top-4 right-4 flex gap-2">
             <Button 
               variant="ghost" 
@@ -188,13 +188,13 @@ export default function WaitingRoom() {
           </div>
           
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-              <Users className="h-8 w-8 text-white" />
+            <div className="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+              <Users className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
             </div>
           </div>
           
-          <CardTitle className="text-center text-2xl mb-1">Waiting Room</CardTitle>
-          <CardDescription className="text-center text-white/80">
+          <CardTitle className="text-center text-xl sm:text-2xl mb-1">Waiting Room</CardTitle>
+          <CardDescription className="text-center text-white/80 text-sm sm:text-base">
             Welcome, <span className="font-medium text-white">{currentPlayer?.name || "Player"}</span>!
             {isHost && (
               <div className="mt-1 inline-flex items-center gap-1 bg-yellow-400/20 backdrop-blur-sm px-2 py-1 rounded-full text-yellow-100 text-xs">

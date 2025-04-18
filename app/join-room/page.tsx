@@ -59,10 +59,10 @@ export default function JoinRoom() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+    <main className="min-h-screen bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 flex flex-col items-center justify-center p-2 sm:p-6 md:p-8">
       <div className="w-full max-w-md">
         <Card className="backdrop-blur-sm border border-white/20 shadow-xl rounded-2xl overflow-hidden">
-          <CardHeader className="relative space-y-1 pb-4">
+          <CardHeader className="relative space-y-1 pb-4 px-4 sm:px-6 pt-6 sm:pt-8">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -71,7 +71,7 @@ export default function JoinRoom() {
             >
               <Home className="h-5 w-5" />
             </Button>
-            <CardTitle className="text-2xl font-bold">Join a Game Room</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-bold">Join a Game Room</CardTitle>
             <CardDescription className="text-gray-600">
               {roomId === "DEFAULT" ? 
                 "Join the public default room - no code needed!" : 
@@ -80,7 +80,7 @@ export default function JoinRoom() {
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleJoinRoom}>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 px-4 sm:px-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="flex justify-between items-center text-gray-700">
                   <div className="flex items-center gap-1">
@@ -107,7 +107,6 @@ export default function JoinRoom() {
                   required
                 />
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="roomId" className="flex items-center gap-1 text-gray-700">
                   <KeyRound className="h-3.5 w-3.5" />
@@ -122,7 +121,6 @@ export default function JoinRoom() {
                   required
                   disabled={roomId === "DEFAULT"}
                 />
-                
                 {roomId === "DEFAULT" && (
                   <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -130,7 +128,6 @@ export default function JoinRoom() {
                   </p>
                 )}
               </div>
-              
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm flex gap-2 items-center">
                   <ShieldAlert className="h-4 w-4 flex-shrink-0" />
@@ -138,10 +135,10 @@ export default function JoinRoom() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col gap-3 pt-2 pb-6">
+            <CardFooter className="flex flex-col gap-3 pt-2 pb-6 px-4 sm:px-6">
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-5 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 sm:py-5 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2"
                 disabled={isJoining}
               >
                 {isJoining ? (

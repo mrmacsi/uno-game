@@ -167,12 +167,12 @@ export default function RoomList() {
   if (loading && rooms.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Available Rooms</h2>
-          <Skeleton className="h-9 w-28 rounded-full" />
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-4 gap-2 sm:gap-0">
+          <h2 className="text-lg sm:text-xl font-bold">Available Rooms</h2>
+          <Skeleton className="h-8 sm:h-9 w-24 sm:w-28 rounded-full" />
         </div>
         {[1, 2].map((i) => (
-          <Skeleton key={i} className="w-full h-40 rounded-xl" />
+          <Skeleton key={i} className="w-full h-32 sm:h-40 rounded-xl" />
         ))}
       </div>
     )
@@ -180,8 +180,8 @@ export default function RoomList() {
 
   if (error) {
     return (
-      <div className="rounded-xl bg-gradient-to-br from-red-500/5 to-red-600/5 backdrop-blur-sm border border-red-500/20 p-6 text-center">
-        <p className="text-red-500 mb-3">{error}</p>
+      <div className="rounded-xl bg-gradient-to-br from-red-500/5 to-red-600/5 backdrop-blur-sm border border-red-500/20 p-4 sm:p-6 text-center">
+        <p className="text-red-500 mb-2 sm:mb-3 text-sm sm:text-base">{error}</p>
         <Button 
           variant="outline" 
           size="sm" 
@@ -197,7 +197,7 @@ export default function RoomList() {
 
   if (rooms.length === 0) {
     return (
-      <div className="rounded-xl bg-gradient-to-br from-gray-500/5 to-gray-600/5 backdrop-blur-sm border border-gray-500/20 p-8 text-center">
+      <div className="rounded-xl bg-gradient-to-br from-gray-500/5 to-gray-600/5 backdrop-blur-sm border border-gray-500/20 p-6 sm:p-8 text-center">
         <div className="w-16 h-16 rounded-full bg-gray-500/10 flex items-center justify-center mx-auto mb-4">
           <Search className="h-8 w-8 text-gray-400" />
         </div>
