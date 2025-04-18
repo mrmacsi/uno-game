@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import { Play, ChevronLeft, ChevronRight, Hand, Plus, Minus } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { toast } from "@/hooks/use-toast"
+import { checkPlayValidity } from "@/lib/utils"
 
 export default function PlayerHand() {
-  const { state, currentPlayerId, playCard, sayUno } = useGame()
+  const { state, currentPlayerId, playCard, error: gameError, isLoading } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const [handWidth, setHandWidth] = useState(0)
   const [handScrollPos, setHandScrollPos] = useState(0)
@@ -17,6 +19,17 @@ export default function PlayerHand() {
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
+  
+  // Show toast on game error
+  useEffect(() => {
+    if (gameError) {
+      toast({
+        title: "Game Error",
+        description: gameError,
+        variant: "destructive",
+      })
+    }
+  }, [gameError])
   
   // Responsive hand layout
   useEffect(() => {
@@ -32,7 +45,7 @@ export default function PlayerHand() {
   
   // Detect when a new card is added to the hand
   useEffect(() => {
-    if (!currentPlayerId) return
+    if (!currentPlayerId || !state?.players) return
     
     const player = state.players.find((p: { id: string }) => p.id === currentPlayerId)
     if (!player) return
@@ -53,7 +66,7 @@ export default function PlayerHand() {
     
     // Update the reference to the current cards
     prevCardsRef.current = currentCardIds
-  }, [state.players, currentPlayerId])
+  }, [state?.players, currentPlayerId])
 
   // Scroll handlers for mobile card browsing
   const scrollLeft = () => {
@@ -81,7 +94,7 @@ export default function PlayerHand() {
     setCardScale(Math.max(cardScale - 10, 70))
   }
 
-  if (!currentPlayerId) return null
+  if (!currentPlayerId || !state) return null
 
   const currentPlayer = state.players.find((p: { id: string }) => p.id === currentPlayerId)
 
@@ -200,7 +213,7 @@ export default function PlayerHand() {
           >
             <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
               {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
-                const isPlayable = isMyTurn && state.isValidPlay && state.isValidPlay(card);
+                const isPlayable = isMyTurn && checkPlayValidity(state, card);
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
                 const isRecentlyDrawn = card.id === recentlyDrawnCard;
@@ -219,35 +232,49 @@ export default function PlayerHand() {
                       <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
                     )}
                     <div 
-                      className={`transition-all duration-300 z-10 relative ${
-                        isPlayable 
-                          ? 'hover:translate-y-[-32px] sm:hover:translate-y-[-40px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' 
-                          : ''
+                      className={`transition-all duration-300 z-10 relative ${isPlayable ? 'hover:translate-y-[-32px] sm:hover:translate-y-[-40px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
                       } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
-                      onClick={() => {
-                        // Prevent clicks if already playing a card or not playable
-                        if (animatingCard || !isMyTurn || !state.isValidPlay || !state.isValidPlay(card)) {
+                      onClick={async () => {
+                        if (animatingCard || !isPlayable || isLoading) {
                           return;
                         }
 
-                        const currentPlayerState = state.players.find((p: { id: string }) => p.id === currentPlayerId);
-                        if (currentPlayerState && currentPlayerState.cards.some((c: import("@/lib/types").Card) => c.id === card.id)) {
-                          setAnimatingCard(card.id);
-                          playCard(card.id).catch((error: unknown) => {
-                            // It's important to reset animation state even if the playCard call fails
-                            setAnimatingCard(null); 
+                        const player = state.players.find((p) => p.id === currentPlayerId);
+                        if (!player || !player.cards.some((c) => c.id === card.id)) {
+                          console.warn(
+                            "Attempted to play a card no longer in hand (likely due to state update race)"
+                          );
+                          toast({
+                            title: "Action Failed",
+                            description: "Card is no longer in your hand. The game state might have updated.",
+                            variant: "default",
                           });
+                          return;
+                        }
+
+                        setAnimatingCard(card.id);
+                        try {
+                          await playCard(card.id); 
+                          // No need to update state here - Pusher will handle it via game-context
+                        } catch (error: any) {
+                          console.error("Failed to play card:", error);
+                          toast({
+                            title: "Action Failed",
+                            description: error.message || "Failed to play card. Please try again.",
+                            variant: "destructive",
+                          });
+                          setAnimatingCard(null);
                         }
                       }}
                     >
                       <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
                         <UnoCard
                           card={card}
-                          disabled={!isMyTurn || !state.isValidPlay || !state.isValidPlay(card)}
+                          disabled={!isPlayable}
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
                           isMobile={isMobile}
                         />

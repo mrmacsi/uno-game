@@ -158,17 +158,47 @@ export async function startGame(roomId: string): Promise<void> {
 
 // Play a card
 export async function playCard(roomId: string, playerId: string, cardId: string, selectedColor?: "red" | "blue" | "green" | "yellow"): Promise<void> {
+  console.log(`[Server Action playCard] Received request: roomId=${roomId}, playerId=${playerId}, cardId=${cardId}, color=${selectedColor}`)
   const gameState = await getGameState(roomId)
-  if (!gameState) throw new Error("Room not found")
-  if (gameState.status !== "playing") throw new Error("Game is not in progress")
-  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) throw new Error("Not your turn")
+  if (!gameState) {
+    console.error(`[Server Action playCard] Error: Room not found`)
+    throw new Error("Room not found")
+  }
+  console.log(`[Server Action playCard] Fetched state. Current player: ${gameState.currentPlayer}, Status: ${gameState.status}`)
+  if (gameState.status !== "playing") {
+    console.error(`[Server Action playCard] Error: Game is not in progress`)
+    throw new Error("Game is not in progress")
+  }
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
+    console.error(`[Server Action playCard] Error: Not player's turn. Server current: ${gameState.currentPlayer}, Request from: ${playerId}`)
+    throw new Error("Not your turn")
+  }
   if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") gameState.currentPlayer = playerId
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
-  if (playerIndex === -1) throw new Error("Player not found")
+  if (playerIndex === -1) {
+    console.error(`[Server Action playCard] Error: Player not found`)
+    throw new Error("Player not found")
+  }
   const cardIndex = gameState.players[playerIndex].cards.findIndex((c) => c.id === cardId)
-  if (cardIndex === -1) throw new Error(`Card not found: ${cardId}, player has: ${gameState.players[playerIndex].cards.map(c => c.id).join(",")}`)
+  if (cardIndex === -1) {
+    console.error(`[Server Action playCard] Error: Card not found: ${cardId}, player has: ${gameState.players[playerIndex].cards.map(c => c.id).join(",")}`)
+    throw new Error(`Card not found: ${cardId}, player has: ${gameState.players[playerIndex].cards.map(c => c.id).join(",")}`)
+  }
   const card = gameState.players[playerIndex].cards[cardIndex]
-  if (!checkPlayValidity(gameState, card)) throw new Error("Invalid card")
+  console.log(`[Server Action playCard] Found card: ${JSON.stringify(card)}`)
+  const isValid = checkPlayValidity(gameState, card)
+  console.log(`[Server Action playCard] Server-side checkPlayValidity result: ${isValid}`)
+  if (!isValid) {
+    const topCard = gameState.discardPile[gameState.discardPile.length - 1]
+    console.error(`[Server Action playCard] Error: Invalid card based on server state. Top card: ${JSON.stringify(topCard)}, Current color: ${gameState.currentColor}`)
+    throw new Error("Invalid card")
+  }
+  const beforeState = JSON.stringify({
+    currentPlayer: gameState.currentPlayer,
+    currentColor: gameState.currentColor,
+    discardTop: gameState.discardPile[gameState.discardPile.length - 1],
+    playerHand: gameState.players[playerIndex].cards.map(c => c.id)
+  })
   gameState.players[playerIndex].cards.splice(cardIndex, 1)
   gameState.discardPile.push(card)
   if (!gameState.log) gameState.log = []
@@ -183,6 +213,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     if (selectedColor) {
       gameState.currentColor = selectedColor
     } else {
+      console.error(`[Server Action playCard] Error: No color selected for wild card`)
       throw new Error("No color selected for wild card")
     }
   } else {
@@ -213,66 +244,50 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   } else {
     applyCardEffects(gameState, card)
     if (gameState.status === 'playing') {
-      let nextPlayerIndex = playerIndex // Start assuming current player might go again
-      // Get the card *before* the one just played to check for chains
+      let nextPlayerIndex = playerIndex
       const cardJustPlayed = gameState.discardPile[gameState.discardPile.length - 1];
       const cardBeforeThat = gameState.discardPile.length > 1 ? gameState.discardPile[gameState.discardPile.length - 2] : null;
-
-      // Determine the next logical player *before* special card logic might change it
       let logicalNextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
-
-      // --- Start of revised turn logic ---
       if (cardJustPlayed.type === 'skip') {
-        // Check for Skip Chain (Skip on Skip)
         if (cardBeforeThat && cardBeforeThat.type === 'skip') {
-          // Player successfully chained. They keep their turn.
           gameState.log.push(`${gameState.players[playerIndex].name} chained a skip card and keeps their turn.`);
-          // Explicitly set nextPlayerIndex to the current player for clarity and the final assignment
           nextPlayerIndex = playerIndex; 
         } else {
-          // Single Skip card played. Skip the next player.
-          const skippedPlayerIndex = logicalNextPlayerIndex; // This is the player who gets skipped
-          const playerAfterSkippedIndex = getNextPlayerIndex(gameState, skippedPlayerIndex); // This is the player whose turn it ACTUALLY becomes
-
+          const skippedPlayerIndex = logicalNextPlayerIndex;
+          const playerAfterSkippedIndex = getNextPlayerIndex(gameState, skippedPlayerIndex);
           const skippedPlayer = gameState.players[skippedPlayerIndex];
           const nextActivePlayer = gameState.players[playerAfterSkippedIndex];
-
-          // Corrected Log Message
           gameState.log.push(`${skippedPlayer.name} was skipped! Turn passes to ${nextActivePlayer.name}.`);
-
-          // Explicitly set the next player index for the assignment later
           nextPlayerIndex = playerAfterSkippedIndex;
         }
       } else if (cardJustPlayed.type === 'draw2' || cardJustPlayed.type === 'wild4') {
-        // Draw 2 / Wild Draw 4: Apply effect (already done in applyCardEffects) and skip the next player.
-        const affectedPlayerIndex = logicalNextPlayerIndex; // Player who draws and is skipped
-        const playerAfterAffectedIndex = getNextPlayerIndex(gameState, affectedPlayerIndex); // Player whose turn it becomes
-
+        const affectedPlayerIndex = logicalNextPlayerIndex;
+        const playerAfterAffectedIndex = getNextPlayerIndex(gameState, affectedPlayerIndex);
         const affectedPlayer = gameState.players[affectedPlayerIndex];
         const nextActivePlayer = gameState.players[playerAfterAffectedIndex];
-
-        // Updated log message for clarity
         gameState.log.push(`${affectedPlayer.name} must draw ${cardJustPlayed.type === 'draw2' ? 2 : 4} cards and is skipped! Turn passes to ${nextActivePlayer.name}.`);
-
-        // Update the nextPlayerIndex for the final assignment
         nextPlayerIndex = playerAfterAffectedIndex;
       } else if (cardJustPlayed.type === 'reverse') {
-        // Change direction (already done in applyCardEffects)
-        // The next player is now calculated based on the *new* direction from the current player.
-        nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex); // Recalculate based on new direction
+        nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
         gameState.log.push(`Direction reversed! Turn passes to ${gameState.players[nextPlayerIndex].name}.`);
       } else {
-        // Regular card play, move to the next player in the current direction.
         nextPlayerIndex = logicalNextPlayerIndex;
       }
-      // --- End of revised turn logic ---
-
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
   }
-
+  const afterState = JSON.stringify({
+    currentPlayer: gameState.currentPlayer,
+    currentColor: gameState.currentColor,
+    discardTop: gameState.discardPile[gameState.discardPile.length - 1],
+    playerHand: gameState.players[playerIndex].cards.map(c => c.id)
+  })
+  console.log(`[Server Action playCard] State before: ${beforeState}`)
+  console.log(`[Server Action playCard] State after: ${afterState}`)
   await updateGameState(roomId, gameState)
+  console.log(`[Server Action playCard] Game state updated. Triggering Pusher event.`)
   await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
+  console.log(`[Server Action playCard] Pusher event triggered.`)
 }
 
 // Draw a card
@@ -286,15 +301,19 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   if (playerIndex === -1) throw new Error("Player not found")
   if (gameState.isDrawing) throw new Error("Already drawing a card")
   if (gameState.hasDrawnThisTurn) throw new Error("You have already drawn a card this turn.")
-  gameState.isDrawing = true
-  await updateGameState(roomId, gameState)
+  
+  gameState.isDrawing = true // Set flag immediately
+  await updateGameState(roomId, gameState) // Update state to show drawing in progress
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState)) // Notify clients
+
   try {
     reshuffleIfNeeded(gameState)
     if (!gameState.drawPile || gameState.drawPile.length === 0) {
       gameState.isDrawing = false
-      await endTurn(roomId, playerId)
-      return
+      await endTurn(roomId, playerId) // Automatically end turn if no cards to draw
+      return // Exit early
     }
+
     const newCard = gameState.drawPile.pop()!
     gameState.players[playerIndex].cards.push(newCard)
     if (!gameState.log) gameState.log = []
@@ -302,25 +321,32 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
     gameState.drawPileCount = gameState.drawPile.length
     gameState.hasDrawnThisTurn = true
-    const canPlayAnyCard = gameState.players[playerIndex].cards.some(card => checkPlayValidity(gameState, card))
-    if (checkPlayValidity(gameState, newCard)) {
-      gameState.isDrawing = false
-      await updateGameState(roomId, gameState)
-      await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { playerId: playerId, card: newCard })
-      await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
-    } else if (!canPlayAnyCard) {
-      gameState.isDrawing = false
-      await endTurn(roomId, playerId)
-    } else {
-      gameState.isDrawing = false
-      await updateGameState(roomId, gameState)
-      await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
-    }
-  } catch (error) {
-    gameState.isDrawing = false
+    gameState.isDrawing = false // Drawing finished
+
+    // Always send a final game-updated event after the draw completes
     await updateGameState(roomId, gameState)
     await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
-    throw error
+
+    // Check if player *must* pass (drew a card and still has no playable cards)
+    const canPlayAnyCard = gameState.players[playerIndex].cards.some(card => checkPlayValidity(gameState, card))
+    if (!canPlayAnyCard) {
+      // If no cards are playable after drawing, automatically end the turn.
+      // Add a small delay to allow the player to see the drawn card before the turn ends.
+      await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+      await endTurn(roomId, playerId);
+    }
+    // If the drawn card is playable OR other cards are playable, the turn continues,
+    // waiting for the player to play or pass.
+
+  } catch (error) {
+    console.error("Error during drawCard logic:", error)
+    // Attempt to reset drawing state even on error
+    if (gameState) {
+        gameState.isDrawing = false
+        await updateGameState(roomId, gameState)
+        await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
+    }
+    throw error // Re-throw the error
   }
 }
 

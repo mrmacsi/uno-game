@@ -108,22 +108,22 @@ export default function GameOver() {
           </CardHeader>
           
           <Tabs defaultValue="standings" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg mx-4 mt-4">
+            <TabsList className="flex w-full max-w-xl mx-auto overflow-x-auto no-scrollbar gap-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg p-1 mt-6 border border-gray-200 transition-all duration-300">
               <TabsTrigger 
                 value="standings" 
-                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
               >
                 Standings
               </TabsTrigger>
               <TabsTrigger 
                 value="points" 
-                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
               >
                 Points
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
               >
                 History
               </TabsTrigger>

@@ -2,6 +2,7 @@
 
 import type { GameState, Card } from "@/lib/types"
 import { isIOS } from "./browser-utils"
+import { checkPlayValidity } from "./utils"
 
 // For iOS devices, use this as a backup if localStorage fails
 let inMemoryPlayerIdFallback: string | null = null
@@ -78,40 +79,15 @@ export function generateClientUUID(): string {
   return crypto.randomUUID()
 }
 
-/**
- * Adds the isValidPlay function to a game state object received from the server
- */
 export function addIsValidPlayFunction(gameState: GameState): GameState {
-  if (gameState.status === 'playing') {
-    gameState.isValidPlay = function(card: Card): boolean {
-      const topCard = this.discardPile[this.discardPile.length - 1];
-      // If discard pile is empty, any card is technically playable (first turn edge case)
-      if (!topCard) return true; 
-
-      // Wild cards are always playable
-      if (card.type === "wild" || card.type === "wild4") {
-        return true;
-      }
-
-      // Check if the card's color matches the current required color
-      if (card.color === this.currentColor) {
-        return true;
-      }
-
-      // Check if the card's number matches the top card's number (if both are numbers)
-      if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
-        return true;
-      }
-
-      // Check if the card's type matches the top card's type (for action cards: Skip, Reverse, Draw2)
-      // This allows playing e.g. a Blue Skip on a Red Skip.
-      if (card.type !== "number" && card.type === topCard.type) {
-        return true;
-      }
-
-      // If none of the above conditions are met, the play is invalid
-      return false;
-    };
+  if (gameState && gameState.status === 'playing') {
+    gameState.isValidPlay = (card: Card): boolean => {
+      return checkPlayValidity(gameState, card)
+    }
   }
-  return gameState;
-} 
+  return gameState
+}
+
+// ... existing code ...
+// Function removed as it's now handled in game-context.tsx
+// export function addIsValidPlayFunction(gameState: GameState): GameState { ... } 

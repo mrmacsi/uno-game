@@ -1,16 +1,18 @@
 "use client"
 
-import { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef } from "react"
+import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react"
 import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction, Card } from "@/lib/types"
-import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer, endTurn } from "@/lib/game-actions"
+import type { GameState, GameAction, Card, CardColor, Player } from "@/lib/types"
+import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer, endTurn, startGame as startGameAction } from "@/lib/game-actions"
 import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
 import { toast } from "@/hooks/use-toast"
 import type { Channel } from "pusher-js"
+import Pusher from 'pusher-js'
+import { checkPlayValidity as checkPlayValidityClient } from '@/lib/utils'
 
 type GameContextType = {
   state: GameState
-  playCard: (cardId: string) => Promise<void>
+  playCard: (cardId: string, selectedColor?: CardColor) => Promise<void>
   drawCard: () => Promise<void>
   sayUno: () => Promise<void>
   callUnoOnPlayer: (targetPlayerId: string) => Promise<void>
@@ -23,6 +25,10 @@ type GameContextType = {
   endTurn: () => Promise<void>
   hasPlayableCard: () => boolean
   drawnCardPlayable: Card | null
+  roomId: string | null
+  isLoading: boolean
+  error: string | null
+  startGame: () => Promise<void>
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -50,42 +56,56 @@ export function GameProvider({
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
     typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
   )
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   
   // State for wild card color selection
   const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
   const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
   
   // Keep track of last seen log entries to display new ones as toasts
-  const previousLogRef = useRef<string[]>([]);
+  const previousLogRef = useRef<string[]>([])
   
   // State for drawn card playable
   const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null)
   
+  // Function to update game state, implementing error handling
+  const updateGameState = useCallback((newGameState: GameState) => {
+    try {
+      const processedState = addIsValidPlayFunction({ ...newGameState })
+      dispatch({ type: "UPDATE_GAME_STATE", payload: processedState })
+      setError(null)
+    } catch (err) {
+      console.error("[GameProvider] Error updating game state:", err)
+      setError(err instanceof Error ? err.message : "Error updating game state")
+    }
+  }, [])
+  
   // Monitor log changes and show toasts for new entries
   useEffect(() => {
     if (!state.log) {
-      previousLogRef.current = [];
-      return;
+      previousLogRef.current = []
+      return
     }
     
-    const prevLog = previousLogRef.current;
-    const currentLog = state.log;
+    const prevLog = previousLogRef.current
+    const currentLog = state.log
     
     // Only show toast for new log entries
     if (prevLog.length > 0 && currentLog.length > prevLog.length) {
       // Get the newest log entry
-      const newestEntry = currentLog[currentLog.length - 1];
+      const newestEntry = currentLog[currentLog.length - 1]
       if (!prevLog.includes(newestEntry)) {
         toast({
           description: newestEntry,
           duration: 3000,
-        });
+        })
       }
     }
     
     // Update ref for next comparison
-    previousLogRef.current = currentLog;
-  }, [state.log]);
+    previousLogRef.current = currentLog
+  }, [state.log])
 
   // Log initial player ID
   useEffect(() => {
@@ -114,11 +134,11 @@ export function GameProvider({
     return () => {
       window.removeEventListener("storage", handleStorageChange)
     }
-  }, [currentPlayerId]);
+  }, [currentPlayerId])
 
   // Debug the player ID and host status - always call hooks, conditional logic inside
   useEffect(() => {
-    if (currentPlayerId) {
+    if (currentPlayerId && state.players) {
       const playerInGame = state.players.find(p => p.id === currentPlayerId)
       console.log("[GameProvider] Current player ID:", currentPlayerId)
       console.log("[GameProvider] Current player in game:", playerInGame)
@@ -126,44 +146,91 @@ export function GameProvider({
       console.log("[GameProvider] Is host:", playerInGame?.isHost)
       console.log("[GameProvider] Total players:", state.players.length)
     } else {
-      console.warn("[GameProvider] No player ID available")
+      console.warn("[GameProvider] No player ID available or no players loaded")
     }
-  }, [currentPlayerId, state.players]);
+  }, [currentPlayerId, state.players])
 
-  // Pusher subscription - move conditional check inside the hook
+  // Improved Pusher subscription with robust error handling
   useEffect(() => {
-    // Initialize with no-op functions for when pusher isn't available
-    let channel: Channel | { unbind_all: () => void; bind: () => void; } = {
-      unbind_all: () => {},
-      bind: () => {}
-    };
+    let channel: Channel | null = null
+    let pusher: Pusher | null = null
     
-    if (pusherClient && roomId) {
-      const channelName = `game-${roomId}`;
-      console.log(`[GameProvider] Subscribing to Pusher channel: ${channelName}`);
-
-      channel = pusherClient.subscribe(channelName);
-
-      channel.bind("game-updated", (data: GameState) => {
-        setDrawnCardPlayable(null)
-        dispatch({ type: "UPDATE_GAME_STATE", payload: data });
-      });
-      channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
-        if (data.playerId === currentPlayerId) {
-          setDrawnCardPlayable(data.card)
-        }
-      });
-    }
-
-    return () => {
-      if (pusherClient && roomId) {
-        console.log(`[GameProvider] Unsubscribing from Pusher channel: game-${roomId}`);
-        channel.unbind_all();
-        pusherClient.unsubscribe(`game-${roomId}`);
+    const setupPusher = () => {
+      if (!roomId) {
+        console.warn("[GameProvider] No room ID provided, can't subscribe to Pusher")
+        return
       }
-    };
-  }, [roomId, currentPlayerId]);
+      
+      try {
+        // Use existing pusherClient if available
+        if (pusherClient) {
+          console.log(`[GameProvider] Using existing Pusher client to subscribe to game-${roomId}`)
+          channel = pusherClient.subscribe(`game-${roomId}`)
+        } else {
+          // As a fallback, create a new Pusher instance
+          console.log(`[GameProvider] Creating new Pusher instance to subscribe to game-${roomId}`)
+          pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+            cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+            forceTLS: true
+          })
+          channel = pusher.subscribe(`game-${roomId}`)
+        }
+        
+        if (!channel) {
+          throw new Error("Failed to create Pusher channel")
+        }
+        
+        // Bind to the game-updated event
+        channel.bind("game-updated", (data: GameState) => {
+          console.log("[GameProvider] Received game-updated event:", data.players.length, "players")
+          setDrawnCardPlayable(null)
+          updateGameState(data)
+        })
+        
+        // Bind to the drawn-card-playable event
+        channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
+          console.log("[GameProvider] Received drawn-card-playable event for player:", data.playerId)
+          if (data.playerId === currentPlayerId) {
+            setDrawnCardPlayable(data.card)
+          }
+        })
+        
+        // Bind to room-deleted event
+        channel.bind("room-deleted", (data: { message: string }) => {
+          console.log("[GameProvider] Received room-deleted event:", data.message)
+          toast({
+            title: "Room Deleted",
+            description: data.message,
+            variant: "destructive",
+          })
+        })
+        
+        console.log(`[GameProvider] Successfully subscribed to game-${roomId}`)
+      } catch (error) {
+        console.error("[GameProvider] Error setting up Pusher:", error)
+        setError("Failed to connect to game server. Please refresh the page.")
+      }
+    }
+    
+    setupPusher()
+    
+    // Cleanup function
+    return () => {
+      if (channel) {
+        console.log(`[GameProvider] Cleaning up Pusher subscription for game-${roomId}`)
+        channel.unbind_all()
+      }
+      
+      if (pusherClient && roomId) {
+        pusherClient.unsubscribe(`game-${roomId}`)
+      } else if (pusher && roomId) {
+        pusher.unsubscribe(`game-${roomId}`)
+        pusher.disconnect()
+      }
+    }
+  }, [roomId, currentPlayerId, updateGameState])
 
+  // Reset drawnCardPlayable when turn changes
   useEffect(() => {
     if (state.currentPlayer !== currentPlayerId) {
       setDrawnCardPlayable(null)
@@ -172,11 +239,15 @@ export function GameProvider({
 
   const refreshGameState = async (): Promise<void> => {
     try {
+      setIsLoading(true)
       console.log("[GameProvider] Manually refreshing game state for room:", roomId)
       const gameState = await getRoom(roomId)
-      dispatch({ type: "UPDATE_GAME_STATE", payload: gameState })
+      updateGameState(gameState)
+      setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to refresh game state:", error)
+      setError("Failed to refresh game state. Please try again.")
+      setIsLoading(false)
     }
   }
 
@@ -188,8 +259,7 @@ export function GameProvider({
     if (!currentPlayer) return false
     
     // Check if any card in player's hand can be played
-    // Safely check if isValidPlay exists before calling
-    return !!state.isValidPlay && currentPlayer.cards.some(card => state.isValidPlay!(card))
+    return currentPlayer.cards.some(card => checkPlayValidityClient(state, card))
   }
 
   const handlePlayCard = async (cardId: string) => {
@@ -197,7 +267,6 @@ export function GameProvider({
       console.error("[GameProvider] Cannot play card: No player ID")
       return
     }
-    
     if (state.status !== "playing") {
       console.error("[GameProvider] Cannot play card: Game is not in progress")
       toast({
@@ -207,7 +276,6 @@ export function GameProvider({
       })
       return
     }
-    
     if (state.currentPlayer !== currentPlayerId) {
       console.error("[GameProvider] Cannot play card: Not your turn")
       toast({
@@ -217,14 +285,11 @@ export function GameProvider({
       })
       return
     }
-    
-    // Get the card from the player's hand
     const currentPlayer = state.players.find(p => p.id === currentPlayerId)
     if (!currentPlayer) {
       console.error("[GameProvider] Cannot play card: Player not found")
       return
     }
-    
     const card = currentPlayer.cards.find(c => c.id === cardId)
     if (!card) {
       console.error("[GameProvider] Cannot play card: Card not found in player's hand")
@@ -235,10 +300,7 @@ export function GameProvider({
       })
       return
     }
-    
-    // Verify the card is playable
-    // Safely check if isValidPlay exists before calling
-    if (!state.isValidPlay || !state.isValidPlay(card)) {
+    if (!checkPlayValidityClient(state, card)) {
       console.error("[GameProvider] Cannot play card: Card is not valid to play")
       toast({
         title: "Cannot Play Card",
@@ -247,18 +309,14 @@ export function GameProvider({
       })
       return
     }
-    
-    // If it's a wild card, open the color selector
     if (card.type === "wild" || card.type === "wild4") {
       setIsColorSelectionOpen(true)
       setPendingWildCardId(cardId)
       return
     }
-    
-    // For non-wild cards, play immediately
     try {
-      // Double-check card exists in hand before sending to server
-      const playerHasCard = currentPlayer.cards.some(c => c.id === cardId) 
+      setIsLoading(true)
+      const playerHasCard = currentPlayer.cards.some(c => c.id === cardId)
       if (!playerHasCard) {
         console.error("[GameProvider] Cannot play card: Card no longer in hand")
         toast({
@@ -266,10 +324,11 @@ export function GameProvider({
           description: "This card is no longer in your hand",
           variant: "destructive",
         })
+        setIsLoading(false)
         return
       }
-      
       await playCard(roomId, currentPlayerId, cardId)
+      setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to play card:", error)
       toast({
@@ -277,8 +336,18 @@ export function GameProvider({
         description: error instanceof Error ? error.message : "Failed to play card",
         variant: "destructive",
       })
+      setIsLoading(false)
+      await refreshGameState()
     }
   }
+
+  useEffect(() => {
+    if (state.status !== "playing") return
+    const interval = setInterval(() => {
+      refreshGameState()
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [state.status, roomId])
 
   const handleDrawCard = async () => {
     if (!currentPlayerId) {
@@ -297,9 +366,19 @@ export function GameProvider({
       return
     }
     
-    // Allow drawing once per turn, regardless of other game conditions
-    // The server-side check has been removed to ensure players can always draw
+    // Check if player has already drawn this turn
+    if (state.hasDrawnThisTurn) {
+      console.error("[GameProvider] Cannot draw card: Already drawn this turn")
+      toast({
+        title: "Cannot Draw Card",
+        description: "You've already drawn a card this turn",
+        variant: "destructive",
+      })
+      return
+    }
+    
     try {
+      setIsLoading(true)
       await drawCard(roomId, currentPlayerId)
       
       // Add toast notification that the player drew a card
@@ -309,33 +388,16 @@ export function GameProvider({
         variant: "default",
       })
       
-      // After drawing, check if the player can play any card
-      // If not, automatically end their turn
-      setTimeout(async () => {
-        const refreshedStateRaw = await getRoom(roomId)
-        const refreshedState = addIsValidPlayFunction(refreshedStateRaw)
-        dispatch({ type: "UPDATE_GAME_STATE", payload: refreshedState })
-        
-        // If the player doesn't have a playable card after drawing, automatically end turn
-        if (refreshedState.hasDrawnThisTurn && refreshedState.currentPlayer === currentPlayerId) {
-          const currentPlayer = refreshedState.players.find(p => p.id === currentPlayerId)
-          if (currentPlayer) {
-            // Safely check if isValidPlay exists before calling
-            const canPlayAnyCard = refreshedState.isValidPlay && currentPlayer.cards.some(card => refreshedState.isValidPlay!(card))
-            if (!canPlayAnyCard) {
-              // Automatically end turn if player can't play any card
-              await handleEndTurn()
-            }
-          }
-        }
-      }, 500) // Short delay to allow state to update
+      // No need for setTimeout and manual state refresh - Pusher will update the state
+      setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to draw card:", error)
       toast({
         title: "Error",
-        description: "Failed to draw card",
+        description: error instanceof Error ? error.message : "Failed to draw card",
         variant: "destructive",
       })
+      setIsLoading(false)
     }
   }
 
@@ -344,7 +406,21 @@ export function GameProvider({
       console.error("[GameProvider] Cannot say UNO: No player ID")
       return
     }
-    await sayUno(roomId, currentPlayerId)
+    
+    try {
+      setIsLoading(true)
+      await sayUno(roomId, currentPlayerId)
+      // State update will be handled by Pusher
+      setIsLoading(false)
+    } catch (error) {
+      console.error("[GameProvider] Failed to say UNO:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to say UNO",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+    }
   }
 
   const handleCallUnoOnPlayer = async (targetPlayerId: string) => {
@@ -352,15 +428,25 @@ export function GameProvider({
       console.error("[GameProvider] Cannot call UNO: No player ID")
       return
     }
+    
     try {
+      setIsLoading(true)
       await callUnoOnPlayer(roomId, currentPlayerId, targetPlayerId)
+      // State update will be handled by Pusher
+      setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Error calling UNO:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to call UNO on player",
+        variant: "destructive",
+      })
+      setIsLoading(false)
     }
   }
 
   const handleSelectWildCardColor = async (color: "red" | "blue" | "green" | "yellow") => {
-    console.log(`[GameProvider] handleSelectWildCardColor called with color: ${color}, pending card: ${pendingWildCardId}`);
+    console.log(`[GameProvider] handleSelectWildCardColor called with color: ${color}, pending card: ${pendingWildCardId}`)
     if (!currentPlayerId || !pendingWildCardId) {
       console.error("[GameProvider] Cannot select color: Missing player or pending card ID")
       toast({
@@ -374,16 +460,18 @@ export function GameProvider({
       return
     }
 
-    const cardToPlay = pendingWildCardId;
+    const cardToPlay = pendingWildCardId
 
     try {
-      console.log(`[GameProvider] Attempting to play wild card ${cardToPlay} with color ${color}`);
+      setIsLoading(true)
+      console.log(`[GameProvider] Attempting to play wild card ${cardToPlay} with color ${color}`)
       // Call the server action with the color
       await playCard(roomId, currentPlayerId, cardToPlay, color)
-      console.log(`[GameProvider] Successfully called playCardAction for ${cardToPlay}`);
+      console.log(`[GameProvider] Successfully called playCardAction for ${cardToPlay}`)
       // If successful, close modal
       setIsColorSelectionOpen(false)
       setPendingWildCardId(null)
+      setIsLoading(false)
     } catch (error) {
       // Log specific error, show toast
       console.error(`[GameProvider] Failed to play wild card ${cardToPlay}:`, error)
@@ -395,6 +483,7 @@ export function GameProvider({
       // Ensure modal closes even on error
       setIsColorSelectionOpen(false)
       setPendingWildCardId(null)
+      setIsLoading(false)
     }
   }
   
@@ -432,28 +521,52 @@ export function GameProvider({
     }
     
     try {
-      const response = await fetch("/api/end-turn", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roomId,
-          playerId: currentPlayerId,
-        }),
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to end turn")
-      }
+      setIsLoading(true)
+      await endTurn(roomId, currentPlayerId)
+      // State update will be handled by Pusher
+      setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to end turn:", error)
       toast({
         title: "Error",
-        description: "Failed to end turn",
+        description: error instanceof Error ? error.message : "Failed to end turn",
         variant: "destructive",
       })
+      setIsLoading(false)
+    }
+  }
+  
+  const handleStartGame = async () => {
+    if (!currentPlayerId) {
+      console.error("[GameProvider] Cannot start game: No player ID")
+      return
+    }
+    
+    // Check if player is host
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+    if (!currentPlayer?.isHost) {
+      console.error("[GameProvider] Cannot start game: Not the host")
+      toast({
+        title: "Cannot Start Game",
+        description: "Only the host can start the game",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    try {
+      setIsLoading(true)
+      await startGameAction(roomId)
+      // State update will be handled by Pusher
+      setIsLoading(false)
+    } catch (error) {
+      console.error("[GameProvider] Failed to start game:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start game",
+        variant: "destructive",
+      })
+      setIsLoading(false)
     }
   }
   
@@ -473,7 +586,11 @@ export function GameProvider({
         closeColorSelector: handleCloseColorSelector,
         endTurn: handleEndTurn,
         hasPlayableCard,
-        drawnCardPlayable
+        drawnCardPlayable,
+        roomId,
+        isLoading,
+        error,
+        startGame: handleStartGame
       }}
     >
       {children}
