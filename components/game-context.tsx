@@ -58,7 +58,10 @@ export function GameProvider({
   
   // Monitor log changes and show toasts for new entries
   useEffect(() => {
-    if (!state.log) return;
+    if (!state.log) {
+      previousLogRef.current = [];
+      return;
+    }
     
     const prevLog = previousLogRef.current;
     const currentLog = state.log;
@@ -85,7 +88,7 @@ export function GameProvider({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Listen for localStorage changes
+  // Listen for localStorage changes - ensure hooks are always called
   useEffect(() => {
     const handleStorageChange = () => {
       const storedPlayerId = getPlayerIdFromLocalStorage()
@@ -93,25 +96,22 @@ export function GameProvider({
       setCurrentPlayerId(storedPlayerId)
     }
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", handleStorageChange)
-      
-      // Also check once on mount
-      const storedPlayerId = getPlayerIdFromLocalStorage()
-      if (storedPlayerId !== currentPlayerId) {
-        console.log("[GameProvider] Updated player ID on mount:", storedPlayerId)
-        setCurrentPlayerId(storedPlayerId)
-      }
+    // Always set up event listener, but check value conditionally inside
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also check once on mount
+    const storedPlayerId = getPlayerIdFromLocalStorage()
+    if (storedPlayerId !== currentPlayerId) {
+      console.log("[GameProvider] Updated player ID on mount:", storedPlayerId)
+      setCurrentPlayerId(storedPlayerId)
     }
 
     return () => {
-      if (typeof window !== "undefined") {
-        window.removeEventListener("storage", handleStorageChange)
-      }
+      window.removeEventListener("storage", handleStorageChange)
     }
-  }, [currentPlayerId])
+  }, [currentPlayerId]);
 
-  // Debug the player ID and host status
+  // Debug the player ID and host status - always call hooks, conditional logic inside
   useEffect(() => {
     if (currentPlayerId) {
       const playerInGame = state.players.find(p => p.id === currentPlayerId)
@@ -123,25 +123,34 @@ export function GameProvider({
     } else {
       console.warn("[GameProvider] No player ID available")
     }
-  }, [currentPlayerId, state.players])
+  }, [currentPlayerId, state.players]);
 
+  // Pusher subscription - move conditional check inside the hook
   useEffect(() => {
-    if (!pusherClient || !roomId) return;
+    // Initialize with no-op functions for when pusher isn't available
+    let channel: any = { 
+      unbind_all: () => {}, 
+      bind: () => {} 
+    };
+    
+    if (pusherClient && roomId) {
+      const channelName = `game-${roomId}`;
+      console.log(`[GameProvider] Subscribing to Pusher channel: ${channelName}`);
 
-    const channelName = `game-${roomId}`;
-    console.log(`[GameProvider] Subscribing to Pusher channel: ${channelName}`);
+      channel = pusherClient.subscribe(channelName);
 
-    const channel = pusherClient.subscribe(channelName);
-
-    channel.bind("game-updated", (data: GameState) => {
-      console.log("[GameProvider] Received game update via Pusher:", data);
-      dispatch({ type: "UPDATE_GAME_STATE", payload: data });
-    });
+      channel.bind("game-updated", (data: GameState) => {
+        console.log("[GameProvider] Received game update via Pusher:", data);
+        dispatch({ type: "UPDATE_GAME_STATE", payload: data });
+      });
+    }
 
     return () => {
-      console.log(`[GameProvider] Unsubscribing from Pusher channel: ${channelName}`);
-      channel.unbind_all();
-      pusherClient?.unsubscribe(channelName);
+      if (pusherClient && roomId) {
+        console.log(`[GameProvider] Unsubscribing from Pusher channel: game-${roomId}`);
+        channel.unbind_all();
+        pusherClient.unsubscribe(`game-${roomId}`);
+      }
     };
   }, [roomId, currentPlayerId]);
 

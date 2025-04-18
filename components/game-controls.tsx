@@ -38,10 +38,6 @@ export default function GameControls() {
           <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${colorStyles} mr-2`}>
             {state.currentColor.toUpperCase()}
           </span>
-          
-          <span className="text-white/80 text-xs sm:text-sm hidden sm:inline">
-            {state.direction === 1 ? "➡️ Clockwise" : "⬅️ Counter-Clockwise"}
-          </span>
         </div>
 
         <div className="flex gap-1 items-center">

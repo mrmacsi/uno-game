@@ -75,6 +75,11 @@ export default function PlayerHand() {
               ({currentPlayer.cards.length} cards)
             </span>
           </h2>
+          <div className="mt-1 mb-2 flex justify-start">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold shadow bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'}`}>
+              {state.direction === 1 ? '➡️ Clockwise' : '⬅️ Counter-Clockwise'}
+            </span>
+          </div>
           
           {isMyTurn && (
             <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-medium px-3 py-1 rounded-full shadow-md">
