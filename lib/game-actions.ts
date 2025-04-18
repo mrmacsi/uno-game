@@ -248,6 +248,10 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") gameState.currentPlayer = playerId
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
   if (playerIndex === -1) throw new Error("Player not found")
+  
+  // Allow drawing regardless of any other game condition when it's player's turn
+  // Remove the check for hasDrawnThisTurn here (it's still handled on the client-side)
+  
   const topCard = gameState.discardPile[gameState.discardPile.length - 1]
   const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
   

@@ -17,7 +17,8 @@ export default function DrawPile({ count }: DrawPileProps) {
   const [showDrawCount, setShowDrawCount] = useState(false)
   
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn && !state.hasDrawnThisTurn
+  // Always allow drawing on player's turn, regardless of hasDrawnThisTurn
+  const canDraw = isMyTurn
   
   // Detect when cards are drawn
   useEffect(() => {

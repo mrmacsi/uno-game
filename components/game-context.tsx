@@ -252,16 +252,19 @@ export function GameProvider({
       return
     }
     
-    if (!roomId) {
-      console.error("[GameProvider] Cannot draw card: No room ID")
+    // Check if it's the player's turn
+    if (state.currentPlayer !== currentPlayerId) {
+      console.error("[GameProvider] Cannot draw card: Not your turn")
+      toast({
+        title: "Cannot Draw Card",
+        description: "It's not your turn",
+        variant: "destructive",
+      })
       return
     }
     
-    if (state.hasDrawnThisTurn) {
-      console.error("[GameProvider] Cannot draw again: Player has already drawn this turn")
-      return
-    }
-    
+    // Allow drawing once per turn, regardless of other game conditions
+    // The server-side check has been removed to ensure players can always draw
     try {
       await drawCard(roomId, currentPlayerId)
       
