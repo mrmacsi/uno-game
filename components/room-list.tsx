@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GameState } from "@/lib/types"
-import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles } from "lucide-react"
+import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Play } from "lucide-react"
+
 
 export default function RoomList() {
   const [rooms, setRooms] = useState<GameState[]>([])
@@ -136,30 +136,30 @@ export default function RoomList() {
       case 'waiting':
         return {
           bg: 'bg-gradient-to-r from-blue-500/10 to-blue-600/10',
-          text: 'text-blue-500',
+          text: 'text-blue-600',
           border: 'border-blue-500/20',
-          icon: <Clock className="h-3 w-3 text-blue-500" />
+          icon: <Clock className="h-3.5 w-3.5 text-blue-500" />
         }
       case 'playing':
         return {
           bg: 'bg-gradient-to-r from-green-500/10 to-green-600/10',
-          text: 'text-green-500',
+          text: 'text-green-600',
           border: 'border-green-500/20',
-          icon: <Play className="h-3 w-3 text-green-500" />
+          icon: <Play className="h-3.5 w-3.5 text-green-500" />
         }
       case 'finished':
         return {
           bg: 'bg-gradient-to-r from-purple-500/10 to-purple-600/10',
-          text: 'text-purple-500',
+          text: 'text-purple-600',
           border: 'border-purple-500/20',
-          icon: <Sparkles className="h-3 w-3 text-purple-500" />
+          icon: <Sparkles className="h-3.5 w-3.5 text-purple-500" />
         }
       default:
         return {
           bg: 'bg-gradient-to-r from-gray-500/10 to-gray-600/10',
-          text: 'text-gray-500',
+          text: 'text-gray-600',
           border: 'border-gray-500/20',
-          icon: <Clock className="h-3 w-3 text-gray-500" />
+          icon: <Clock className="h-3.5 w-3.5 text-gray-500" />
         }
     }
   }
@@ -168,7 +168,7 @@ export default function RoomList() {
     return (
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-4 gap-2 sm:gap-0">
-          <h2 className="text-lg sm:text-xl font-bold">Available Rooms</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Available Rooms</h2>
           <Skeleton className="h-8 sm:h-9 w-24 sm:w-28 rounded-full" />
         </div>
         {[1, 2].map((i) => (
@@ -210,11 +210,13 @@ export default function RoomList() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Available Rooms</h2>
+        <h2 className="text-xl font-bold text-gray-800 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          Available Rooms
+        </h2>
         <Button 
           variant="outline" 
           size="sm" 
-          className="rounded-full bg-white/80 hover:bg-white border-gray-200 hover:border-gray-300 text-gray-700 px-4 transition-all duration-200" 
+          className="rounded-full bg-white/80 hover:bg-white border-gray-200 hover:border-gray-300 text-gray-700 px-4 transition-all duration-200 shadow-sm hover:shadow" 
           onClick={fetchRooms}
           disabled={refreshing}
         >
@@ -224,124 +226,134 @@ export default function RoomList() {
       </div>
       
       <div className="space-y-4">
-        {rooms.map((room) => {
+        {rooms.map((room, index) => {
           const action = actions[room.roomId] || { loading: false, message: null }
           const statusStyle = getStatusStyle(room.status)
           const isDefault = room.roomId === "DEFAULT"
           
           return (
-            <Card 
-              key={room.roomId} 
-              className="overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl bg-white/90 backdrop-blur-sm"
+            <div
+              key={room.roomId}
+              className="opacity-0 translate-y-4 animate-fade-in-up"
+              style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
             >
-              <CardHeader className="pb-2 pt-4 px-5">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium text-gray-800">{room.roomId}</span>
-                      {isDefault && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide bg-gradient-to-r from-green-500/10 to-green-600/10 text-green-600 border border-green-500/20">
-                          Default
-                        </span>
-                      )}
-                    </div>
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="px-5 pb-5">
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-600/10 text-blue-600 border border-blue-500/20">
-                      <Users className="h-3.5 w-3.5 mr-1.5" />
-                      <span className="text-xs font-medium">
-                        {room.players.length}/4 Players
-                      </span>
-                    </div>
-                    
-                    <div className={`inline-flex items-center px-3 py-1.5 rounded-full ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
-                      {statusStyle.icon}
-                      <span className="text-xs font-medium ml-1.5 capitalize">
-                        {room.status}
-                      </span>
-                    </div>
+              <Card 
+                className="overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl bg-white/90 backdrop-blur-sm"
+              >
+                <CardHeader className="pb-2 pt-4 px-5">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium text-gray-800">{room.roomId}</span>
+                        {isDefault && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide bg-gradient-to-r from-green-500/10 to-green-600/10 text-green-600 border border-green-500/20">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                    </CardTitle>
                   </div>
-                  
-                  {/* Player list */}
-                  {room.players.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="flex flex-wrap gap-2">
-                        {room.players.map((player, idx) => (
-                          <div 
-                            key={player.id}
-                            className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 text-xs"
-                          >
-                            {player.name}
-                            {player.isHost && (
-                              <span className="ml-1 w-2 h-2 rounded-full bg-yellow-400"></span>
-                            )}
-                          </div>
-                        ))}
+                </CardHeader>
+                
+                <CardContent className="px-5 pb-5">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-600/10 text-blue-600 border border-blue-500/20">
+                        <Users className="h-3.5 w-3.5 mr-1.5" />
+                        <span className="text-xs font-medium">
+                          {room.players.length}/4 Players
+                        </span>
+                      </div>
+                      
+                      <div className={`inline-flex items-center px-3 py-1.5 rounded-full ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
+                        {statusStyle.icon}
+                        <span className="text-xs font-medium ml-1.5 capitalize">
+                          {room.status}
+                        </span>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Action buttons */}
-                  <div className="flex gap-2 mt-4">
-                    <Link href={`/join-room?roomId=${room.roomId}`} className="flex-1">
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="w-full rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1.5"
+                    
+                    {/* Player list */}
+                    {room.players.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex flex-wrap gap-2">
+                          {room.players.map((player, idx) => (
+                            <div 
+                              key={player.id}
+                              className={`
+                                inline-flex items-center px-2 py-1 rounded-md text-xs
+                                ${player.isHost 
+                                  ? "bg-gradient-to-r from-yellow-50 to-amber-50 text-amber-700 border border-amber-200" 
+                                  : "bg-gray-100 text-gray-700"}
+                              `}
+                            >
+                              {player.name}
+                              {player.isHost && (
+                                <span className="ml-1 w-2 h-2 rounded-full bg-yellow-400"></span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Action buttons */}
+                    <div className="flex gap-2 mt-4">
+                      <Link href={`/join-room?roomId=${room.roomId}`} className="flex-1">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="w-full rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1.5"
+                        >
+                          <ArrowRightCircle className="h-4 w-4" />
+                          <span>Join Room</span>
+                        </Button>
+                      </Link>
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => resetRoom(room.roomId)}
+                        disabled={action.loading}
+                        className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 shadow-sm h-9 w-9"
+                        title="Reset Room"
                       >
-                        <ArrowRightCircle className="h-4 w-4" />
-                        <span>Join Room</span>
+                        {action.loading ? 
+                          <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"/> : 
+                          <RotateCcw className="h-4 w-4 text-gray-600" />
+                        }
                       </Button>
-                    </Link>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => resetRoom(room.roomId)}
-                      disabled={action.loading}
-                      className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 shadow-sm"
-                      title="Reset Room"
-                    >
-                      {action.loading ? 
-                        <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"/> : 
-                        <RotateCcw className="h-4 w-4 text-gray-600" />
-                      }
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteRoom(room.roomId)}
-                      disabled={action.loading}
-                      className="rounded-lg border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 shadow-sm"
-                      title={isDefault ? "Reset Default Room" : "Delete Room"}
-                    >
-                      {action.loading ? 
-                        <div className="animate-spin h-4 w-4 border-2 border-red-200 border-t-red-500 rounded-full"/> : 
-                        <Trash2 className="h-4 w-4" />
-                      }
-                    </Button>
-                  </div>
-                  
-                  {/* Status message */}
-                  {action.message && (
-                    <div className={`
-                      mt-2 px-3 py-2 rounded-lg text-xs
-                      ${action.message.includes("Error") 
-                        ? "bg-red-50 text-red-600 border border-red-100" 
-                        : "bg-green-50 text-green-600 border border-green-100"}
-                    `}>
-                      {action.message}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => deleteRoom(room.roomId)}
+                        disabled={action.loading}
+                        className="rounded-lg border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 shadow-sm h-9 w-9"
+                        title={isDefault ? "Reset Default Room" : "Delete Room"}
+                      >
+                        {action.loading ? 
+                          <div className="animate-spin h-4 w-4 border-2 border-red-200 border-t-red-500 rounded-full"/> : 
+                          <Trash2 className="h-4 w-4" />
+                        }
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    
+                    {/* Status message */}
+                    {action.message && (
+                      <div className={`
+                        mt-2 px-3 py-2 rounded-lg text-xs
+                        ${action.message.includes("Error") 
+                          ? "bg-red-50 text-red-600 border border-red-100" 
+                          : "bg-green-50 text-green-600 border border-green-100"}
+                      `}>
+                        {action.message}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )
         })}
       </div>

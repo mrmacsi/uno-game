@@ -1,3 +1,4 @@
+/* Card animations */
 @keyframes dealCard {
   0% {
     transform: translateY(-500px) translateX(500px) rotate(180deg);
@@ -65,45 +66,7 @@
   }
 }
 
-.animate-deal-card {
-  animation: dealCard 0.5s ease-out forwards;
-}
-
-.animate-draw-card {
-  animation: drawCard 0.5s ease-out forwards;
-}
-
-.animate-play-card {
-  animation: playCard 0.5s ease-out forwards;
-}
-
-.animate-glow {
-  animation: glowEffect 2s infinite;
-}
-
-.animate-float-in {
-  animation: floatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.card-transition {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-hover-effect:hover {
-  transform: translateY(-20px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-}
-
-.card-stack {
-  position: relative;
-}
-
-.card-stack > * {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
+/* Modern UI animations */
 @keyframes fadeInUpModern {
   0% {
     opacity: 0;
@@ -127,8 +90,133 @@
   }
 }
 
+/* New animations for framer-motion replacements */
+@keyframes scaleFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 0.8;
+    transform: scale(1.02);
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-32px) scale(0.98);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 0.7;
+    transform: translateX(0) scale(1.01);
+    filter: blur(2px);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.01);
+    filter: blur(0.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes discard {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1) rotate(5deg);
+    box-shadow: 0 25px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes flyToHand {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(180px) translateX(-180px) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(250px) translateX(-250px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.animate-deal-card {
+  animation: dealCard 0.5s ease-out forwards;
+}
+
+.animate-draw-card {
+  animation: drawCard 0.5s ease-out forwards;
+}
+
+.animate-play-card {
+  animation: playCard 0.5s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glowEffect 2s infinite;
+}
+
+.animate-float-in {
+  animation: floatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-discard {
+  animation: discard 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fly-to-hand {
+  animation: flyToHand 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.card-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-20px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+.card-stack {
+  position: relative;
+}
+
+.card-stack > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .animate-fade-in-up {
   animation: fadeInUpModern 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-scale-fade-in {
+  animation: scaleFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .stagger-fade-in-up > * {
@@ -144,3 +232,46 @@
 .stagger-fade-in-up > *:nth-child(6) { animation-delay: 0.48s; }
 .stagger-fade-in-up > *:nth-child(7) { animation-delay: 0.56s; }
 .stagger-fade-in-up > *:nth-child(8) { animation-delay: 0.64s; }
+.stagger-fade-in-up > *:nth-child(9) { animation-delay: 0.72s; }
+.stagger-fade-in-up > *:nth-child(10) { animation-delay: 0.80s; }
+
+/* Animation delay utility classes */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+.animation-delay-800 {
+  animation-delay: 800ms;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1500ms;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2000ms;
+}

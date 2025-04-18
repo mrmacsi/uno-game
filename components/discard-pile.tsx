@@ -24,14 +24,14 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
   if (!topCard) {
     return (
       <div className="relative flex flex-col items-center">
-        <div className="w-28 h-40 rounded-xl border-2 border-dashed border-white/30 flex items-center justify-center bg-black/10 backdrop-blur-md">
-          <div className="flex flex-col items-center justify-center text-white/60">
-            <LayoutDashboard className="w-6 h-6 mb-2" />
+        <div className="w-20 sm:w-28 h-32 sm:h-40 rounded-xl border-2 border-dashed border-white/30 flex items-center justify-center bg-black/20 backdrop-blur-md">
+          <div className="flex flex-col items-center justify-center text-white/70">
+            <LayoutDashboard className="w-5 sm:w-6 h-5 sm:h-6 mb-2" />
             <p className="text-xs text-center font-medium">Discard Pile</p>
           </div>
         </div>
         <div className="mt-2">
-          <span className="text-white/80 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
+          <span className="text-white/90 text-xs sm:text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
             Empty
           </span>
         </div>
@@ -58,10 +58,10 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
       {Array.from({ length: stackCount }).map((_, index) => (
         <div 
           key={`stack-${index}`}
-          className="absolute bg-white/5 rounded-xl border border-white/10"
+          className="absolute bg-white/10 rounded-xl border border-white/10"
           style={{
-            width: '7rem',
-            height: '10rem',
+            width: 'calc(5rem + 2vw)',
+            height: 'calc(8rem + 2vw)',
             transform: `rotate(${(index - stackCount/2) * 3}deg) translateY(${index * -1}px)`,
             zIndex: index,
           }}
@@ -79,7 +79,7 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
       
       {/* Label */}
       <div className="mt-3">
-        <span className="text-white/90 text-sm font-medium bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md">
+        <span className="text-white/90 text-xs sm:text-sm font-medium bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md">
           Discard
         </span>
       </div>

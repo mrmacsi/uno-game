@@ -280,11 +280,11 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   // Update draw pile count
   gameState.drawPileCount = gameState.drawPile.length
   if (isDrawEffect) {
-    gameState.drawCardEffect = {
-      active: true,
-      type: topCard.type as "draw2" | "wild4"
-    }
-    gameState.drawPileCount = gameState.drawPile.length
+    // After drawing for draw2 or wild4, immediately skip to next player
+    const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+    gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+    gameState.hasDrawnThisTurn = false
+    gameState.drawCardEffect = undefined
     await updateGameState(roomId, gameState)
     await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
     return

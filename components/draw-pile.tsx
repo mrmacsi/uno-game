@@ -65,17 +65,17 @@ export default function DrawPile({ count }: DrawPileProps) {
     <div className="relative flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
       {/* Draw count indicator */}
       {showDrawCount && (
-        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-50 animate-float-up sm:-top-12 md:-top-14">
-          <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm shadow-lg animate-pulse">
+        <div className="absolute -top-8 sm:-top-12 md:-top-14 left-1/2 transform -translate-x-1/2 z-50 animate-float-up">
+          <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-bold px-3 py-1 rounded-full text-xs sm:text-sm shadow-lg animate-pulse">
             +{recentDrawCount}
           </div>
         </div>
       )}
       
       <div 
-        className={`h-36 sm:h-40 md:h-48 w-24 sm:w-32 md:w-36 relative draw-pile ${canDraw 
-          ? 'cursor-pointer hover:scale-105 transition-transform duration-300 ease-out' 
-          : ''}`}
+        className={`h-32 sm:h-40 md:h-48 w-20 sm:w-28 md:w-36 relative draw-pile ${canDraw 
+          ? 'cursor-pointer hover:scale-105 transition-transform duration-300 ease-out shadow-lg' 
+          : 'shadow-md'}`}
         onClick={handleDrawClick}
       >
         {/* Flying card animation */}
@@ -119,7 +119,7 @@ export default function DrawPile({ count }: DrawPileProps) {
         
         {/* Glow effect when it's the player's turn to draw */}
         {canDraw && (
-          <div className="absolute inset-0 rounded-xl bg-blue-500/20 animate-pulse-subtle z-0"></div>
+          <div className="absolute inset-0 rounded-xl bg-blue-500/30 animate-pulse-subtle z-0"></div>
         )}
       </div>
       
@@ -140,15 +140,15 @@ export default function DrawPile({ count }: DrawPileProps) {
       {/* Visual indicator for low cards */}
       {actualCount <= 5 && count > 0 && (
         <div className="absolute -bottom-2 sm:-bottom-3 left-1/2 transform -translate-x-1/2">
-          <div className="animate-ping absolute h-3 w-3 rounded-full bg-red-500 opacity-75"></div>
-          <div className="h-3 w-3 rounded-full bg-red-500"></div>
+          <div className="animate-ping absolute h-2 sm:h-3 w-2 sm:w-3 rounded-full bg-red-500 opacity-75"></div>
+          <div className="h-2 sm:h-3 w-2 sm:w-3 rounded-full bg-red-500"></div>
         </div>
       )}
       
       {/* Draw card prompt when it's your turn */}
       {canDraw && (
-        <div className="absolute -top-7 sm:-top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs sm:text-xs font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full animate-bounce-gentle shadow-lg shadow-blue-500/20">
+        <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full animate-bounce-gentle shadow-lg shadow-blue-500/20">
             Click to draw
           </div>
         </div>

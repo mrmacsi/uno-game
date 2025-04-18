@@ -136,7 +136,15 @@ export default function WaitingRoom() {
   if (!currentPlayerId) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
-        <Card className="max-w-md w-full bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden">
+        {/* Background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-48 bg-black/20 backdrop-blur-sm transform -skew-y-3"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-black/20 backdrop-blur-sm transform skew-y-3"></div>
+          <div className="absolute top-1/4 left-1/4 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-purple-500/10 blur-3xl"></div>
+        </div>
+        
+        <Card className="max-w-md w-full bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden relative z-10">
           <CardHeader className="relative bg-red-50 border-b border-red-100 px-4 sm:px-6 pt-6 sm:pt-8">
             <Button 
               variant="ghost" 
@@ -154,16 +162,16 @@ export default function WaitingRoom() {
               Your player ID could not be found. Please try rejoining the room.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="flex flex-col gap-3 p-4 sm:p-6">
+          <CardFooter className="flex flex-col gap-3 p-4 sm:p-6 bg-gradient-to-br from-red-50/50 to-white">
             <Button
-              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md rounded-xl"
               onClick={() => router.push(`/join-room?roomId=${state.roomId}`)}
             >
               Rejoin Room
             </Button>
             <Button 
               variant="outline"
-              className="w-full border-gray-200 hover:bg-gray-50" 
+              className="w-full border-gray-200 hover:bg-gray-50 rounded-xl" 
               onClick={goToHome}
             >
               Back to Home
@@ -180,6 +188,8 @@ export default function WaitingRoom() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[20%] left-[10%] w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-blue-400/10 animate-pulse-slow"></div>
         <div className="absolute bottom-[20%] right-[10%] w-56 sm:w-80 h-56 sm:h-80 rounded-full bg-purple-400/10 animate-pulse-slow animation-delay-1000"></div>
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/20 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/20 to-transparent"></div>
       </div>
       
       <Card className={`
@@ -194,7 +204,7 @@ export default function WaitingRoom() {
               size="icon"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full"
+              className="bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors duration-200"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -202,14 +212,14 @@ export default function WaitingRoom() {
               variant="ghost" 
               size="icon"
               onClick={goToHome}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full"
+              className="bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors duration-200"
             >
               <Home className="h-4 w-4" />
             </Button>
           </div>
           
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+            <div className="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
               <Users className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
             </div>
           </div>
@@ -226,10 +236,10 @@ export default function WaitingRoom() {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="p-6">
+        <CardContent className="p-6 bg-gradient-to-br from-gray-50/50 to-white">
           <div className="space-y-6">
             {/* Room code */}
-            <div className="bg-indigo-50 p-4 rounded-xl flex justify-between items-center border border-indigo-100">
+            <div className="bg-indigo-50 p-4 rounded-xl flex justify-between items-center border border-indigo-100 shadow-sm hover:shadow transition-shadow duration-200">
               <div>
                 <p className="text-xs font-medium text-indigo-500 mb-1">Room Code</p>
                 <p className="text-xl font-mono font-bold text-indigo-700">{state.roomId}</p>
@@ -238,7 +248,7 @@ export default function WaitingRoom() {
                 variant="outline" 
                 size="icon" 
                 onClick={copyRoomCode} 
-                className="h-10 w-10 rounded-full bg-white border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+                className="h-10 w-10 rounded-full bg-white border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors duration-200"
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -264,7 +274,7 @@ export default function WaitingRoom() {
                     className={`
                       p-3 rounded-xl flex justify-between items-center 
                       ${player.id === currentPlayerId 
-                        ? "bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100" 
+                        ? "bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 shadow-sm" 
                         : "bg-white border border-gray-100"}
                       transition-all duration-200 hover:shadow-sm
                     `}
@@ -273,7 +283,7 @@ export default function WaitingRoom() {
                       <div className={`
                         w-8 h-8 rounded-full flex items-center justify-center
                         ${player.isHost 
-                          ? "bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-800" 
+                          ? "bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-800 shadow-md" 
                           : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-500"}
                       `}>
                         {player.isHost ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
@@ -319,10 +329,10 @@ export default function WaitingRoom() {
           </div>
         </CardContent>
         
-        <CardFooter className="flex flex-col gap-3 p-6 pt-2">
+        <CardFooter className="flex flex-col gap-3 p-6 pt-2 bg-gradient-to-br from-gray-50/50 to-white">
           <Button
             className={`
-              w-full shadow-md relative overflow-hidden group
+              w-full shadow-md relative overflow-hidden group rounded-xl
               ${canStartGame
                 ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
                 : "bg-gray-200 text-gray-500 cursor-not-allowed"}
@@ -333,7 +343,7 @@ export default function WaitingRoom() {
             {/* Button highlight effect */}
             <div className="absolute inset-0 w-full h-full bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
             
-            <div className="relative flex items-center justify-center gap-2">
+            <div className="relative flex items-center justify-center gap-2 py-2">
               {isStarting ? (
                 <>
                   <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>

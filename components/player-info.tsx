@@ -1,5 +1,5 @@
 import type { Player } from "@/lib/types"
-import { User, Clock } from "lucide-react"
+import { User, Clock, Crown } from "lucide-react"
 
 interface PlayerInfoProps {
   player: Player
@@ -13,10 +13,10 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
         backdrop-blur-lg rounded-xl overflow-hidden transition-all duration-300
         ${isCurrentTurn 
           ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-yellow-400/30 shadow-lg shadow-yellow-500/10" 
-          : "bg-black/20 border border-white/10 hover:bg-black/30"}
+          : "bg-black/30 border border-white/10 hover:bg-black/40"}
       `}
     >
-      <div className="p-3.5">
+      <div className="p-3">
         <div className="flex items-center gap-3">
           <div className={`
             w-10 h-10 rounded-full flex items-center justify-center shrink-0
@@ -24,8 +24,12 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
             ${isCurrentTurn 
               ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-yellow-900 shadow-md" 
               : "bg-white/10 text-white/70"}
+            ${player.isHost ? "ring-2 ring-yellow-400/40" : ""}
           `}>
-            <User className="w-5 h-5" />
+            {player.isHost ? 
+              <Crown className="w-5 h-5" /> : 
+              <User className="w-5 h-5" />
+            }
           </div>
           
           <div className="flex-1 min-w-0">
@@ -58,7 +62,7 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
             ? "bg-gradient-to-r from-amber-400 to-yellow-500" 
             : "bg-white/30"}`} 
           style={{
-            width: `${Math.min(100, player.cards.length * 10)}%`,
+            width: `${Math.min(100, Math.max(5, player.cards.length * 10))}%`,
             transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
         />

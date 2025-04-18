@@ -87,7 +87,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
               key={color.value}
               className={`
                 ${color.bg} ${color.hoverBg}
-                h-32 rounded-xl text-white font-medium text-lg 
+                h-24 sm:h-32 rounded-xl text-white font-medium text-lg 
                 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1
                 flex flex-col items-center justify-center gap-2
                 border border-white/20 ${color.shadow} shadow-xl
@@ -98,10 +98,10 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
               onMouseLeave={() => setHoveredColor(null)}
             >
               <div className={`
-                w-14 h-14 rounded-full ${color.bg} flex items-center justify-center
+                w-12 sm:w-14 h-12 sm:h-14 rounded-full ${color.bg} flex items-center justify-center
                 shadow-inner border border-white/30
               `}>
-                <Check className="h-6 w-6 text-white" />
+                <Check className="h-5 sm:h-6 w-5 sm:w-6 text-white" />
               </div>
               <span className={`${color.textColor} font-bold tracking-wide`}>
                 {color.name}

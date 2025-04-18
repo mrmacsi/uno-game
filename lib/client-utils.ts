@@ -89,6 +89,11 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
       
       if (!currentPlayer) return false
 
+      // Official UNO rule: If a drawCardEffect is active and type is 'wild4', next player cannot play any card
+      if (this.drawCardEffect?.active && this.drawCardEffect.type === 'wild4') {
+        return false
+      }
+
       // Wild cards can be played with some restrictions
       if (card.type === "wild") {
         return true
