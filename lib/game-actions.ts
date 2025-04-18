@@ -3,10 +3,9 @@
 import { v4 as uuidv4 } from "uuid"
 import type { GameState, Player, Card, CardColor, MatchResult } from "./types"
 import { pusherServer } from "./pusher-server"
-import * as fs from "fs"
-import * as path from "path"
 import { redirect } from "next/navigation"
 import { checkPlayValidity } from "./utils"
+import { db } from "./db"
 
 // Create a new game room
 export async function createRoom(playerName: string): Promise<string> {
@@ -49,8 +48,11 @@ export async function createRoom(playerName: string): Promise<string> {
 // Join an existing game room
 export async function joinRoom(roomId: string, playerName: string): Promise<string> {
   // Create default room if it doesn't exist
-  if (roomId === "DEFAULT" && !gameStates["DEFAULT"]) {
-    await createDefaultRoom()
+  if (roomId === "DEFAULT") {
+    const defaultRoomExists = await getGameState("DEFAULT")
+    if (!defaultRoomExists) {
+      await createDefaultRoom()
+    }
   }
   
   // Get the current game state
@@ -106,7 +108,8 @@ export async function createDefaultRoom(): Promise<void> {
   const DEFAULT_ROOM_ID = "DEFAULT"
   
   // Check if default room already exists
-  if (gameStates[DEFAULT_ROOM_ID]) {
+  const existingRoom = await getGameState(DEFAULT_ROOM_ID)
+  if (existingRoom) {
     console.log("Default room already exists")
     return
   }
@@ -680,78 +683,16 @@ function reshuffleIfNeeded(gameState: GameState) {
   }
 }
 
-// Database operations (simplified for this example)
-// In a real application, you would use a database like MongoDB, PostgreSQL, etc.
-
-// In-memory database for this example
-const gameStates: Record<string, GameState> = {}
-
-// File path for persistent storage
-const DATA_DIR = path.join(process.cwd(), '.data');
-const GAME_STATES_FILE = path.join(DATA_DIR, 'game-states.json');
-
-// Load persisted game states on server start
-try {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  
-  if (fs.existsSync(GAME_STATES_FILE)) {
-    const data = fs.readFileSync(GAME_STATES_FILE, 'utf8');
-    const savedStates = JSON.parse(data);
-    
-    // Restore game states from JSON
-    Object.keys(savedStates).forEach(roomId => {
-      gameStates[roomId] = savedStates[roomId];
-    });
-
-    console.log(`Loaded ${Object.keys(savedStates).length} game states from persistent storage`);
-  }
-  
-  // Create default room on server start
-  createDefaultRoom().catch(err => console.error("Failed to create default room:", err));
-} catch (error) {
-  console.error('Error loading persisted game states:', error);
-}
-
-
-import { initializeGameState } from "./db"
-
 async function storeGameState(roomId: string, gameState: Partial<GameState>): Promise<void> {
-  gameStates[roomId] = initializeGameState(gameState as GameState);
-  await persistGameStates();
+  await db.storeRoom(roomId, gameState)
 }
 
 async function updateGameState(roomId: string, gameState: GameState): Promise<void> {
-  gameStates[roomId] = gameState;
-  await persistGameStates();
+  await db.updateRoom(roomId, gameState)
 }
 
 async function getGameState(roomId: string): Promise<GameState | null> {
-  console.log(`getGameState called for room ${roomId}. Current gameStates keys: ${Object.keys(gameStates)}`);
-  return gameStates[roomId] || null;
-}
-
-// Persist game states to file system
-async function persistGameStates(): Promise<void> {
-  try {
-    // Create a serializable copy of the game states
-    const serializableStates: Record<string, GameState> = {};
-    
-    Object.keys(gameStates).forEach(roomId => {
-      serializableStates[roomId] = gameStates[roomId];
-    });
-    
-    // Ensure data directory exists
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    
-    // Write to file
-    fs.writeFileSync(GAME_STATES_FILE, JSON.stringify(serializableStates, null, 2));
-  } catch (error) {
-    console.error('Error persisting game states:', error);
-  }
+  return db.getRoom(roomId)
 }
 
 // Reset a game room to initial state
@@ -787,42 +728,34 @@ export async function resetRoom(roomId: string): Promise<void> {
 
 // Get all rooms
 export async function getAllRooms(): Promise<GameState[]> {
-  const allRoomIds = Object.keys(gameStates)
+  const keys = await dbKeys()
   const rooms: GameState[] = []
-  
-  for (const roomId of allRoomIds) {
-    const room = await getGameState(roomId)
-    if (room) {
-      rooms.push(room as GameState)
+  for (const key of keys) {
+    if (key.startsWith('room:')) {
+      const roomId = key.replace('room:', '')
+      const room = await db.getRoom(roomId)
+      if (room) rooms.push(room)
     }
   }
-  
   return rooms
+}
+
+async function dbKeys(): Promise<string[]> {
+  return (await (await import('redis')).createClient({ url: process.env.REDIS_URL }).connect().then(client => client.keys('room:*')))
 }
 
 // Delete a game room
 export async function deleteRoom(roomId: string): Promise<void> {
   if (roomId === "DEFAULT") {
-    // Don't delete the default room, just reset it
     await resetRoom(roomId)
     return
   }
-  
-  console.log(`Deleting room ${roomId}`)
-  
-  // Delete the room from memory
-  delete gameStates[roomId]
-  
-  // Persist the changes
-  await persistGameStates()
-  
-  // Notify connected clients
+  await (await import('redis')).createClient({ url: process.env.REDIS_URL }).connect().then(client => client.del(`room:${roomId}`))
   await pusherServer.trigger(`game-${roomId}`, "room-deleted", { message: "This room has been deleted" })
-  
-  console.log(`Room ${roomId} has been deleted`)
 }
 
 function stripFunctionsFromGameState(gameState: GameState) {
-  // No functions expected to be stripped anymore, just return the state
-  return gameState;
+  const serializableState = { ...gameState };
+  delete serializableState.isValidPlay; 
+  return serializableState;
 }

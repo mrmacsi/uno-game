@@ -1,7 +1,8 @@
+import { createClient } from 'redis'
 import type { GameState, Card } from "./types"
 
-// In-memory database
-const gameStates: Record<string, GameState> = {}
+const redis = createClient({ url: process.env.REDIS_URL })
+redis.connect()
 
 // Initialize database with isValidPlay function
 export const initializeGameState = (gameState: GameState) => {
@@ -39,25 +40,18 @@ export const initializeGameState = (gameState: GameState) => {
 export const db = {
   // Get a room by ID
   getRoom: async (roomId: string): Promise<GameState | null> => {
-    return gameStates[roomId] || null
+    const data = await redis.get(`room:${roomId}`)
+    if (!data) return null
+    return initializeGameState(JSON.parse(data))
   },
   
   // Store a new game state
   storeRoom: async (roomId: string, gameState: Partial<GameState>): Promise<void> => {
-    gameStates[roomId] = initializeGameState(gameState as GameState)
-    await persistGameStates()
+    await redis.set(`room:${roomId}`, JSON.stringify(gameState))
   },
   
   // Update an existing game state
   updateRoom: async (roomId: string, gameState: GameState): Promise<void> => {
-    gameStates[roomId] = initializeGameState(gameState)
-    await persistGameStates()
+    await redis.set(`room:${roomId}`, JSON.stringify(gameState))
   }
-}
-
-// No-op function for Vercel compatibility
-async function persistGameStates(): Promise<void> {
-  // In-memory only storage for Vercel compatibility
-  console.log('Game state updated in memory')
-  return Promise.resolve()
 } 

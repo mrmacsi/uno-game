@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import React from "react";
+import React, { useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room-list"
@@ -11,6 +11,27 @@ import { motion } from "framer-motion"
 export default function Home() {
   // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
+  const [redisKeys, setRedisKeys] = useState<string[]>([])
+  const [cleaned, setCleaned] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function fetchKeys() {
+    setLoading(true)
+    setCleaned(false)
+    const res = await fetch("/api/redis")
+    const data = await res.json()
+    setRedisKeys(data.keys || [])
+    setLoading(false)
+  }
+
+  async function cleanKeys() {
+    setLoading(true)
+    setCleaned(false)
+    await fetch("/api/redis", { method: "POST" })
+    setRedisKeys([])
+    setCleaned(true)
+    setLoading(false)
+  }
 
   // Animation variants
   const containerVariants = {
@@ -50,6 +71,20 @@ export default function Home() {
             <div className="flex items-center justify-between gap-2 mb-6 sm:mb-8">
               <ThemeToggle />
             </div>
+            <div className="flex gap-2 mb-4">
+              <Button onClick={fetchKeys} disabled={loading}>List Redis Rooms</Button>
+              <Button onClick={cleanKeys} variant="destructive" disabled={loading}>Clean Redis Rooms</Button>
+            </div>
+            {loading && <div className="text-xs text-gray-500">Loading...</div>}
+            {cleaned && <div className="text-xs text-green-600">All Redis rooms cleaned.</div>}
+            {redisKeys.length > 0 && (
+              <div className="mt-2 text-xs text-gray-700 dark:text-gray-300">
+                <div>Redis Room Keys:</div>
+                <ul className="list-disc ml-6">
+                  {redisKeys.map(key => <li key={key}>{key}</li>)}
+                </ul>
+              </div>
+            )}
             
             <motion.div
               initial={{ opacity: 0, y: 10 }}
