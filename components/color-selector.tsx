@@ -92,6 +92,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
                 flex flex-col items-center justify-center gap-2
                 border border-white/20 ${color.shadow} shadow-xl
                 focus:outline-none focus:ring-2 ${color.ringColor} focus:ring-offset-2 focus:ring-offset-black
+                cursor-pointer
               `}
               onClick={() => onSelectColor(color.value as "red" | "blue" | "green" | "yellow")}
               onMouseEnter={() => setHoveredColor(color.value)}
