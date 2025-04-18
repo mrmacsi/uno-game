@@ -133,7 +133,7 @@ export default function GameOver() {
                             ? "bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 shadow-md"
                             : "bg-white border border-gray-100 hover:border-gray-200"}
                           transition-all duration-300 hover:shadow-md
-                          opacity-0 -translate-x-4 animate-slide-in-right
+                          animate-slide-in-right
                         `}
                         style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
                       >
@@ -227,7 +227,7 @@ export default function GameOver() {
                       return (
                         <div
                           key={player.id}
-                          className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 opacity-0 translate-y-4 animate-fade-in-up"
+                          className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in-up"
                           style={{animationDelay: `${playerIndex * 100}ms`, animationFillMode: 'forwards'}}
                         >
                           <h5 className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-100">
@@ -316,7 +316,7 @@ export default function GameOver() {
                       return (
                         <div
                           key={index}
-                          className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 opacity-0 translate-y-4 animate-fade-in-up"
+                          className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 animate-fade-in-up"
                           style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
                         >
                           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
