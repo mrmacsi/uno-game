@@ -645,7 +645,7 @@ function reshuffleIfNeeded(gameState: GameState) {
     if (gameState.discardPile.length > 1) {
       const topCard = gameState.discardPile.pop()
       if (!topCard) return
-      let newDrawPile = gameState.discardPile
+      const newDrawPile = gameState.discardPile
       shuffle(newDrawPile)
       gameState.drawPile = newDrawPile
       gameState.discardPile = [topCard]

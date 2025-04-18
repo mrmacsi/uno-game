@@ -50,6 +50,21 @@
   }
 }
 
+@keyframes floatIn {
+  0% {
+    transform: translateY(-40px) scale(0.8) rotate(-10deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(8px) scale(1.05) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
 .animate-deal-card {
   animation: dealCard 0.5s ease-out forwards;
 }
@@ -64,6 +79,10 @@
 
 .animate-glow {
   animation: glowEffect 2s infinite;
+}
+
+.animate-float-in {
+  animation: floatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .card-transition {

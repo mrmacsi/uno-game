@@ -66,9 +66,9 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className={`flex flex-col min-h-0 px-2 sm:px-3 sm:pb-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`} style={{ overflow: 'visible' }}>
+    <div className={`flex flex-col min-h-0 px-1 pb-2 sm:px-3 sm:pb-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`} style={{ overflow: 'visible' }}>
       <div className="flex flex-col items-center">
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-3 gap-1 sm:gap-0">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-1 sm:mb-3 gap-0 sm:gap-0">
           <h2 className="text-white text-base sm:text-lg font-semibold tracking-tight flex items-center gap-2">
             Your Hand
             <span className="text-xs text-white/60 font-normal">
@@ -86,13 +86,13 @@ export default function PlayerHand() {
             </div>
           )}
         </div>
-        <div className="relative w-full overflow-x-auto py-1 px-1 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="relative w-full overflow-x-auto py-0.5 px-0.5 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           <div 
             className="flex justify-center mx-auto"
             style={{ 
-              paddingBottom: "0.5rem", 
-              paddingTop: "0.5rem",
-              minHeight: handWidth < 640 ? "140px" : "200px"
+              paddingBottom: handWidth < 640 ? "0.25rem" : "0.5rem", 
+              paddingTop: handWidth < 640 ? "0.25rem" : "0.5rem",
+              minHeight: handWidth < 640 ? "100px" : "180px"
             }}
           >
             <div className="flex" style={{ marginLeft: `${overlap/2}px` }}>
@@ -167,10 +167,11 @@ export default function PlayerHand() {
         </div>
       </div>
       {canSayUno && (
-        <div className="flex justify-end w-full mt-2">
+        <div className="fixed bottom-3 left-0 right-0 flex justify-center z-50 sm:static sm:justify-end w-full mt-2">
           <Button 
             onClick={sayUno} 
-            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-3 rounded-full shadow-lg animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110"
+            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-2 rounded-full shadow-lg animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110"
+            style={{ minWidth: 120, fontSize: 18 }}
           >
             UNO!
           </Button>

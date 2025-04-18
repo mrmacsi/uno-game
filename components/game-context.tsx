@@ -6,6 +6,7 @@ import type { GameState, GameAction, Card } from "@/lib/types"
 import { playCard, drawCard, sayUno, getRoom, callUnoOnPlayer, endTurn } from "@/lib/game-actions"
 import { getPlayerIdFromLocalStorage, addIsValidPlayFunction } from "@/lib/client-utils"
 import { toast } from "@/hooks/use-toast"
+import type { Channel } from "pusher-js"
 
 type GameContextType = {
   state: GameState
@@ -128,9 +129,9 @@ export function GameProvider({
   // Pusher subscription - move conditional check inside the hook
   useEffect(() => {
     // Initialize with no-op functions for when pusher isn't available
-    let channel: any = { 
-      unbind_all: () => {}, 
-      bind: () => {} 
+    let channel: Channel | { unbind_all: () => void; bind: () => void; } = {
+      unbind_all: () => {},
+      bind: () => {}
     };
     
     if (pusherClient && roomId) {

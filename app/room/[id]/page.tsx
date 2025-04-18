@@ -16,6 +16,9 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [playerId, setPlayerId] = useState<string | null>(null)
+  const [rejoinName, setRejoinName] = useState("")
+  const [isRejoining, setIsRejoining] = useState(false)
+  const [rejoinError, setRejoinError] = useState("")
 
   // Get player ID from localStorage
   useEffect(() => {
@@ -78,9 +81,6 @@ export default function RoomPage() {
   }
 
   if (error) {
-    const [rejoinName, setRejoinName] = useState("")
-    const [isRejoining, setIsRejoining] = useState(false)
-    const [rejoinError, setRejoinError] = useState("")
     const handleRejoin = async (e: React.FormEvent) => {
       e.preventDefault()
       if (!rejoinName.trim()) return
