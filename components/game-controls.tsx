@@ -2,18 +2,31 @@
 
 import { useGame } from "./game-context"
 import { Button } from "@/components/ui/button"
-import { ArrowDown, Hand, HelpCircle } from "lucide-react"
+import { ArrowDown, Hand, HelpCircle, Info } from "lucide-react"
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function GameControls() {
-  const { state, currentPlayerId, endTurn, sayUno, hasPlayableCard } = useGame()
+  const { state, currentPlayerId, endTurn, sayUno, hasPlayableCard, drawCard } = useGame()
+  const isMobile = useIsMobile()
 
   const isMyTurn = state.currentPlayer === currentPlayerId
+  const canDraw = isMyTurn
   const canEndTurn = isMyTurn && state.hasDrawnThisTurn
   const noPlayableCards = isMyTurn && !hasPlayableCard()
   
@@ -32,15 +45,49 @@ export default function GameControls() {
   }[state.currentColor] || "from-gray-600 to-gray-700 text-white";
 
   return (
-    <div className="bg-black/60 backdrop-blur-md p-2 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-30">
-      <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 min-h-10">
-        <div className="flex items-center">
-          <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${colorStyles} mr-2`}>
+    <div className="bg-black/80 backdrop-blur-md p-2 sm:p-3 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-30">
+      <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 min-h-12">
+        <div className="flex items-center gap-2">
+          <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${colorStyles} mr-2 shadow-md`}>
             {state.currentColor.toUpperCase()}
           </span>
+          
+          {isMobile && (
+            <Drawer>
+              <DrawerTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="text-white/80 hover:bg-white/10 rounded-full h-8 w-8 border border-white/20"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="bg-black/90 border-white/10 text-white">
+                <DrawerHeader>
+                  <DrawerTitle>UNO Rules</DrawerTitle>
+                  <DrawerDescription className="text-white/70">Quick reference for game rules</DrawerDescription>
+                </DrawerHeader>
+                <div className="px-4 space-y-2 text-sm">
+                  <p>• Match the top card by color, number, or action</p>
+                  <p>• Draw card when you can't play</p>
+                  <p>• End your turn if you still can't play</p>
+                  <p>• Say "UNO" when you have 1 card left!</p>
+                  <p>• First player to get rid of all cards wins</p>
+                </div>
+                <DrawerFooter>
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="border-white/20 text-white">
+                      Close
+                    </Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          )}
         </div>
 
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1 sm:gap-2 items-center">
           {canSayUno && (
             <Button 
               onClick={sayUno} 
@@ -52,19 +99,17 @@ export default function GameControls() {
             </Button>
           )}
           
-          <div className="flex flex-row gap-2 items-stretch w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-row gap-1 sm:gap-2 items-stretch w-full sm:w-auto mt-0 sm:mt-0">
             <Button
               variant="default"
               size="sm"
               onClick={() => {
-                if (typeof window !== 'undefined') {
-                  document.querySelector('.draw-pile')?.dispatchEvent(
-                    new MouseEvent('click', { bubbles: true })
-                  );
+                if (canDraw) {
+                  drawCard()
                 }
               }}
-              className={`h-8 px-2 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600 text-white'} ${!isMyTurn || state.hasDrawnThisTurn ? 'opacity-50' : ''}`}
-              disabled={!isMyTurn || state.hasDrawnThisTurn}
+              className={`h-9 px-3 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600 text-white'} ${!canDraw ? 'opacity-50' : ''} shadow-md rounded-full`}
+              disabled={!canDraw}
               style={{ minWidth: 78 }}
             >
               Draw Card
@@ -73,7 +118,7 @@ export default function GameControls() {
               onClick={endTurn} 
               disabled={!canEndTurn}
               size="sm"
-              className={`h-8 px-2 text-xs
+              className={`h-9 px-3 text-xs rounded-full shadow-md
                 ${canEndTurn
                   ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800" 
                   : "bg-gray-700/50 text-white/50"}
@@ -85,28 +130,30 @@ export default function GameControls() {
             </Button>
           </div>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="text-white/80 hover:bg-white/10 rounded-full h-8 w-8 border border-white/20"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs bg-black/90 border-white/20 text-white">
-                <p className="font-medium">UNO Rules:</p>
-                <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
-                  <li>Match the top card by color, number, or action</li>
-                  <li>Click the draw pile to draw a card</li>
-                  <li>After drawing, if you cannot play, end your turn</li>
-                  <li>Say "UNO" when you have 1 card left!</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {!isMobile && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="text-white/80 hover:bg-white/10 rounded-full h-8 w-8 border border-white/20"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs bg-black/95 border-white/20 text-white">
+                  <p className="font-medium">UNO Rules:</p>
+                  <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
+                    <li>Match the top card by color, number, or action</li>
+                    <li>Click the draw pile to draw a card</li>
+                    <li>After drawing, if you cannot play, end your turn</li>
+                    <li>Say "UNO" when you have 1 card left!</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
     </div>
