@@ -9,17 +9,15 @@ interface DiscardPileProps {
 
 export default function DiscardPile({ topCard }: DiscardPileProps) {
   const [animateCard, setAnimateCard] = useState(false)
-  const [prevCard, setPrevCard] = useState<Card | null>(null)
   
-  // Animate when top card changes
+  // Animate ONLY when the top card's ID changes
   useEffect(() => {
-    if (topCard && prevCard && topCard.id !== prevCard.id) {
+    if (topCard) {
       setAnimateCard(true)
       const timer = setTimeout(() => setAnimateCard(false), 700)
       return () => clearTimeout(timer)
     }
-    setPrevCard(topCard)
-  }, [topCard, prevCard])
+  }, [topCard?.id])
 
   if (!topCard) {
     return (
