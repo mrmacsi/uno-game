@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "@/styles/globals.css"
 import "@/styles/animations.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import SafeHydration from "@/components/safe-hydration"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,10 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          
-          {children}
+          <SafeHydration>
+            {children}
+          </SafeHydration>
         </ThemeProvider>
       </body>
     </html>

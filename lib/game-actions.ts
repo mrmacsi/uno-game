@@ -166,6 +166,7 @@ export async function startGame(roomId: string): Promise<void> {
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
     )
   }
+  gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
@@ -233,6 +234,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
   }
+  gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
@@ -248,19 +250,39 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   if (playerIndex === -1) throw new Error("Player not found")
   const topCard = gameState.discardPile[gameState.discardPile.length - 1]
   const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
+  
+  // Ensure we have cards to draw by reshuffling if needed
   reshuffleIfNeeded(gameState)
-  if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+  
+  // Double-check if we still don't have cards after trying to reshuffle
+  if (!gameState.drawPile || gameState.drawPile.length === 0) {
+    if (gameState.discardPile.length <= 1) {
+      // Cannot reshuffle if there's only the top card
+      throw new Error("No cards left to draw")
+    } else {
+      // Try to reshuffle one more time
+      reshuffleIfNeeded(gameState)
+      if (!gameState.drawPile || gameState.drawPile.length === 0) {
+        throw new Error("Failed to reshuffle cards")
+      }
+    }
+  }
+  
   const newCard = gameState.drawPile.pop()!
   gameState.players[playerIndex].cards.push(newCard)
   if (!gameState.log) gameState.log = []
   const drawMsg = `${gameState.players[playerIndex].name} drew a card`
   gameState.log.push(drawMsg)
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+  
+  // Update draw pile count
+  gameState.drawPileCount = gameState.drawPile.length
   if (isDrawEffect) {
     gameState.drawCardEffect = {
       active: true,
       type: topCard.type as "draw2" | "wild4"
     }
+    gameState.drawPileCount = gameState.drawPile.length
     await updateGameState(roomId, gameState)
     await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
     return
@@ -268,6 +290,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   gameState.hasDrawnThisTurn = true
   gameState.drawCardEffect = undefined
   if (gameState.isValidPlay(newCard)) {
+    gameState.drawPileCount = gameState.drawPile.length
     await updateGameState(roomId, gameState)
     await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { card: newCard })
     return
@@ -275,6 +298,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id
   gameState.hasDrawnThisTurn = false
+  gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
@@ -367,14 +391,22 @@ export async function callUnoOnPlayer(roomId: string, callerId: string, targetPl
   if (targetPlayerIndex === -1) throw new Error("Target player not found")
   const targetPlayer = gameState.players[targetPlayerIndex]
   if (targetPlayer.cards.length === 1 && !targetPlayer.saidUno) {
+    // Draw 2 cards for not saying UNO
     for (let i = 0; i < 2; i++) {
       reshuffleIfNeeded(gameState)
-      if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+      if (!gameState.drawPile || gameState.drawPile.length === 0) {
+        // If still no cards, break out of loop - player draws as many as are available
+        break
+      }
       targetPlayer.cards.push(gameState.drawPile.pop()!)
     }
+    
+    // Update the draw pile count
+    gameState.drawPileCount = gameState.drawPile ? gameState.drawPile.length : 0
+    
     targetPlayer.saidUno = false
     if (!gameState.log) gameState.log = []
-    gameState.log.push(`${targetPlayer.name} was caught not saying UNO and drew 2 cards!`)
+    gameState.log.push(`${targetPlayer.name} was caught not saying UNO and drew penalty cards!`)
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
   } else {
     throw new Error("Cannot call UNO on this player")
@@ -610,11 +642,28 @@ function applyCardEffects(gameState: GameState, card: Card): void {
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[nextPlayer].name} has to draw 2 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
+      // Draw 2 cards, checking for empty draw pile
+      let cardsDrawn = 0
       for (let i = 0; i < 2; i++) {
         reshuffleIfNeeded(gameState)
-        if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+        if (!gameState.drawPile || gameState.drawPile.length === 0) {
+          // If still no cards after reshuffling, break out of the loop
+          break
+        }
         gameState.players[nextPlayer].cards.push(gameState.drawPile.pop()!)
+        cardsDrawn++
       }
+      
+      // Update draw pile count
+      gameState.drawPileCount = gameState.drawPile ? gameState.drawPile.length : 0
+      
+      // Add a message about how many cards were actually drawn
+      if (cardsDrawn < 2) {
+        gameState.log.push(`Only ${cardsDrawn} card(s) were available to draw.`)
+        if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      }
+      
       gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, nextPlayer)].id
       break
     }
@@ -623,11 +672,28 @@ function applyCardEffects(gameState: GameState, card: Card): void {
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[wild4NextPlayerIdx].name} has to draw 4 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
+      // Draw 4 cards, checking for empty draw pile
+      let cardsDrawn = 0
       for (let i = 0; i < 4; i++) {
         reshuffleIfNeeded(gameState)
-        if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+        if (!gameState.drawPile || gameState.drawPile.length === 0) {
+          // If still no cards after reshuffling, break out of the loop
+          break
+        }
         gameState.players[wild4NextPlayerIdx].cards.push(gameState.drawPile.pop()!)
+        cardsDrawn++
       }
+      
+      // Update draw pile count
+      gameState.drawPileCount = gameState.drawPile ? gameState.drawPile.length : 0
+      
+      // Add a message about how many cards were actually drawn
+      if (cardsDrawn < 4) {
+        gameState.log.push(`Only ${cardsDrawn} card(s) were available to draw.`)
+        if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      }
+      
       gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, wild4NextPlayerIdx)].id
       break
     }
@@ -641,14 +707,22 @@ function getNextPlayerIndex(gameState: GameState, currentIndex: number): number 
 }
 
 function reshuffleIfNeeded(gameState: GameState) {
-  if (gameState.drawPile.length === 0) {
-    if (gameState.discardPile.length > 1) {
+  if (!gameState.drawPile || gameState.drawPile.length === 0) {
+    if (gameState.discardPile && gameState.discardPile.length > 1) {
       const topCard = gameState.discardPile.pop()
       if (!topCard) return
-      const newDrawPile = gameState.discardPile
+      
+      const newDrawPile = [...gameState.discardPile]
+      gameState.discardPile = []
+      
       shuffle(newDrawPile)
       gameState.drawPile = newDrawPile
       gameState.discardPile = [topCard]
+      gameState.drawPileCount = newDrawPile.length
+      
+      if (!gameState.log) gameState.log = []
+      gameState.log.push("Draw pile was empty. Discard pile was shuffled to create a new draw pile.")
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
     }
   }
 }

@@ -24,7 +24,7 @@ export default function WaitingRoom() {
   // Check if player is host
   const isHost = Boolean(currentPlayer?.isHost)
   // Can start game if there are 2+ players and current player is host
-  const canStartGame = state.players.length >= 2 && isHost
+  const canStartGame = state.players.length >= 2 && isHost && state.status === "waiting"
   
   // Force refresh on component mount and animate player joined
   useEffect(() => {
@@ -57,11 +57,28 @@ export default function WaitingRoom() {
   }, [currentPlayerId, state.players, isHost, canStartGame, currentPlayer])
 
   const copyRoomCode = () => {
-    navigator.clipboard.writeText(state.roomId)
-    toast({
-      title: "Room code copied!",
-      description: "Share this with your friends to join the game.",
-    })
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(state.roomId)
+        .then(() => {
+          toast({
+            title: "Room code copied!",
+            description: "Share this with your friends to join the game.",
+          })
+        })
+        .catch(() => {
+          toast({
+            title: "Clipboard error",
+            description: "Could not copy to clipboard. Please copy manually.",
+            variant: "destructive",
+          })
+        })
+    } else {
+      toast({
+        title: "Clipboard not supported",
+        description: "Clipboard is not supported in this browser. Please copy manually.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleStartGame = async () => {
@@ -80,11 +97,15 @@ export default function WaitingRoom() {
     setIsStarting(true)
     try {
       await startGame(state.roomId)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to start game:", error)
+      let description = "Please try again."
+      if (error instanceof Error && error.message === "Game has already started") {
+        description = "Game has already started. Please refresh or rejoin the room."
+      }
       toast({
         title: "Failed to start game",
-        description: "Please try again.",
+        description,
         variant: "destructive",
       })
     } finally {
@@ -306,7 +327,7 @@ export default function WaitingRoom() {
                 ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
                 : "bg-gray-200 text-gray-500 cursor-not-allowed"}
             `}
-            disabled={!canStartGame || isStarting}
+            disabled={!canStartGame || isStarting || state.status !== "waiting"}
             onClick={handleStartGame}
           >
             {/* Button highlight effect */}

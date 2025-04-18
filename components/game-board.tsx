@@ -122,7 +122,7 @@ export default function GameBoard() {
           <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10">
             {/* Draw pile positioned on the left for better animation path */}
             <div className="relative">
-              <DrawPile count={state.drawPileCount ?? 0} />
+              <DrawPile count={state.drawPileCount || 0} />
             </div>
             
             {/* Discard pile on the right */}

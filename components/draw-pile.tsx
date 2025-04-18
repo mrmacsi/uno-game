@@ -53,28 +53,11 @@ export default function DrawPile({ count }: DrawPileProps) {
     value: 0,
   }
 
-  // Show a max of 5 cards in the stack for visual effect
-  const visibleCardCount = Math.min(5, count)
-  const cardStack = Array(visibleCardCount).fill(null)
+  const actualCount = count <= 0 ? 1 : count
   
-  // Display logic for empty pile
-  if (count === 0) {
-    return (
-      <div className="relative flex flex-col items-center">
-        <div className="w-28 h-40 rounded-xl border-2 border-dashed border-white/30 flex items-center justify-center bg-black/10 backdrop-blur-md">
-          <div className="flex flex-col items-center justify-center text-white/60">
-            <Layers className="w-6 h-6 mb-2" />
-            <p className="text-xs text-center font-medium">Draw Pile</p>
-          </div>
-        </div>
-        <div className="mt-2">
-          <span className="text-white/80 text-sm font-medium bg-black/60 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
-            Empty
-          </span>
-        </div>
-      </div>
-    )
-  }
+  // Show a max of 5 cards in the stack for visual effect
+  const visibleCardCount = Math.min(5, actualCount)
+  const cardStack = Array(visibleCardCount).fill(null)
   
   return (
     <div className="relative flex flex-col items-center">
@@ -143,16 +126,16 @@ export default function DrawPile({ count }: DrawPileProps) {
           text-white text-sm font-medium 
           backdrop-blur-md px-3 py-1.5
           rounded-full shadow-md transition-all duration-300
-          ${count <= 5 
+          ${actualCount <= 5 
             ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white" 
             : "bg-black/70"}
         `}>
-          {count} {count === 1 ? "card" : "cards"}
+          {count <= 0 ? "Draw" : `${count} ${count === 1 ? "card" : "cards"}`}
         </span>
       </div>
       
       {/* Visual indicator for low cards */}
-      {count <= 5 && (
+      {actualCount <= 5 && count > 0 && (
         <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
           <div className="animate-ping absolute h-3 w-3 rounded-full bg-red-500 opacity-75"></div>
           <div className="h-3 w-3 rounded-full bg-red-500"></div>
