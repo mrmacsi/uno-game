@@ -22,11 +22,11 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function GameControls() {
-  const { state, currentPlayerId, endTurn, sayUno, hasPlayableCard, drawCard } = useGame()
+  const { state, currentPlayerId, endTurn, sayUno, hasPlayableCard, drawCard, drawnCardPlayable } = useGame()
   const isMobile = useIsMobile()
 
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0
+  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn && !drawnCardPlayable
   const canEndTurn = isMyTurn && state.hasDrawnThisTurn
   const noPlayableCards = isMyTurn && !hasPlayableCard() && canDraw
   

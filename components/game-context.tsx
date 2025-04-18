@@ -22,6 +22,7 @@ type GameContextType = {
   closeColorSelector: () => void
   endTurn: () => Promise<void>
   hasPlayableCard: () => boolean
+  drawnCardPlayable: Card | null
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -56,6 +57,9 @@ export function GameProvider({
   
   // Keep track of last seen log entries to display new ones as toasts
   const previousLogRef = useRef<string[]>([]);
+  
+  // State for drawn card playable
+  const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null)
   
   // Monitor log changes and show toasts for new entries
   useEffect(() => {
@@ -141,8 +145,13 @@ export function GameProvider({
       channel = pusherClient.subscribe(channelName);
 
       channel.bind("game-updated", (data: GameState) => {
-        console.log("[GameProvider] Received game update via Pusher:", data);
+        setDrawnCardPlayable(null)
         dispatch({ type: "UPDATE_GAME_STATE", payload: data });
+      });
+      channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
+        if (data.playerId === currentPlayerId) {
+          setDrawnCardPlayable(data.card)
+        }
       });
     }
 
@@ -154,6 +163,12 @@ export function GameProvider({
       }
     };
   }, [roomId, currentPlayerId]);
+
+  useEffect(() => {
+    if (state.currentPlayer !== currentPlayerId) {
+      setDrawnCardPlayable(null)
+    }
+  }, [state.currentPlayer, currentPlayerId])
 
   const refreshGameState = async (): Promise<void> => {
     try {
@@ -443,7 +458,8 @@ export function GameProvider({
         pendingWildCardId,
         closeColorSelector: handleCloseColorSelector,
         endTurn: handleEndTurn,
-        hasPlayableCard
+        hasPlayableCard,
+        drawnCardPlayable
       }}
     >
       {children}

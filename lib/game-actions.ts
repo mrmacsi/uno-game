@@ -96,7 +96,7 @@ export async function joinRoom(roomId: string, playerName: string): Promise<stri
   // Return playerId to be set on client side
 
   // Notify other players
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
   
   return playerId
 }
@@ -153,7 +153,7 @@ export async function startGame(roomId: string): Promise<void> {
   gameState.status = "playing"
   gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
 }
 
 // Play a card
@@ -249,7 +249,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   }
   gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", minimizeGameStateForPusher(gameState, playerId))
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
 }
 
 // Draw a card
@@ -337,7 +337,7 @@ export async function endTurn(roomId: string, playerId: string): Promise<void> {
   await updateGameState(roomId, gameState)
 
   // Notify players
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
 }
 
 // Say UNO
@@ -371,7 +371,7 @@ export async function sayUno(roomId: string, playerId: string): Promise<void> {
   await updateGameState(roomId, gameState)
 
   // Notify players
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
 }
 
 // Call UNO on another player who didn't say UNO
@@ -404,7 +404,7 @@ export async function callUnoOnPlayer(roomId: string, callerId: string, targetPl
     throw new Error("Cannot call UNO on this player")
   }
   await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
 }
 
 // Get room data
@@ -413,12 +413,7 @@ export async function getRoom(roomId: string): Promise<GameState> {
   if (!room) {
     redirect("/join-room")
   }
-
-  // Create a serializable version without the isValidPlay function
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isValidPlay, ...serializableGameState } = room;
-  
-  return serializableGameState as GameState;
+  return stripFunctionsFromGameState(room as GameState)
 }
 
 // Helper functions
@@ -658,36 +653,16 @@ try {
         gameState.isValidPlay = function (card: Card) {
           const topCard = this.discardPile[this.discardPile.length - 1];
           const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer);
-          
           if (!currentPlayer) return false;
-          
-          // Rule 0: Special case - If player just drew cards from a draw card effect,
-          // they can't play a matching draw card (no stacking in official rules)
-          // if (this.drawCardEffect?.active) {
-          //   if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
-          //     return true;
-          //   }
-          //   if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
-          //     return true;
-          //   }
-          // }
-          
-          // Rule 1: Wild cards (including wild4) can always be played
           if (card.type === "wild" || card.type === "wild4") {
             return true;
           }
-          
-          // Rule 2: Skip cards can be played on top of other skip cards regardless of color
           if (card.type === "skip" && topCard.type === "skip") {
             return true;
           }
-          
-          // Rule 3: Allow playing same number cards regardless of color
           if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
             return true;
           }
-
-          // Rule 4: Standard cards must match color or type
           return (
             card.color === this.currentColor || 
             (card.type === topCard.type)
@@ -731,10 +706,7 @@ async function persistGameStates(): Promise<void> {
     const serializableStates: Record<string, Omit<GameState, 'isValidPlay'>> = {};
     
     Object.keys(gameStates).forEach(roomId => {
-      // Clone the game state without the function property
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { isValidPlay, ...rest } = gameStates[roomId];
-      serializableStates[roomId] = rest;
+      serializableStates[roomId] = gameStates[roomId];
     });
     
     // Ensure data directory exists
@@ -774,7 +746,7 @@ export async function resetRoom(roomId: string): Promise<void> {
   
   // Notify connected clients if it's a room with active players
   if (currentGameState) {
-    await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState as GameState))
   }
   
   console.log(`Room ${roomId} has been reset to waiting state`)
@@ -788,10 +760,7 @@ export async function getAllRooms(): Promise<GameState[]> {
   for (const roomId of allRoomIds) {
     const room = await getGameState(roomId)
     if (room) {
-      // Create a version without the isValidPlay function
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { isValidPlay, ...serializableRoom } = room;
-      rooms.push(serializableRoom as GameState)
+      rooms.push(room as GameState)
     }
   }
   
@@ -820,12 +789,10 @@ export async function deleteRoom(roomId: string): Promise<void> {
   console.log(`Room ${roomId} has been deleted`)
 }
 
-function minimizeGameStateForPusher(gameState: GameState, playerId: string) {
-  const minimized = { ...gameState }
-  minimized.drawPile = []
-  minimized.players = minimized.players.map((p) => {
-    if (p.id === playerId) return p
-    return { ...p, cards: [] }
-  })
-  return minimized
+function stripFunctionsFromGameState(gameState: GameState) {
+  const clone = { ...gameState }
+  if ('isValidPlay' in clone) {
+    delete (clone as any).isValidPlay
+  }
+  return clone
 }
