@@ -45,7 +45,7 @@ export default function GameBoard() {
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative overflow-y-auto sm:overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-5 pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.4)_100%)]"></div>
