@@ -37,7 +37,6 @@ export interface GameState {
   discardPile: Card[]
   currentColor: CardColor
   winner: string | null
-  isValidPlay: (card: Card) => boolean
   drawCardEffect?: {
     active: boolean
     type: "draw2" | "wild4"
