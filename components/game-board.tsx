@@ -109,7 +109,7 @@ export default function GameBoard() {
       </div>
       
       {/* Players section - reorganized for better layout */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Other players - top section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-2 sm:p-3">
           {otherPlayers.map((player) => (
@@ -156,13 +156,17 @@ export default function GameBoard() {
         <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto">
           <div className="relative z-30">
             <PlayerHand />
-            <div className="w-full block sm:hidden sticky bottom-0 left-0 right-0 bg-transparent z-40">
+            {isMobile && (
+              <div className="w-full block sm:hidden">
+                <GameControls />
+              </div>
+            )}
+          </div>
+          {!isMobile && (
+            <div className="w-full hidden sm:block">
               <GameControls />
             </div>
-          </div>
-          <div className="w-full hidden sm:block">
-            <GameControls />
-          </div>
+          )}
         </div>
       </div>
       

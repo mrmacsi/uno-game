@@ -66,7 +66,7 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className={`relative px-2 sm:px-3 pb-16 sm:pb-4 ${handWidth < 640 ? 'pb-16' : ''} bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`}>
+    <div className={`flex flex-col min-h-0 px-2 sm:px-3 sm:pb-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`} style={{ overflow: 'visible' }}>
       <div className="flex flex-col items-center">
         <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-3 gap-1 sm:gap-0">
           <h2 className="text-white text-base sm:text-lg font-semibold tracking-tight flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function PlayerHand() {
         </div>
       </div>
       {canSayUno && (
-        <div className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+        <div className="flex justify-end w-full mt-2">
           <Button 
             onClick={sayUno} 
             className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-3 rounded-full shadow-lg animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110"
