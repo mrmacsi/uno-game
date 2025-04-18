@@ -66,9 +66,9 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className={`flex flex-col min-h-0 px-1 pb-2 sm:px-3 sm:pb-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`} style={{ overflow: 'visible' }}>
-      <div className="flex flex-col items-center">
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-1 sm:mb-3 gap-0 sm:gap-0">
+    <div className={`flex flex-col min-h-0 px-0 pb-1 sm:px-3 sm:pb-4 bg-black/30 backdrop-blur-md rounded-t-xl border-t border-x border-white/10`} style={{ overflow: 'visible' }}>
+      <div className="flex flex-col items-center w-full">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-0 sm:mb-3 gap-0 sm:gap-0 px-1 pt-1">
           <h2 className="text-white text-base sm:text-lg font-semibold tracking-tight flex items-center gap-2">
             Your Hand
             <span className="text-xs text-white/60 font-normal">
@@ -86,16 +86,16 @@ export default function PlayerHand() {
             </div>
           )}
         </div>
-        <div className="relative w-full overflow-x-auto py-0.5 px-0.5 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="relative w-full overflow-x-auto py-0.5 px-0 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent -mx-1 sm:mx-0">
           <div 
-            className="flex justify-center mx-auto"
+            className="flex justify-center mx-auto w-full"
             style={{ 
-              paddingBottom: handWidth < 640 ? "0.25rem" : "0.5rem", 
-              paddingTop: handWidth < 640 ? "0.25rem" : "0.5rem",
-              minHeight: handWidth < 640 ? "100px" : "180px"
+              paddingBottom: handWidth < 640 ? "0.15rem" : "0.5rem", 
+              paddingTop: handWidth < 640 ? "0.15rem" : "0.5rem",
+              minHeight: handWidth < 640 ? "88px" : "180px"
             }}
           >
-            <div className="flex" style={{ marginLeft: `${overlap/2}px` }}>
+            <div className={`flex gap-0 sm:gap-1 ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: `${overlap/2}px` }}>
               {currentPlayer.cards.map((card, index) => {
                 const isPlayable = isMyTurn && state.isValidPlay(card);
                 const animationDelay = `${index * 0.05}s`;
@@ -167,11 +167,11 @@ export default function PlayerHand() {
         </div>
       </div>
       {canSayUno && (
-        <div className="fixed bottom-3 left-0 right-0 flex justify-center z-50 sm:static sm:justify-end w-full mt-2">
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 sm:static sm:justify-end w-full pb-2 sm:pb-0 mt-0">
           <Button 
             onClick={sayUno} 
-            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-6 py-2 rounded-full shadow-lg animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110"
-            style={{ minWidth: 120, fontSize: 18 }}
+            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-8 py-2 rounded-full shadow-xl animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110 text-lg sm:text-base"
+            style={{ minWidth: 110, fontSize: handWidth < 640 ? 20 : 18 }}
           >
             UNO!
           </Button>
