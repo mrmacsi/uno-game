@@ -26,9 +26,9 @@ export default function GameControls() {
   const isMobile = useIsMobile()
 
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn
+  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0
   const canEndTurn = isMyTurn && state.hasDrawnThisTurn
-  const noPlayableCards = isMyTurn && !hasPlayableCard()
+  const noPlayableCards = isMyTurn && !hasPlayableCard() && canDraw
   
   // Find current player to check if they have few cards
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
@@ -108,7 +108,7 @@ export default function GameControls() {
                   drawCard()
                 }
               }}
-              className={`h-9 px-3 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600 text-white'} ${!canDraw ? 'opacity-50' : ''} shadow-md rounded-full`}
+              className={`h-9 px-3 text-xs bg-blue-600 text-white ${noPlayableCards ? 'animate-pulse' : ''} ${!canDraw ? 'opacity-50' : ''} shadow-md rounded-full`}
               disabled={!canDraw}
               style={{ minWidth: 78 }}
             >
