@@ -80,21 +80,28 @@ export function generateClientUUID(): string {
 }
 
 export function addIsValidPlayFunction(gameState: GameState): GameState {
-  if (gameState && gameState.status === 'playing') {
+  // Create a new object reference
+  const newState = { ...gameState };
+  
+  if (newState && newState.status === 'playing') {
     // Log before adding the function
     console.log('[addIsValidPlayFunction] Adding validation function to game state', {
-      hasDiscardPile: Boolean(gameState.discardPile?.length),
-      topCardId: gameState.discardPile[gameState.discardPile.length - 1]?.id,
-      currentColor: gameState.currentColor
+      hasDiscardPile: Boolean(newState.discardPile?.length),
+      topCardId: newState.discardPile[newState.discardPile.length - 1]?.id,
+      currentColor: newState.currentColor
     });
     
-    gameState.isValidPlay = (card: Card): boolean => {
-      const result = checkPlayValidity(gameState, card);
+    // Add the function to the new state object
+    newState.isValidPlay = (card: Card): boolean => {
+      // IMPORTANT: Ensure the check uses the state it was created with (or pass state explicitly)
+      // For simplicity, assuming checkPlayValidity uses the passed state argument correctly.
+      const result = checkPlayValidity(newState, card);
       console.log(`[isValidPlay] Check result for ${card.color} ${card.type}${card.type === 'number' ? card.value : ''}: ${result}`);
       return result;
-    }
+    };
   }
-  return gameState
+  // Return the new object reference
+  return newState;
 }
 
 // ... existing code ...

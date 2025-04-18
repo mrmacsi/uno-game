@@ -346,11 +346,6 @@ export function GameProvider({
       
       await playCard(roomId, currentPlayerId, cardId)
       setIsLoading(false)
-      
-      // Update game state after playing card to ensure UI consistency
-      setTimeout(() => {
-        refreshGameState()
-      }, 500)
     } catch (error) {
       console.error("[GameProvider] Failed to play card:", error)
       toast({

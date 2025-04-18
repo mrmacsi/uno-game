@@ -21,19 +21,20 @@ export function checkPlayValidity(gameState: GameState, card: Card): boolean {
   // Wild cards can always be played
   if (card.type === "wild" || card.type === "wild4") return true
   
-  // Match by color (most common)
+  // Match by current color (most common rule)
   if (card.color === gameState.currentColor) return true
   
-  // Number match - allow any card with same number, regardless of color
+  // Match by number value (if both are numbers)
   if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
     console.log("[checkPlayValidity] Card allowed due to matching number:", card.value)
     return true
   }
   
-  // Special cards matching rules
-  if (card.type === "reverse" && topCard.type === "reverse") return true
-  if (card.type === "skip" && topCard.type === "skip") return true
-  if (card.type !== "number" && card.type === topCard.type) return true
+  // Match by card type (special cards on same type)
+  if (card.type !== "number" && card.type === topCard.type) {
+    console.log("[checkPlayValidity] Card allowed due to matching type:", card.type)
+    return true
+  }
   
   // No match found
   console.log("[checkPlayValidity] Card not allowed:", card)

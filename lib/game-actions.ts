@@ -167,6 +167,15 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     console.error(`[Server Action playCard] Error: Room not found`)
     throw new Error("Room not found")
   }
+  
+  // --- RIGOROUS TURN CHECK --- 
+  if (gameState.currentPlayer !== playerId) {
+    // Even if client thinks it's their turn, check server state definitively
+    console.error(`[Server Action playCard] SERVER CHECK FAILED: Not player's turn. Server current: ${gameState.currentPlayer}, Request from: ${playerId}`)
+    throw new Error("Not your turn (Server state mismatch)")
+  }
+  // --- END RIGOROUS TURN CHECK ---
+
   console.log(`[Server Action playCard] Fetched state. Current player: ${gameState.currentPlayer}, Status: ${gameState.status}`)
   if (gameState.status !== "playing") {
     console.error(`[Server Action playCard] Error: Game is not in progress`)
@@ -271,12 +280,26 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
         gameState.log.push(`${affectedPlayer.name} must draw ${cardJustPlayed.type === 'draw2' ? 2 : 4} cards and is skipped! Turn passes to ${nextActivePlayer.name}.`);
         nextPlayerIndex = playerAfterAffectedIndex;
       } else if (cardJustPlayed.type === 'reverse') {
-        nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
-        gameState.log.push(`Direction reversed! Turn passes to ${gameState.players[nextPlayerIndex].name}.`);
+        // Reverse direction FIRST
+        gameState.direction *= -1;
+        // Check for 2-player game
+        if (gameState.players.length === 2) {
+          // In 2-player game, Reverse acts like Skip (player plays again)
+          nextPlayerIndex = playerIndex;
+          gameState.log.push(`Direction reversed! ${gameState.players[playerIndex].name} plays again.`);
+        } else {
+          // In 3+ player game, turn passes in the new direction
+          nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
+          gameState.log.push(`Direction reversed! Turn passes to ${gameState.players[nextPlayerIndex].name}.`);
+        }
       } else {
-        nextPlayerIndex = logicalNextPlayerIndex;
+        // Standard turn progression
+        nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
       }
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+      // --- RESET DRAW FLAG for the player whose turn it now is --- 
+      gameState.hasDrawnThisTurn = false;
+      // --- END RESET --- 
     }
   }
   const afterState = JSON.stringify({
@@ -614,10 +637,7 @@ function shuffle<T>(array: T[]): T[] {
 function applyCardEffects(gameState: GameState, card: Card): void {
   switch (card.type) {
     case "skip": {
-      break
-    }
-    case "reverse": {
-      gameState.direction *= -1
+      // Skip effect is handled in the main playCard logic to determine next player
       break
     }
     case "draw2": {

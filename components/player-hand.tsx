@@ -240,9 +240,29 @@ export default function PlayerHand() {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={async () => {
-                        if (animatingCard || !isPlayable || isLoading) {
+                        // Log state at the moment of click
+                        const topCard = state.discardPile[state.discardPile.length - 1];
+                        const currentPlayable = isMyTurn && checkPlayValidity(state, card);
+                        console.log('PlayerHand onClick:', {
+                          cardId: card.id,
+                          isPlayable_render: isPlayable, // Value from render
+                          isPlayable_click: currentPlayable, // Re-checked value
+                          isMyTurn,
+                          isLoading,
+                          animatingCard,
+                          state_currentColor: state.currentColor,
+                          state_topCardId: topCard?.id,
+                          state_topCardColor: topCard?.color,
+                          state_topCardType: topCard?.type,
+                        });
+
+                        // Use the re-checked value for the guard
+                        if (animatingCard || !currentPlayable || isLoading) {
+                          console.log('--> Click blocked');
                           return;
                         }
+                        console.log('--> Click allowed');
+                        
                         const player = state.players && state.players.find((p) => p.id === currentPlayerId);
                         if (!player || !player.cards.some((c) => c.id === card.id)) {
                           console.warn(

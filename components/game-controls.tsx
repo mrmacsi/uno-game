@@ -26,7 +26,7 @@ export default function GameControls() {
   const isMobile = useIsMobile()
 
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn && !drawnCardPlayable
+  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn
   const canEndTurn = isMyTurn && state.hasDrawnThisTurn
   const noPlayableCards = isMyTurn && !hasPlayableCard() && canDraw
   
