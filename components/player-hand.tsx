@@ -91,7 +91,7 @@ export default function PlayerHand() {
   }
   
   const decreaseCardSize = () => {
-    setCardScale(Math.max(cardScale - 10, 70))
+    setCardScale(Math.max(cardScale - 10, 50))
   }
 
   if (!currentPlayerId || !state || !state.players) return null
