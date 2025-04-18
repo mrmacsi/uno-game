@@ -229,14 +229,18 @@ export default function PlayerHand() {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={() => {
-                        if (isMyTurn && state.isValidPlay && state.isValidPlay(card)) {
-                          const currentPlayerState = state.players.find((p: { id: string }) => p.id === currentPlayerId);
-                          if (currentPlayerState && currentPlayerState.cards.some((c: import("@/lib/types").Card) => c.id === card.id)) {
-                            setAnimatingCard(card.id);
-                            playCard(card.id).catch((error: unknown) => {
-                              setAnimatingCard(null);
-                            });
-                          }
+                        // Prevent clicks if already playing a card or not playable
+                        if (animatingCard || !isMyTurn || !state.isValidPlay || !state.isValidPlay(card)) {
+                          return;
+                        }
+
+                        const currentPlayerState = state.players.find((p: { id: string }) => p.id === currentPlayerId);
+                        if (currentPlayerState && currentPlayerState.cards.some((c: import("@/lib/types").Card) => c.id === card.id)) {
+                          setAnimatingCard(card.id);
+                          playCard(card.id).catch((error: unknown) => {
+                            // It's important to reset animation state even if the playCard call fails
+                            setAnimatingCard(null); 
+                          });
                         }
                       }}
                     >
@@ -247,15 +251,6 @@ export default function PlayerHand() {
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
                           isMobile={isMobile}
                         />
-                        
-                        {/* Enhanced "play" indicator */}
-                        {isPlayable && (
-                          <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="bg-gradient-to-r from-green-500 to-green-600 p-1.5 rounded-full text-white shadow-lg group-hover:animate-bounce-gentle">
-                              <Play className="w-3 h-3" />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                     

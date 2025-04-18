@@ -83,30 +83,35 @@ export function generateClientUUID(): string {
  */
 export function addIsValidPlayFunction(gameState: GameState): GameState {
   if (gameState.status === 'playing') {
-    gameState.isValidPlay = function(card: Card) {
-      const topCard = this.discardPile[this.discardPile.length - 1]
-      const currentPlayer = this.players.find(p => p.id === this.currentPlayer)
-      if (!currentPlayer) return false
-      if (card.type === "wild4") {
-        return true
+    gameState.isValidPlay = function(card: Card): boolean {
+      const topCard = this.discardPile[this.discardPile.length - 1];
+      // If discard pile is empty, any card is technically playable (first turn edge case)
+      if (!topCard) return true; 
+
+      // Wild cards are always playable
+      if (card.type === "wild" || card.type === "wild4") {
+        return true;
       }
-      if (card.type === "wild") {
-        return true
+
+      // Check if the card's color matches the current required color
+      if (card.color === this.currentColor) {
+        return true;
       }
-      if (card.type === "draw2") {
-        return card.color === this.currentColor || topCard.type === "draw2"
+
+      // Check if the card's number matches the top card's number (if both are numbers)
+      if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
+        return true;
       }
-      if (card.type === "reverse" && topCard.type === "reverse") {
-        return true
+
+      // Check if the card's type matches the top card's type (for action cards: Skip, Reverse, Draw2)
+      // This allows playing e.g. a Blue Skip on a Red Skip.
+      if (card.type !== "number" && card.type === topCard.type) {
+        return true;
       }
-      if (card.type === "skip" && topCard.type === "skip") {
-        return true
-      }
-      return (
-        card.color === this.currentColor ||
-        (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
-      )
-    }
+
+      // If none of the above conditions are met, the play is invalid
+      return false;
+    };
   }
-  return gameState
+  return gameState;
 } 
