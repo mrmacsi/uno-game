@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Award, ChevronRight, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
+import UnoCard from "./uno-card"
 
 export default function GameOver() {
   const { state, refreshGameState } = useGame()
@@ -254,6 +255,24 @@ export default function GameOver() {
                             <span className="text-indigo-700">Total</span>
                             <span className="text-indigo-700">{player.points} points</span>
                           </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-1" style={{ maxWidth: 'calc(5 * 48px)' }}>
+                          {player.cards.map((card, idx) => (
+                            <div
+                              key={card.id}
+                              style={{
+                                transform: 'scale(0.45)',
+                                transformOrigin: 'top left',
+                                marginRight: (idx + 1) % 5 === 0 ? 0 : '0.25rem',
+                                marginBottom: '0.25rem',
+                                width: '48px',
+                                height: '86px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              <UnoCard card={card} disabled />
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );

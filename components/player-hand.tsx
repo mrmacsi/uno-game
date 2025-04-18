@@ -57,7 +57,6 @@ export default function PlayerHand() {
   if (!currentPlayer) return null
 
   const isMyTurn = state.currentPlayer === currentPlayerId
-  const canSayUno = currentPlayer.cards.length === 2 && isMyTurn
   
   // Calculate card spread based on number of cards and screen width
   const cardCount = currentPlayer.cards.length
@@ -166,17 +165,6 @@ export default function PlayerHand() {
           </div>
         </div>
       </div>
-      {canSayUno && (
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 sm:static sm:justify-end w-full pb-2 sm:pb-0 mt-0">
-          <Button 
-            onClick={sayUno} 
-            className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-8 py-2 rounded-full shadow-xl animate-pulse border-2 border-white/30 transition-transform duration-300 hover:scale-105 sm:hover:scale-110 text-lg sm:text-base"
-            style={{ minWidth: 110, fontSize: handWidth < 640 ? 20 : 18 }}
-          >
-            UNO!
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
