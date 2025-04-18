@@ -45,7 +45,7 @@ export default function GameBoard() {
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative overflow-y-auto sm:overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative" style={{ overflow: 'visible' }}>
       {/* Background pattern */}
       <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-5 pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.4)_100%)]"></div>
@@ -109,7 +109,7 @@ export default function GameBoard() {
       </div>
       
       {/* Players section - reorganized for better layout */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0" style={{ overflow: 'visible' }}>
         {/* Other players - top section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-2 sm:p-3">
           {otherPlayers.map((player) => (
@@ -118,7 +118,7 @@ export default function GameBoard() {
         </div>
         
         {/* Game area - middle section with card piles */}
-        <div className="flex-1 flex items-center justify-center gap-4 sm:gap-16 p-2 sm:p-4 relative" style={{ minHeight: isMobile ? "160px" : "300px" }}>
+        <div className="flex-1 flex items-center justify-center overflow-visible gap-4 sm:gap-16 p-2 sm:p-4 relative">
           {/* Decorative elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-white/5 absolute animate-pulse-slow"></div>
