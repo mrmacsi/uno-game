@@ -154,17 +154,38 @@ export async function startGame(roomId: string): Promise<void> {
     const topCard = this.discardPile[this.discardPile.length - 1]
     const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer)
     if (!currentPlayer) return false
-    if (card.type === "wild") return true
-    if (card.type === "wild4") {
-      const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor)
-      return !hasMatchingColor
+    
+    // Rule 0: Special case - If player just drew cards from a draw card effect,
+    // they can't play a matching draw card (no stacking in official rules)
+    // if (this.drawCardEffect?.active) {
+    //   if (this.drawCardEffect.type === "draw2" && card.type === "draw2") {
+    //     return true;
+    //   }
+    //   if (this.drawCardEffect.type === "wild4" && card.type === "wild4") {
+    //     return true;
+    //   }
+    // }
+    
+    // Rule 1: Wild cards (including wild4) can always be played
+    if (card.type === "wild" || card.type === "wild4") {
+      return true;
     }
-    if (card.type === "draw2") return card.color === this.currentColor
+    
+    // Rule 2: Skip cards can be played on top of other skip cards regardless of color
+    if (card.type === "skip" && topCard.type === "skip") {
+      return true;
+    }
+    
+    // Rule 3: Allow playing same number cards regardless of color
+    if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
+      return true;
+    }
+
+    // Rule 4: Standard cards must match color or type
     return (
-      card.color === this.currentColor ||
-      (card.type === topCard.type) ||
-      (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
-    )
+      card.color === this.currentColor || 
+      (card.type === topCard.type)
+    );
   }
   gameState.drawPileCount = gameState.drawPile.length
   await updateGameState(roomId, gameState)
@@ -181,7 +202,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
   if (playerIndex === -1) throw new Error("Player not found")
   const cardIndex = gameState.players[playerIndex].cards.findIndex((c) => c.id === cardId)
-  if (cardIndex === -1) throw new Error("Card not found")
+  if (cardIndex === -1) throw new Error(`Card not found: ${cardId}, player has: ${gameState.players[playerIndex].cards.map(c => c.id).join(",")}`)
   const card = gameState.players[playerIndex].cards[cardIndex]
   if (!gameState.isValidPlay(card)) throw new Error("Invalid card")
   gameState.players[playerIndex].cards.splice(cardIndex, 1)
@@ -227,7 +248,9 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     gameState.matchHistory.push(matchResult)
   } else {
     applyCardEffects(gameState, card)
-    if (card.type !== "skip" && card.type !== "reverse") {
+    // For special cards (skip, reverse, draw2, wild4), the turn handling is done in applyCardEffects
+    // For regular cards and wild, we need to move to the next player
+    if (card.type !== "skip" && card.type !== "reverse" && card.type !== "wild4" && card.type !== "draw2") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
@@ -242,67 +265,99 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
   const gameState = await getGameState(roomId)
   if (!gameState) throw new Error("Room not found")
   if (gameState.status !== "playing") throw new Error("Game is not in progress")
+  
+  // Verify it's the player's turn
   if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) throw new Error("Not your turn")
   if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") gameState.currentPlayer = playerId
+  
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
   if (playerIndex === -1) throw new Error("Player not found")
   
-  // Allow drawing regardless of any other game condition when it's player's turn
-  // Remove the check for hasDrawnThisTurn here (it's still handled on the client-side)
+  // Prevent double-clicking - check if the player is already drawing
+  if (gameState.isDrawing) throw new Error("Already drawing a card")
   
-  const topCard = gameState.discardPile[gameState.discardPile.length - 1]
-  const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
+  // Set the drawing flag to prevent multiple draws
+  gameState.isDrawing = true
+  await updateGameState(roomId, gameState)
   
-  // Ensure we have cards to draw by reshuffling if needed
-  reshuffleIfNeeded(gameState)
-  
-  // Double-check if we still don't have cards after trying to reshuffle
-  if (!gameState.drawPile || gameState.drawPile.length === 0) {
-    if (gameState.discardPile.length <= 1) {
-      // Cannot reshuffle if there's only the top card
-      throw new Error("No cards left to draw")
-    } else {
-      // Try to reshuffle one more time
-      reshuffleIfNeeded(gameState)
-      if (!gameState.drawPile || gameState.drawPile.length === 0) {
-        throw new Error("Failed to reshuffle cards")
+  try {
+    // Check the top card to determine behavior
+    const topCard = gameState.discardPile[gameState.discardPile.length - 1]
+    const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
+    
+    // Ensure we have cards to draw by reshuffling if needed
+    reshuffleIfNeeded(gameState)
+    
+    // Double-check if we still don't have cards after trying to reshuffle
+    if (!gameState.drawPile || gameState.drawPile.length === 0) {
+      if (gameState.discardPile.length <= 1) {
+        // Cannot reshuffle if there's only the top card
+        throw new Error("No cards left to draw")
+      } else {
+        // Try to reshuffle one more time
+        reshuffleIfNeeded(gameState)
+        if (!gameState.drawPile || gameState.drawPile.length === 0) {
+          throw new Error("Failed to reshuffle cards")
+        }
       }
     }
-  }
-  
-  const newCard = gameState.drawPile.pop()!
-  gameState.players[playerIndex].cards.push(newCard)
-  if (!gameState.log) gameState.log = []
-  const drawMsg = `${gameState.players[playerIndex].name} drew a card`
-  gameState.log.push(drawMsg)
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-  
-  // Update draw pile count
-  gameState.drawPileCount = gameState.drawPile.length
-  if (isDrawEffect) {
-    // After drawing for draw2 or wild4, immediately skip to next player
+    
+    // Draw card and add it to player's hand
+    const newCard = gameState.drawPile.pop()!
+    gameState.players[playerIndex].cards.push(newCard)
+    
+    // Log the action
+    if (!gameState.log) gameState.log = []
+    const drawMsg = `${gameState.players[playerIndex].name} drew a card`
+    gameState.log.push(drawMsg)
+    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+    
+    // Update draw pile count
+    gameState.drawPileCount = gameState.drawPile.length
+    
+    if (isDrawEffect) {
+      // After drawing for draw2 or wild4, pass turn to next player
+      const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+      gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+      gameState.hasDrawnThisTurn = false
+      gameState.drawCardEffect = undefined
+      // Clear drawing flag
+      gameState.isDrawing = false
+      await updateGameState(roomId, gameState)
+      await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+      return
+    }
+    
+    // Regular draw - check if the drawn card can be played
+    gameState.hasDrawnThisTurn = true
+    gameState.drawCardEffect = undefined
+    
+    if (gameState.isValidPlay(newCard)) {
+      // If the card is playable, notify the client
+      gameState.drawPileCount = gameState.drawPile.length
+      // Clear drawing flag
+      gameState.isDrawing = false
+      await updateGameState(roomId, gameState)
+      await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { card: newCard })
+      return
+    }
+    
+    // Card not playable, move to next player
     const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     gameState.hasDrawnThisTurn = false
-    gameState.drawCardEffect = undefined
+    gameState.drawPileCount = gameState.drawPile.length
+    
+    // Clear drawing flag
+    gameState.isDrawing = false
     await updateGameState(roomId, gameState)
     await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
-    return
-  }
-  gameState.hasDrawnThisTurn = true
-  gameState.drawCardEffect = undefined
-  if (gameState.isValidPlay(newCard)) {
-    gameState.drawPileCount = gameState.drawPile.length
+  } catch (error) {
+    // If there's an error, make sure to clear the drawing flag
+    gameState.isDrawing = false
     await updateGameState(roomId, gameState)
-    await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { card: newCard })
-    return
+    throw error
   }
-  const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-  gameState.currentPlayer = gameState.players[nextPlayerIndex].id
-  gameState.hasDrawnThisTurn = false
-  gameState.drawPileCount = gameState.drawPile.length
-  await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
 
 // End turn (pass to next player)
@@ -630,7 +685,17 @@ function applyCardEffects(gameState: GameState, card: Card): void {
     case "skip": {
       const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
       const skippedPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex)
-      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, skippedPlayerIndex)].id
+      
+      // Log who gets skipped
+      if (!gameState.log) gameState.log = []
+      gameState.log.push(`${gameState.players[skippedPlayerIndex].name} is skipped!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
+      // Instead of moving to the player after the skipped player,
+      // keep the turn with the current player (same behavior as draw2 and wild4)
+      gameState.log.push(`${gameState.players[currentPlayerIndex].name} gets to play again!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      
       break
     }
     case "reverse": {
@@ -638,7 +703,8 @@ function applyCardEffects(gameState: GameState, card: Card): void {
       break
     }
     case "draw2": {
-      const nextPlayer = getNextPlayerIndex(gameState, gameState.players.findIndex((p) => p.id === gameState.currentPlayer))
+      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+      const nextPlayer = getNextPlayerIndex(gameState, currentPlayerIndex)
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[nextPlayer].name} has to draw 2 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
@@ -664,11 +730,16 @@ function applyCardEffects(gameState: GameState, card: Card): void {
         if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
       }
       
-      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, nextPlayer)].id
+      // Return turn to current player instead of going to the next player
+      // gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, nextPlayer)].id
+      gameState.log.push(`${gameState.players[currentPlayerIndex].name} gets to play again!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      // The currentPlayer remains the same player who played the card
       break
     }
     case "wild4": {
-      const wild4NextPlayerIdx = getNextPlayerIndex(gameState, gameState.players.findIndex((p) => p.id === gameState.currentPlayer))
+      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+      const wild4NextPlayerIdx = getNextPlayerIndex(gameState, currentPlayerIndex)
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[wild4NextPlayerIdx].name} has to draw 4 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
@@ -681,6 +752,7 @@ function applyCardEffects(gameState: GameState, card: Card): void {
           // If still no cards after reshuffling, break out of the loop
           break
         }
+        // Make sure to add cards to the next player (opponent), not the current player
         gameState.players[wild4NextPlayerIdx].cards.push(gameState.drawPile.pop()!)
         cardsDrawn++
       }
@@ -694,7 +766,15 @@ function applyCardEffects(gameState: GameState, card: Card): void {
         if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
       }
       
-      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, wild4NextPlayerIdx)].id
+      // Return turn to current player instead of going to the next player
+      gameState.log.push(`${gameState.players[currentPlayerIndex].name} gets to play again!`)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      // The currentPlayer remains the same player who played the card
+      break
+    }
+    case "wild": {
+      // Regular wild cards don't have special effects other than changing color
+      // Turn change is handled in the playCard function
       break
     }
   }
@@ -768,29 +848,25 @@ try {
           //   }
           // }
           
-          // Rule 1: Pure Wild cards can always be played
-          if (card.type === "wild") {
+          // Rule 1: Wild cards (including wild4) can always be played
+          if (card.type === "wild" || card.type === "wild4") {
             return true;
           }
           
-          // Rule 2: Wild Draw Four has special rules
-          if (card.type === "wild4") {
-            // Official rule: Wild Draw Four can only be played if no matching color
-            const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor);
-            return !hasMatchingColor;
+          // Rule 2: Skip cards can be played on top of other skip cards regardless of color
+          if (card.type === "skip" && topCard.type === "skip") {
+            return true;
           }
           
-          // Rule 3: Draw Two must match color (no stacking per official rules)
-          if (card.type === "draw2") {
-            // Regular color matching rule
-            return card.color === this.currentColor;
+          // Rule 3: Allow playing same number cards regardless of color
+          if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) {
+            return true;
           }
 
-          // Rule 4: Standard cards must match color or type/value
+          // Rule 4: Standard cards must match color or type
           return (
             card.color === this.currentColor || 
-            (card.type === topCard.type) ||
-            (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
+            (card.type === topCard.type)
           );
         };
       }

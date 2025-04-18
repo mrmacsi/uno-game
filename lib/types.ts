@@ -46,6 +46,7 @@ export interface GameState {
   matchHistory?: MatchResult[]
   log?: string[]
   drawPileCount?: number
+  isDrawing?: boolean
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }
