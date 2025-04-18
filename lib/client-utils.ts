@@ -81,8 +81,17 @@ export function generateClientUUID(): string {
 
 export function addIsValidPlayFunction(gameState: GameState): GameState {
   if (gameState && gameState.status === 'playing') {
+    // Log before adding the function
+    console.log('[addIsValidPlayFunction] Adding validation function to game state', {
+      hasDiscardPile: Boolean(gameState.discardPile?.length),
+      topCardId: gameState.discardPile[gameState.discardPile.length - 1]?.id,
+      currentColor: gameState.currentColor
+    });
+    
     gameState.isValidPlay = (card: Card): boolean => {
-      return checkPlayValidity(gameState, card)
+      const result = checkPlayValidity(gameState, card);
+      console.log(`[isValidPlay] Check result for ${card.color} ${card.type}${card.type === 'number' ? card.value : ''}: ${result}`);
+      return result;
     }
   }
   return gameState

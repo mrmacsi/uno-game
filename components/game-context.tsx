@@ -298,17 +298,32 @@ export function GameProvider({
         description: "This card is no longer in your hand",
         variant: "destructive",
       })
+      // Refresh game state to ensure UI matches server state
+      await refreshGameState()
       return
     }
-    if (!checkPlayValidityClient(state, card)) {
+    
+    // Re-check play validity to ensure it's valid
+    const isValidPlay = checkPlayValidityClient(state, card)
+    console.log(`[GameProvider] Card validity check: ${isValidPlay}`, {
+      cardId,
+      cardDetails: card,
+      topCard: state.discardPile[state.discardPile.length - 1],
+      currentColor: state.currentColor
+    })
+    
+    if (!isValidPlay) {
       console.error("[GameProvider] Cannot play card: Card is not valid to play")
       toast({
         title: "Cannot Play Card",
         description: "This card cannot be played now",
         variant: "destructive",
       })
+      // Refresh game state to ensure UI matches server state
+      await refreshGameState()
       return
     }
+    
     if (card.type === "wild" || card.type === "wild4") {
       setIsColorSelectionOpen(true)
       setPendingWildCardId(cardId)
@@ -325,10 +340,17 @@ export function GameProvider({
           variant: "destructive",
         })
         setIsLoading(false)
+        await refreshGameState()
         return
       }
+      
       await playCard(roomId, currentPlayerId, cardId)
       setIsLoading(false)
+      
+      // Update game state after playing card to ensure UI consistency
+      setTimeout(() => {
+        refreshGameState()
+      }, 500)
     } catch (error) {
       console.error("[GameProvider] Failed to play card:", error)
       toast({
@@ -345,9 +367,21 @@ export function GameProvider({
     if (state.status !== "playing") return
     const interval = setInterval(() => {
       refreshGameState()
-    }, 3000)
+    }, 1500)
     return () => clearInterval(interval)
   }, [state.status, roomId])
+
+  // Add an effect to refresh game state when critical game state changes
+  useEffect(() => {
+    if (state.status !== "playing") return
+    
+    // Refresh state when a card is played to the discard pile
+    const refreshTimeout = setTimeout(() => {
+      refreshGameState()
+    }, 300)
+    
+    return () => clearTimeout(refreshTimeout)
+  }, [state.discardPile.length, state.currentColor])
 
   const handleDrawCard = async () => {
     if (!currentPlayerId) {
