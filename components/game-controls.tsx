@@ -52,7 +52,7 @@ export default function GameControls() {
             </Button>
           )}
           
-          <div className="flex flex-col sm:flex-row gap-2 items-stretch w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-row gap-2 items-stretch w-full sm:w-auto mt-2 sm:mt-0">
             <Button
               variant="default"
               size="sm"
