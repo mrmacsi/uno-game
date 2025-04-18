@@ -11,38 +11,27 @@ import ColorSelector from "./color-selector"
 import { Button } from "@/components/ui/button"
 import { Home, MessageCircle, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function GameBoard() {
   const { state, selectWildCardColor, isColorSelectionOpen, closeColorSelector, currentPlayerId } = useGame()
   const router = useRouter()
   const [showLog, setShowLog] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Check screen size
-  useEffect(() => {
-    const checkSize = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    window.addEventListener('resize', checkSize)
-    checkSize()
-    
-    return () => window.removeEventListener('resize', checkSize)
-  }, [])
-
-  const goToHome = () => {
-    router.push("/")
-  }
-
-  if (state.status === "finished") {
-    return <GameOver />
-  }
+  const isMobile = useIsMobile()
 
   // Find the player that belongs to the user
   const myPlayer = state.players.find(p => p.id === currentPlayerId)
   // Filter out the user's player from the list of players displayed at the top
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
+
+  if (state.status === "finished") {
+    return <GameOver />
+  }
+
+  const goToHome = () => {
+    router.push("/")
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative" style={{ overflow: 'visible' }}>
@@ -144,8 +133,8 @@ export default function GameBoard() {
         </div>
         
         {/* Current player info - shows above hand on mobile */}
-        {isMobile && myPlayer && (
-          <div className="px-2 sm:px-3 py-2">
+        {myPlayer && (
+          <div className="px-2 sm:px-3 py-2 block sm:hidden">
             <PlayerInfo 
               player={myPlayer} 
               isCurrentTurn={myPlayer.id === state.currentPlayer} 
@@ -156,17 +145,10 @@ export default function GameBoard() {
         <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto">
           <div className="relative z-30">
             <PlayerHand />
-            {isMobile && (
-              <div className="w-full block sm:hidden">
-                <GameControls />
-              </div>
-            )}
-          </div>
-          {!isMobile && (
-            <div className="w-full hidden sm:block">
+            <div className="w-full">
               <GameControls />
             </div>
-          )}
+          </div>
         </div>
       </div>
       
