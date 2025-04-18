@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "NODE_NO_WARNINGS=1 next dev -H 0.0.0.0",
+    "build": "NODE_NO_WARNINGS=1 next build",
+    "start": "NODE_NO_WARNINGS=1 next start",
+    "lint": "NODE_NO_WARNINGS=1 next lint"
   },
   "dependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@hookform/resolvers": "^5.0.1",
     "@next/swc-darwin-arm64": "^15.3.1",
     "@radix-ui/react-accordion": "^1.2.4",
@@ -38,10 +39,7 @@
     "@radix-ui/react-toggle": "^1.1.3",
     "@radix-ui/react-toggle-group": "^1.1.3",
     "@radix-ui/react-tooltip": "^1.2.0",
-    "@tailwindcss/postcss": "^4.1.4",
     "@vercel/kv": "^3.0.0",
-    "ajv": "^8.17.1",
-    "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -62,18 +60,21 @@
     "redis": "^4.7.0",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.2.5",
+    "uri-js": "^4.4.1",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^22.14.1",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.24.0",
     "eslint-config-next": "15.3.1",
-    "postcss": "^8",
+    "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4",
     "typescript": "^5.8.3"
   }

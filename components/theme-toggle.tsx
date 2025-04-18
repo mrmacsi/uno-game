@@ -1,14 +1,17 @@
 "use client"
 
+import * as React from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Sun, Moon } from "lucide-react"
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return null
   const isDark = theme === "dark"
   const isLight = theme === "light"
-
   return (
     <div className={`p-1 bg-black/10 backdrop-blur-md rounded-full flex ${className}`}>
       <Button
@@ -26,7 +29,6 @@ export function ThemeToggle({ className }: { className?: string }) {
       >
         <Sun className="h-4 w-4" />
       </Button>
-      
       <Button
         variant="ghost"
         size="icon"
