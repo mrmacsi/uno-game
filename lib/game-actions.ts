@@ -131,134 +131,60 @@ export async function createDefaultRoom(): Promise<void> {
 
 // Start the game
 export async function startGame(roomId: string): Promise<void> {
-  // Get the current game state
   const gameState = await getGameState(roomId)
-
-  if (!gameState) {
-    throw new Error("Room not found")
-  }
-
-  if (gameState.status !== "waiting") {
-    throw new Error("Game has already started")
-  }
-
-  if (gameState.players.length < 2) {
-    throw new Error("Not enough players")
-  }
-
-  // Initialize the game
+  if (!gameState) throw new Error("Room not found")
+  if (gameState.status !== "waiting") throw new Error("Game has already started")
+  if (gameState.players.length < 2) throw new Error("Not enough players")
   const { drawPile, hands } = dealCards(gameState.players.length)
-
-  // Assign cards to players
   gameState.players.forEach((player, index) => {
     player.cards = hands[index]
   })
-
-  // Set the first card in the discard pile
   let firstCard = drawPile.pop()
-
-  // Make sure the first card is a number card
   while (firstCard && firstCard.type !== "number") {
     drawPile.unshift(firstCard)
     firstCard = drawPile.pop()
   }
-
-  if (!firstCard) {
-    throw new Error("Failed to initialize game")
-  }
-
+  if (!firstCard) throw new Error("Failed to initialize game")
   gameState.discardPile = [firstCard]
-  gameState.drawPileCount = drawPile.length
+  gameState.drawPile = drawPile
   gameState.currentColor = firstCard.color
   gameState.currentPlayer = gameState.players[0].id
   gameState.status = "playing"
-
-  // Add the isValidPlay function
   gameState.isValidPlay = function (card: Card) {
     const topCard = this.discardPile[this.discardPile.length - 1]
     const currentPlayer = this.players.find((p: Player) => p.id === this.currentPlayer)
-    
     if (!currentPlayer) return false
-
-    // Rule 1: Pure Wild cards can always be played
-    if (card.type === "wild") {
-      return true
-    }
-    
-    // Rule 2: Wild Draw Four has special rules
+    if (card.type === "wild") return true
     if (card.type === "wild4") {
-      // Official rule: Wild Draw Four can only be played if no matching color
       const hasMatchingColor = currentPlayer.cards.some((c: Card) => c.id !== card.id && c.color === this.currentColor)
       return !hasMatchingColor
     }
-    
-    // Rule 3: Draw Two must match color (no stacking per official rules)
-    if (card.type === "draw2") {
-      // Regular color matching rule
-      return card.color === this.currentColor
-    }
-    
-    // Rule 4: Standard cards must match color or type/value
+    if (card.type === "draw2") return card.color === this.currentColor
     return (
       card.color === this.currentColor ||
       (card.type === topCard.type) ||
       (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
     )
   }
-
-  // Update the game state in the database
   await updateGameState(roomId, gameState)
-
-  // Notify players
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
 
 // Play a card
 export async function playCard(roomId: string, playerId: string, cardId: string, selectedColor?: "red" | "blue" | "green" | "yellow"): Promise<void> {
-  // Get the current game state
   const gameState = await getGameState(roomId)
-
-  if (!gameState) {
-    throw new Error("Room not found")
-  }
-
-  if (gameState.status !== "playing") {
-    throw new Error("Game is not in progress")
-  }
-
-  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
-    throw new Error("Not your turn")
-  }
-  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") {
-    gameState.currentPlayer = playerId
-  }
-
-  // Find the player
+  if (!gameState) throw new Error("Room not found")
+  if (gameState.status !== "playing") throw new Error("Game is not in progress")
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) throw new Error("Not your turn")
+  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") gameState.currentPlayer = playerId
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
-  if (playerIndex === -1) {
-    throw new Error("Player not found")
-  }
-
-  // Find the card
+  if (playerIndex === -1) throw new Error("Player not found")
   const cardIndex = gameState.players[playerIndex].cards.findIndex((c) => c.id === cardId)
-  if (cardIndex === -1) {
-    throw new Error("Card not found")
-  }
-
+  if (cardIndex === -1) throw new Error("Card not found")
   const card = gameState.players[playerIndex].cards[cardIndex]
-
-  // Check if the card can be played
-  if (!gameState.isValidPlay(card)) {
-    throw new Error("Invalid card")
-  }
-
-  // Remove the card from the player's hand
+  if (!gameState.isValidPlay(card)) throw new Error("Invalid card")
   gameState.players[playerIndex].cards.splice(cardIndex, 1)
-
-  // Add the card to the discard pile
   gameState.discardPile.push(card)
-
-  // Log the action
   if (!gameState.log) gameState.log = []
   let actionMsg = `${gameState.players[playerIndex].name} played ${card.type === "number" ? card.value : card.type.toUpperCase()} ${card.color.toUpperCase()}`
   if (card.type === "wild" || card.type === "wild4") {
@@ -266,43 +192,28 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   }
   gameState.log.push(actionMsg)
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-
-  // Clear any draw card effect state
   gameState.drawCardEffect = undefined
-
-  // Update the current color if it's a wild card
   if (card.type === "wild" || card.type === "wild4") {
     if (selectedColor) {
-      // Use the color selected by the player
       gameState.currentColor = selectedColor
     } else {
-      // Fallback: do not play the card if no color is selected (should not happen in official flow)
       throw new Error("No color selected for wild card")
     }
   } else {
     gameState.currentColor = card.color
   }
-
-  // Check if the player has exactly one card left (need to say UNO)
   if (gameState.players[playerIndex].cards.length === 1) {
-    // Reset the saidUno flag - they need to say UNO again
     gameState.players[playerIndex].saidUno = false
     gameState.log.push(`${gameState.players[playerIndex].name} has only ONE card!`)
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
   }
-
-  // Check if the player has won
   if (gameState.players[playerIndex].cards.length === 0) {
     gameState.status = "finished"
     gameState.winner = playerId
     gameState.log.push(`${gameState.players[playerIndex].name} has won the game!`)
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-    // Calculate points for each player
     calculatePoints(gameState)
-    // Add the result to match history
-    if (!gameState.matchHistory) {
-      gameState.matchHistory = []
-    }
+    if (!gameState.matchHistory) gameState.matchHistory = []
     const matchResult: MatchResult = {
       winner: playerId,
       date: new Date().toISOString(),
@@ -314,88 +225,57 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     }
     gameState.matchHistory.push(matchResult)
   } else {
-    // Apply card effects
     applyCardEffects(gameState, card)
-    
-    // Log who played the card and what effect was applied
     if (card.type === "wild4") {
-      console.log(`[DEBUG] ${gameState.players[playerIndex].name} played Wild Draw 4. Next player should draw 4 cards.`)
     }
-
-    // Move to the next player only if the card is not a skip card, reverse card, draw2 or wild4
-    // Wild4 and draw2 cards already handle turn advancement in applyCardEffects
     if (card.type !== "skip" && card.type !== "reverse" && card.type !== "draw2" && card.type !== "wild4") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
   }
-
-  // Update the game state in the database
   await updateGameState(roomId, gameState)
-
-  // Notify players
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
 
 // Draw a card
 export async function drawCard(roomId: string, playerId: string): Promise<void> {
-  // Get the current game state
   const gameState = await getGameState(roomId)
-
-  if (!gameState) {
-    throw new Error("Room not found")
-  }
-
-  if (gameState.status !== "playing") {
-    throw new Error("Game is not in progress")
-  }
-
-  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) {
-    throw new Error("Not your turn")
-  }
-  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") {
-    gameState.currentPlayer = playerId
-  }
-
-  // Find the player
+  if (!gameState) throw new Error("Room not found")
+  if (gameState.status !== "playing") throw new Error("Game is not in progress")
+  if (roomId !== "DEFAULT" && gameState.currentPlayer !== playerId) throw new Error("Not your turn")
+  if (roomId === "DEFAULT" && gameState.players.length === 1 && gameState.status === "playing") gameState.currentPlayer = playerId
   const playerIndex = gameState.players.findIndex((p) => p.id === playerId)
-  if (playerIndex === -1) {
-    throw new Error("Player not found")
-  }
-
-  // Check if drawing due to a card effect
+  if (playerIndex === -1) throw new Error("Player not found")
   const topCard = gameState.discardPile[gameState.discardPile.length - 1]
   const isDrawEffect = topCard && (topCard.type === "draw2" || topCard.type === "wild4")
-  
-  // Draw a card
-  const newCard = drawCardFromPile()
+  reshuffleIfNeeded(gameState)
+  if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+  const newCard = gameState.drawPile.pop()!
   gameState.players[playerIndex].cards.push(newCard)
-  gameState.drawPileCount--
-
-  // Log the action
   if (!gameState.log) gameState.log = []
   const drawMsg = `${gameState.players[playerIndex].name} drew a card`
   gameState.log.push(drawMsg)
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-
-  // If drawing because of a draw card effect, set flag to allow playing draw cards
   if (isDrawEffect) {
     gameState.drawCardEffect = {
       active: true,
       type: topCard.type as "draw2" | "wild4"
     }
-  } else {
-    // For normal draw, let the player try to play the drawn card
-    // Set a flag that player has drawn this turn
-    gameState.hasDrawnThisTurn = true
-    // Clear any draw effect tracking
-    gameState.drawCardEffect = undefined
+    await updateGameState(roomId, gameState)
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
+    return
   }
-
-  // Update the game state in the database
+  gameState.hasDrawnThisTurn = true
+  gameState.drawCardEffect = undefined
+  if (gameState.isValidPlay(newCard)) {
+    await updateGameState(roomId, gameState)
+    await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { card: newCard })
+    return
+  }
+  const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+  gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+  gameState.hasDrawnThisTurn = false
   await updateGameState(roomId, gameState)
-
-  // Notify players
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
 
@@ -480,46 +360,26 @@ export async function sayUno(roomId: string, playerId: string): Promise<void> {
 
 // Call UNO on another player who didn't say UNO
 export async function callUnoOnPlayer(roomId: string, callerId: string, targetPlayerId: string): Promise<void> {
-  // Get the current game state
   const gameState = await getGameState(roomId)
-
-  if (!gameState) {
-    throw new Error("Room not found")
-  }
-
-  if (gameState.status !== "playing") {
-    throw new Error("Game is not in progress")
-  }
-
-  // Find the target player
+  if (!gameState) throw new Error("Room not found")
+  if (gameState.status !== "playing") throw new Error("Game is not in progress")
   const targetPlayerIndex = gameState.players.findIndex((p) => p.id === targetPlayerId)
-  if (targetPlayerIndex === -1) {
-    throw new Error("Target player not found")
-  }
-  
+  if (targetPlayerIndex === -1) throw new Error("Target player not found")
   const targetPlayer = gameState.players[targetPlayerIndex]
-  
-  // Check if the player has only one card and hasn't said UNO
   if (targetPlayer.cards.length === 1 && !targetPlayer.saidUno) {
-    // Apply the penalty: draw 2 cards
     for (let i = 0; i < 2; i++) {
-      targetPlayer.cards.push(drawCardFromPile())
-      gameState.drawPileCount--
+      reshuffleIfNeeded(gameState)
+      if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+      targetPlayer.cards.push(gameState.drawPile.pop()!)
     }
-    // Reset the UNO status as they now have more than 1 card
     targetPlayer.saidUno = false
-    // Log the action
     if (!gameState.log) gameState.log = []
     gameState.log.push(`${targetPlayer.name} was caught not saying UNO and drew 2 cards!`)
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
   } else {
     throw new Error("Cannot call UNO on this player")
   }
-
-  // Update the game state in the database
   await updateGameState(roomId, gameState)
-
-  // Notify players
   await pusherServer.trigger(`game-${roomId}`, "game-updated", gameState)
 }
 
@@ -577,19 +437,14 @@ function generateRoomCode(): string {
 function dealCards(numPlayers: number) {
   const deck = createDeck()
   shuffle(deck)
-
-  // Initialize hands
   const hands: Card[][] = Array(numPlayers)
     .fill(null)
     .map(() => [])
-
-  // Deal 7 cards to each player
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j < numPlayers; j++) {
       hands[j].push(deck.pop()!)
     }
   }
-
   return {
     drawPile: deck,
     hands,
@@ -738,67 +593,44 @@ function drawCardFromPile(): Card {
 
 function applyCardEffects(gameState: GameState, card: Card): void {
   switch (card.type) {
-    case "skip":
-      // When a skip card is played, keep the turn with the current player
-      // instead of advancing to the next player
-      // No need to modify gameState.currentPlayer as it will stay the same
+    case "skip": {
+      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+      const skippedPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex)
+      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, skippedPlayerIndex)].id
       break
-
-    case "reverse":
-      // Reverse the direction of play
+    }
+    case "reverse": {
       gameState.direction *= -1
-      // No need to modify currentPlayer as we want to keep the turn with the player who played it
+      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
+      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, currentPlayerIndex)].id
       break
-
-    case "draw2":
-      // Next player draws 2 cards and loses their turn
-      const nextPlayer = getNextPlayerIndex(
-        gameState,
-        gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
-      )
-      
-      // Log the action
+    }
+    case "draw2": {
+      const nextPlayer = getNextPlayerIndex(gameState, gameState.players.findIndex((p) => p.id === gameState.currentPlayer))
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[nextPlayer].name} has to draw 2 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
-      
       for (let i = 0; i < 2; i++) {
-        gameState.players[nextPlayer].cards.push(drawCardFromPile())
-        gameState.drawPileCount--
+        reshuffleIfNeeded(gameState)
+        if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+        gameState.players[nextPlayer].cards.push(gameState.drawPile.pop()!)
       }
-      
-      // Skip the next player's turn
-      gameState.currentPlayer = 
-        gameState.players[
-          getNextPlayerIndex(
-            gameState,
-            nextPlayer
-          )
-        ].id
+      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, nextPlayer)].id
       break
-
-    case "wild4":
-      // Next player draws 4 cards and loses their turn (official UNO rule)
-      const wild4NextPlayerIdx = getNextPlayerIndex(
-        gameState,
-        gameState.players.findIndex((p) => p.id === gameState.currentPlayer),
-      )
+    }
+    case "wild4": {
+      const wild4NextPlayerIdx = getNextPlayerIndex(gameState, gameState.players.findIndex((p) => p.id === gameState.currentPlayer))
       if (!gameState.log) gameState.log = []
       gameState.log.push(`${gameState.players[wild4NextPlayerIdx].name} has to draw 4 cards!`)
       if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
       for (let i = 0; i < 4; i++) {
-        gameState.players[wild4NextPlayerIdx].cards.push(drawCardFromPile())
-        gameState.drawPileCount--
+        reshuffleIfNeeded(gameState)
+        if (gameState.drawPile.length === 0) throw new Error("No cards left to draw")
+        gameState.players[wild4NextPlayerIdx].cards.push(gameState.drawPile.pop()!)
       }
-      // Skip the next player's turn
-      gameState.currentPlayer = 
-        gameState.players[
-          getNextPlayerIndex(
-            gameState,
-            wild4NextPlayerIdx
-          )
-        ].id
+      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, wild4NextPlayerIdx)].id
       break
+    }
   }
 }
 
@@ -806,6 +638,19 @@ function applyCardEffects(gameState: GameState, card: Card): void {
 function getNextPlayerIndex(gameState: GameState, currentIndex: number): number {
   const numPlayers = gameState.players.length
   return (currentIndex + gameState.direction + numPlayers) % numPlayers
+}
+
+function reshuffleIfNeeded(gameState: GameState) {
+  if (gameState.drawPile.length === 0) {
+    if (gameState.discardPile.length > 1) {
+      const topCard = gameState.discardPile.pop()
+      if (!topCard) return
+      let newDrawPile = gameState.discardPile
+      shuffle(newDrawPile)
+      gameState.drawPile = newDrawPile
+      gameState.discardPile = [topCard]
+    }
+  }
 }
 
 // Database operations (simplified for this example)

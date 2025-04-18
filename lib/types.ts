@@ -33,7 +33,7 @@ export interface GameState {
   players: Player[]
   currentPlayer: string
   direction: 1 | -1
-  drawPileCount: number
+  drawPile: Card[]
   discardPile: Card[]
   currentColor: CardColor
   winner: string | null
@@ -45,6 +45,7 @@ export interface GameState {
   hasDrawnThisTurn?: boolean
   matchHistory?: MatchResult[]
   log?: string[]
+  drawPileCount?: number
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }
