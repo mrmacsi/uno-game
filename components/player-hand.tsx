@@ -240,13 +240,15 @@ export default function PlayerHand() {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={async () => {
-                        // Log state at the moment of click
+                        // Log state at the moment of click (keep for debugging)
                         const topCard = state.discardPile[state.discardPile.length - 1];
                         const currentPlayable = isMyTurn && checkPlayValidity(state, card);
+                        const blockConditionMet = animatingCard || !currentPlayable || isLoading;
+
                         console.log('PlayerHand onClick:', {
                           cardId: card.id,
-                          isPlayable_render: isPlayable, // Value from render
-                          isPlayable_click: currentPlayable, // Re-checked value
+                          isPlayable_render: isPlayable,
+                          isPlayable_click: currentPlayable,
                           isMyTurn,
                           isLoading,
                           animatingCard,
@@ -254,39 +256,34 @@ export default function PlayerHand() {
                           state_topCardId: topCard?.id,
                           state_topCardColor: topCard?.color,
                           state_topCardType: topCard?.type,
+                          blockConditionMet: blockConditionMet
                         });
 
-                        // Use the re-checked value for the guard
-                        if (animatingCard || !currentPlayable || isLoading) {
-                          console.log('--> Click blocked');
-                          return;
-                        }
-                        console.log('--> Click allowed');
+                        // REMOVE client-side guard - let server handle validation
+                        // if (blockConditionMet) {
+                        //   console.log('--> Click blocked by client guard');
+                        //   return;
+                        // }
+                        // console.log('--> Client guard passed, attempting play...');
                         
-                        const player = state.players && state.players.find((p) => p.id === currentPlayerId);
-                        if (!player || !player.cards.some((c) => c.id === card.id)) {
-                          console.warn(
-                            "Attempted to play a card no longer in hand (likely due to state update race)"
-                          );
-                          toast({
-                            title: "Action Failed",
-                            description: "Card is no longer in your hand. The game state might have updated.",
-                            variant: "default",
-                          });
-                          return;
-                        }
-
+                        // Immediately set animating state
                         setAnimatingCard(card.id);
+                        
+                        // Always attempt to play - server will validate
                         try {
+                          console.log(`Attempting playCard for ${card.id}`);
                           await playCard(card.id); 
-                          // No need to update state here - Pusher will handle it via game-context
+                          console.log(`playCard succeeded for ${card.id}`);
+                          // Reset animation state on successful server response
+                          setAnimatingCard(null); 
                         } catch (error: any) {
-                          console.error("Failed to play card:", error);
+                          console.error("Failed to play card (error caught in PlayerHand onClick):", error);
                           toast({
                             title: "Action Failed",
                             description: error.message || "Failed to play card. Please try again.",
                             variant: "destructive",
                           });
+                          // Reset animation state on error
                           setAnimatingCard(null);
                         }
                       }}
