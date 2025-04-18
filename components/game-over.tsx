@@ -9,9 +9,10 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Award, ChevronRight, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
 import UnoCard from "./uno-card"
+import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 
 export default function GameOver() {
-  const { state, refreshGameState } = useGame()
+  const { state, refreshGameState, currentPlayerId } = useGame()
   const router = useRouter()
   const [isRematchLoading, setIsRematchLoading] = useState(false)
 
@@ -27,6 +28,9 @@ export default function GameOver() {
         },
         body: JSON.stringify({ roomId: state.roomId })
       })
+      if (currentPlayerId) {
+        storePlayerIdInLocalStorage(currentPlayerId)
+      }
       await refreshGameState()
       router.replace(`/room/${state.roomId}`)
     } catch (error) {

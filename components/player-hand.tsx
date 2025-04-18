@@ -5,6 +5,7 @@ import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import { Play } from "lucide-react"
+import { useIsMobile } from "@/components/ui/use-mobile"
 
 export default function PlayerHand() {
   const { state, currentPlayerId, playCard, sayUno } = useGame()
@@ -12,6 +13,7 @@ export default function PlayerHand() {
   const [handWidth, setHandWidth] = useState(0)
   const [recentlyDrawnCard, setRecentlyDrawnCard] = useState<string | null>(null)
   const prevCardsRef = useRef<string[]>([])
+  const isMobile = useIsMobile()
   
   // Responsive hand layout
   useEffect(() => {
@@ -94,7 +96,7 @@ export default function PlayerHand() {
               minHeight: handWidth < 640 ? "88px" : "180px"
             }}
           >
-            <div className={`flex gap-0 sm:gap-1 ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: `${overlap/2}px` }}>
+            <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
               {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
                 const isPlayable = isMyTurn && state.isValidPlay(card);
                 const animationDelay = `${index * 0.05}s`;
@@ -105,7 +107,7 @@ export default function PlayerHand() {
                     key={card.id} 
                     className={`transform transition-all duration-300 ease-out relative`} 
                     style={{ 
-                      marginLeft: index === 0 ? 0 : `-${overlap}px`,
+                      marginLeft: undefined,
                       zIndex: isPlayable ? 50 + index : index,
                       transform: `rotate(${rotationDeg}deg)`,
                       transformOrigin: 'bottom center'
@@ -141,6 +143,7 @@ export default function PlayerHand() {
                           card={card}
                           disabled={!isMyTurn || !state.isValidPlay(card)}
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
+                          isMobile={isMobile}
                         />
                         {isPlayable && (
                           <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

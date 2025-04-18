@@ -7,9 +7,10 @@ interface UnoCardProps {
   onClick?: () => void
   disabled?: boolean
   faceDown?: boolean
+  isMobile?: boolean
 }
 
-export default function UnoCard({ card, onClick, disabled = false, faceDown = false, animationClass = "" }: UnoCardProps & { animationClass?: string }) {
+export default function UnoCard({ card, onClick, disabled = false, faceDown = false, animationClass = "", isMobile = false }: UnoCardProps & { animationClass?: string }) {
   const getCardColor = () => {
     if (faceDown) return "bg-gradient-to-br from-blue-900 to-blue-700"
 
@@ -58,6 +59,9 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
     }
 
     if (card.type === "number") {
+      if (isMobile) {
+        return <div className={`text-5xl font-extrabold ${getTextColor()} mt-2 mb-0 leading-none`}>{card.value}</div>
+      }
       return <div className={`text-3xl sm:text-4xl font-bold ${getTextColor()}`}>{card.value}</div>
     }
 
