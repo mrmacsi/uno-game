@@ -55,8 +55,8 @@ export default function JoinRoom() {
     if (!playerName.trim()) {
       setNameError("Please enter a name")
       hasError = true
-    } else if (playerName.length > 15) {
-      setNameError("Name must be 15 characters or less")
+    } else if (playerName.length > 25) {
+      setNameError("Name must be 25 characters or less")
       hasError = true
     }
     
@@ -150,7 +150,7 @@ export default function JoinRoom() {
                     }}
                     className={`rounded-xl border-gray-300 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all ${nameError ? 'border-red-500 dark:border-red-500' : ''}`}
                     required
-                    maxLength={15}
+                    maxLength={25}
                     autoComplete="off"
                   />
                   {nameError && (

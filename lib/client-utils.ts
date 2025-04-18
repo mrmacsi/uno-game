@@ -86,50 +86,30 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
     gameState.isValidPlay = function(card: Card) {
       const topCard = this.discardPile[this.discardPile.length - 1]
       const currentPlayer = this.players.find(p => p.id === this.currentPlayer)
-      
       if (!currentPlayer) return false
-
-      // Official UNO rule: If a drawCardEffect is active and type is 'wild4', next player cannot play any card
-      if (this.drawCardEffect?.active && this.drawCardEffect.type === 'wild4') {
-        return false
+      if (card.type === "wild4") {
+        return true
       }
-
-      // Wild cards can be played with some restrictions
       if (card.type === "wild") {
         return true
       }
-      
-      // Wild Draw Four can be played on any card, but with restrictions
-      if (card.type === "wild4") {
-        // According to official rules, you can only play Wild Draw 4 if you don't have any cards matching the current color
-        const hasMatchingColor = currentPlayer.cards.some(c => c.id !== card.id && c.color === this.currentColor)
-        
-        // Can't stack +4 on +2 according to official rules
-        // if (topCard.type === "draw2") {
-        //   return true
-        // }
-        
-        // You can only play a Wild Draw 4 if you don't have any cards matching the current color
-        return !hasMatchingColor
+      if (this.drawCardEffect?.active && this.drawCardEffect.type === 'wild4') {
+        return false
       }
-      
-      // Draw Two can only be played on a matching color or another Draw Two
       if (card.type === "draw2") {
         return card.color === this.currentColor || topCard.type === "draw2"
       }
-      
-      // Reverse cards can be played on any other reverse card regardless of color
       if (card.type === "reverse" && topCard.type === "reverse") {
         return true
       }
-
-      // Cards must match color or value/type for number cards
+      if (card.type === "skip" && topCard.type === "skip") {
+        return true
+      }
       return (
         card.color === this.currentColor ||
         (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
       )
     }
   }
-  
   return gameState
 } 

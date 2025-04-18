@@ -288,18 +288,15 @@ export default function GameOver() {
                               <span className="text-indigo-700">{calculatedTotalPoints} points</span>
                             </div>
                           </div>
-                          <div className="mt-4 flex flex-wrap gap-1" style={{ maxWidth: 'calc(5 * 48px)' }}>
-                            {player.cards.map((card, idx) => (
+                          <div className="mt-4 flex flex-wrap gap-1">
+                            {player.cards.map((card) => (
                               <div
                                 key={card.id}
                                 style={{
                                   transform: 'scale(0.45)',
                                   transformOrigin: 'top left',
-                                  marginRight: (idx + 1) % 5 === 0 ? 0 : '0.25rem',
-                                  marginBottom: '0.25rem',
                                   width: '48px',
                                   height: '86px',
-                                  display: 'inline-block',
                                 }}
                               >
                                 <UnoCard card={card} disabled />

@@ -168,13 +168,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   const cardIndex = gameState.players[playerIndex].cards.findIndex((c) => c.id === cardId)
   if (cardIndex === -1) throw new Error(`Card not found: ${cardId}, player has: ${gameState.players[playerIndex].cards.map(c => c.id).join(",")}`)
   const card = gameState.players[playerIndex].cards[cardIndex]
-  if (card.type === "wild4") {
-    const playerHand = gameState.players[playerIndex].cards
-    const hasPlayableColorCard = playerHand.some(c => c.id !== cardId && c.color === gameState.currentColor && c.type !== "wild" && c.type !== "wild4")
-    if (hasPlayableColorCard) {
-      throw new Error("Cannot play Wild Draw 4 when you have a card matching the current color.")
-    }
-  }
   if (!checkPlayValidity(gameState, card)) throw new Error("Invalid card")
   gameState.players[playerIndex].cards.splice(cardIndex, 1)
   gameState.discardPile.push(card)
@@ -220,40 +213,81 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   } else {
     applyCardEffects(gameState, card)
     if (gameState.status === 'playing') {
-      let nextPlayerIndex = playerIndex
-      const topCard = gameState.discardPile[gameState.discardPile.length - 2]
+      let nextPlayerIndex = playerIndex // Start assuming current player might go again
+      // Get the card *before* the one just played to check for chains
+      const cardJustPlayed = gameState.discardPile[gameState.discardPile.length - 1];
+      const cardBeforeThat = gameState.discardPile.length > 1 ? gameState.discardPile[gameState.discardPile.length - 2] : null;
 
-      if (card.type === 'skip') {
-        if (topCard && topCard.type === 'skip') {
-          gameState.log.push(`${gameState.players[playerIndex].name} chained a skip card and keeps their turn.`)
+      // Determine the next logical player *before* special card logic might change it
+      let logicalNextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
+
+      // --- Start of revised turn logic ---
+      if (cardJustPlayed.type === 'skip') {
+        // Check for Skip Chain (Skip on Skip)
+        if (cardBeforeThat && cardBeforeThat.type === 'skip') {
+          // Player successfully chained. They keep their turn.
+          gameState.log.push(`${gameState.players[playerIndex].name} chained a skip card and keeps their turn.`);
+          // Keep nextPlayerIndex = playerIndex (implicitly done by the final assignment check)
         } else {
-          const skippedPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-          const skippedPlayer = gameState.players[skippedPlayerIndex]
-          gameState.log.push(`${skippedPlayer.name} was skipped! ${gameState.players[playerIndex].name} plays again.`)
+          // Single Skip card played. Skip the next player.
+          const skippedPlayerIndex = logicalNextPlayerIndex; // This is the player who gets skipped
+          const playerAfterSkippedIndex = getNextPlayerIndex(gameState, skippedPlayerIndex); // This is the player whose turn it ACTUALLY becomes
+
+          const skippedPlayer = gameState.players[skippedPlayerIndex];
+          const nextActivePlayer = gameState.players[playerAfterSkippedIndex];
+
+          // Corrected Log Message
+          gameState.log.push(`${skippedPlayer.name} was skipped! Turn passes to ${nextActivePlayer.name}.`);
+
+          // Explicitly set the next player index for the assignment later
+          nextPlayerIndex = playerAfterSkippedIndex;
         }
-      } else if (card.type === 'draw2' || card.type === 'wild4') {
-        const skippedPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
-        nextPlayerIndex = getNextPlayerIndex(gameState, skippedPlayerIndex)
-        const affectedPlayer = gameState.players[skippedPlayerIndex]
-        gameState.log.push(`${affectedPlayer.name} drew cards and was skipped!`)
-      } else if (card.type === 'reverse') {
+      } else if (cardJustPlayed.type === 'draw2' || cardJustPlayed.type === 'wild4') {
+        // Draw 2 / Wild Draw 4: Apply effect (already done in applyCardEffects) and skip the next player.
+        const affectedPlayerIndex = logicalNextPlayerIndex; // Player who draws and is skipped
+        const playerAfterAffectedIndex = getNextPlayerIndex(gameState, affectedPlayerIndex); // Player whose turn it becomes
+
+        const affectedPlayer = gameState.players[affectedPlayerIndex];
+        const nextActivePlayer = gameState.players[playerAfterAffectedIndex];
+
+        gameState.log.push(`${affectedPlayer.name} drew cards and was skipped! Turn passes to ${nextActivePlayer.name}.`);
+
+        // Set the correct next player index
+        nextPlayerIndex = playerAfterAffectedIndex;
+
+      } else if (cardJustPlayed.type === 'reverse') {
+        // Apply effect (already done in applyCardEffects changing gameState.direction)
         if (gameState.players.length === 2) {
-          nextPlayerIndex = playerIndex
-          const skippedPlayer = gameState.players[getNextPlayerIndex(gameState, playerIndex)]
-          gameState.log.push(`${skippedPlayer.name} was skipped (Reverse with 2 players)! ${gameState.players[playerIndex].name} plays again.`)
+          // Reverse with 2 players acts like a skip. The other player is skipped. Current player plays again.
+           const skippedPlayer = gameState.players[logicalNextPlayerIndex];
+           gameState.log.push(`${skippedPlayer.name} was skipped (Reverse with 2 players)! ${gameState.players[playerIndex].name} plays again.`);
+           // Keep nextPlayerIndex = playerIndex (implicitly done by the final assignment check)
         } else {
-          nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+          // Normal reverse: Turn passes to the player in the new direction.
+          // getNextPlayerIndex now uses the *updated* gameState.direction from applyCardEffects
+          nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex);
+           const nextActivePlayer = gameState.players[nextPlayerIndex];
+           gameState.log.push(`Direction reversed! Turn passes to ${nextActivePlayer.name}.`);
         }
       } else {
-        nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
+        // Normal card play: Turn simply passes to the next player.
+        nextPlayerIndex = logicalNextPlayerIndex;
       }
 
-      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
+      if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
-      if (!(card.type === 'skip' && topCard && topCard.type === 'skip')) {
-        gameState.currentPlayer = gameState.players[nextPlayerIndex].id
+      // --- Final Turn Assignment ---
+      // Assign the calculated `nextPlayerIndex` UNLESS it was a chain keep-turn scenario
+      // (Skip-on-Skip OR Reverse-with-2-players)
+      const isSkipChain = cardJustPlayed.type === 'skip' && cardBeforeThat && cardBeforeThat.type === 'skip';
+      const isReverseSkip = cardJustPlayed.type === 'reverse' && gameState.players.length === 2;
+
+      if (!isSkipChain && !isReverseSkip) {
+        gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
       }
-      gameState.hasDrawnThisTurn = false
+      // If it WAS a Skip Chain or Reverse Skip, gameState.currentPlayer remains the player who just played.
+
+      gameState.hasDrawnThisTurn = false; // Reset draw flag for the player whose turn it now is
     }
   }
   gameState.drawPileCount = gameState.drawPile.length
@@ -288,14 +322,18 @@ export async function drawCard(roomId: string, playerId: string): Promise<void> 
     if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10)
     gameState.drawPileCount = gameState.drawPile.length
     gameState.hasDrawnThisTurn = true
+    const canPlayAnyCard = gameState.players[playerIndex].cards.some(card => checkPlayValidity(gameState, card))
     if (checkPlayValidity(gameState, newCard)) {
       gameState.isDrawing = false
       await updateGameState(roomId, gameState)
       await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { playerId: playerId, card: newCard })
-    } else {
+    } else if (!canPlayAnyCard) {
       gameState.isDrawing = false
       await updateGameState(roomId, gameState)
       await endTurn(roomId, playerId)
+    } else {
+      gameState.isDrawing = false
+      await updateGameState(roomId, gameState)
     }
   } catch (error) {
     gameState.isDrawing = false

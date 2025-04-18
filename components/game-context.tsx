@@ -188,7 +188,8 @@ export function GameProvider({
     if (!currentPlayer) return false
     
     // Check if any card in player's hand can be played
-    return currentPlayer.cards.some(card => state.isValidPlay(card))
+    // Safely check if isValidPlay exists before calling
+    return !!state.isValidPlay && currentPlayer.cards.some(card => state.isValidPlay!(card))
   }
 
   const handlePlayCard = async (cardId: string) => {
@@ -231,7 +232,8 @@ export function GameProvider({
     }
     
     // Verify the card is playable
-    if (!state.isValidPlay(card)) {
+    // Safely check if isValidPlay exists before calling
+    if (!state.isValidPlay || !state.isValidPlay(card)) {
       console.error("[GameProvider] Cannot play card: Card is not valid to play")
       toast({
         title: "Cannot Play Card",
@@ -301,7 +303,8 @@ export function GameProvider({
         if (refreshedState.hasDrawnThisTurn && refreshedState.currentPlayer === currentPlayerId) {
           const currentPlayer = refreshedState.players.find(p => p.id === currentPlayerId)
           if (currentPlayer) {
-            const canPlayAnyCard = currentPlayer.cards.some(card => refreshedState.isValidPlay(card))
+            // Safely check if isValidPlay exists before calling
+            const canPlayAnyCard = refreshedState.isValidPlay && currentPlayer.cards.some(card => refreshedState.isValidPlay!(card))
             if (!canPlayAnyCard) {
               // Automatically end turn if player can't play any card
               await handleEndTurn()
@@ -340,45 +343,39 @@ export function GameProvider({
   }
 
   const handleSelectWildCardColor = async (color: "red" | "blue" | "green" | "yellow") => {
-    if (!pendingWildCardId || !currentPlayerId) {
-      console.error("[GameProvider] Cannot select color: No pending wild card or player ID")
-      return
-    }
-    
-    // Verify the wild card is still in player's hand
-    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
-    if (!currentPlayer) {
-      console.error("[GameProvider] Cannot select color: Player not found")
-      setIsColorSelectionOpen(false)
-      setPendingWildCardId(null)
-      return
-    }
-    
-    const card = currentPlayer.cards.find(c => c.id === pendingWildCardId)
-    if (!card) {
-      console.error("[GameProvider] Cannot select color: Wild card not found in player's hand")
+    console.log(`[GameProvider] handleSelectWildCardColor called with color: ${color}, pending card: ${pendingWildCardId}`);
+    if (!currentPlayerId || !pendingWildCardId) {
+      console.error("[GameProvider] Cannot select color: Missing player or pending card ID")
       toast({
         title: "Error",
-        description: "The card is no longer available",
+        description: "Cannot select color: Missing player or pending card ID.",
         variant: "destructive",
       })
+      // Close modal just in case
       setIsColorSelectionOpen(false)
       setPendingWildCardId(null)
       return
     }
-    
-    // First play the card
+
+    const cardToPlay = pendingWildCardId;
+
     try {
-      await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+      console.log(`[GameProvider] Attempting to play wild card ${cardToPlay} with color ${color}`);
+      // Call the server action with the color
+      await playCard(roomId, currentPlayerId, cardToPlay, color)
+      console.log(`[GameProvider] Successfully called playCardAction for ${cardToPlay}`);
+      // If successful, close modal
+      setIsColorSelectionOpen(false)
+      setPendingWildCardId(null)
     } catch (error) {
-      console.error("[GameProvider] Error playing wild card:", error)
+      // Log specific error, show toast
+      console.error(`[GameProvider] Failed to play wild card ${cardToPlay}:`, error)
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to play wild card",
+        title: "Failed to Play Card",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       })
-    } finally {
-      // Reset wild card state
+      // Ensure modal closes even on error
       setIsColorSelectionOpen(false)
       setPendingWildCardId(null)
     }
