@@ -227,9 +227,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     gameState.matchHistory.push(matchResult)
   } else {
     applyCardEffects(gameState, card)
-    if (card.type === "wild4") {
-    }
-    if (card.type !== "skip" && card.type !== "reverse" && card.type !== "draw2" && card.type !== "wild4") {
+    if (card.type !== "skip" && card.type !== "reverse") {
       const nextPlayerIndex = getNextPlayerIndex(gameState, playerIndex)
       gameState.currentPlayer = gameState.players[nextPlayerIndex].id
     }
