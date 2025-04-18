@@ -123,7 +123,7 @@ export default function JoinRoom() {
                 />
                 {roomId === "DEFAULT" && (
                   <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block mr-1" />
                     Default public room is always available
                   </p>
                 )}

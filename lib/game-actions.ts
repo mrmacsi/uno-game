@@ -633,8 +633,6 @@ function applyCardEffects(gameState: GameState, card: Card): void {
     }
     case "reverse": {
       gameState.direction *= -1
-      const currentPlayerIndex = gameState.players.findIndex((p) => p.id === gameState.currentPlayer)
-      gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, currentPlayerIndex)].id
       break
     }
     case "draw2": {

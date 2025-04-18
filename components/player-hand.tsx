@@ -38,7 +38,7 @@ export default function PlayerHand() {
     if (prevCardsRef.current.length < currentCardIds.length) {
       // Find the new card id (the one not in the previous array)
       const newCardId = currentCardIds.find((id: string) => !prevCardsRef.current.includes(id))
-      if (newCardId) {
+      if (newCardId && prevCardsRef.current.length > 0) {
         setRecentlyDrawnCard(newCardId)
         setTimeout(() => {
           setRecentlyDrawnCard(null)
@@ -141,7 +141,7 @@ export default function PlayerHand() {
                         <UnoCard
                           card={card}
                           disabled={!isMyTurn || !state.isValidPlay(card)}
-                          animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : 'animate-deal-card'}
+                          animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
                         />
                         {isPlayable && (
                           <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

@@ -53,41 +53,37 @@ export default function GameControls() {
           )}
           
           <div className="flex flex-col sm:flex-row gap-2 items-stretch w-full sm:w-auto mt-2 sm:mt-0">
-  {(isMyTurn && !state.hasDrawnThisTurn) && (
-    <Button
-      variant={noPlayableCards ? "default" : "outline"}
-      size="sm"
-      onClick={() => {
-        if (typeof window !== 'undefined') {
-          document.querySelector('.draw-pile')?.dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
-          );
-        }
-      }}
-      className={`h-8 px-2 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600/20 text-white/90'}`}
-      disabled={state.hasDrawnThisTurn || !isMyTurn || (!noPlayableCards && state.hasDrawnThisTurn)}
-      style={{ minWidth: 78 }}
-    >
-      {noPlayableCards ? 'Draw!' : 'Draw Card'}
-    </Button>
-  )}
-  {(isMyTurn && state.hasDrawnThisTurn) && (
-    <Button 
-      onClick={endTurn} 
-      disabled={!canEndTurn}
-      size="sm"
-      className={`h-8 px-2 text-xs
-        ${canEndTurn
-          ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800" 
-          : "bg-gray-700/50 text-white/50"}
-      `}
-      style={{ minWidth: 78 }}
-    >
-      <ArrowDown className="h-3 w-3 mr-1" />
-      End Turn
-    </Button>
-  )}
-</div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  document.querySelector('.draw-pile')?.dispatchEvent(
+                    new MouseEvent('click', { bubbles: true })
+                  );
+                }
+              }}
+              className={`h-8 px-2 text-xs ${noPlayableCards ? 'bg-blue-600 text-white animate-pulse' : 'bg-blue-600 text-white'} ${!isMyTurn || state.hasDrawnThisTurn ? 'opacity-50' : ''}`}
+              disabled={!isMyTurn || state.hasDrawnThisTurn}
+              style={{ minWidth: 78 }}
+            >
+              Draw Card
+            </Button>
+            <Button 
+              onClick={endTurn} 
+              disabled={!canEndTurn}
+              size="sm"
+              className={`h-8 px-2 text-xs
+                ${canEndTurn
+                  ? "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800" 
+                  : "bg-gray-700/50 text-white/50"}
+              `}
+              style={{ minWidth: 78 }}
+            >
+              <ArrowDown className="h-3 w-3 mr-1" />
+              End Turn
+            </Button>
+          </div>
 
           <TooltipProvider>
             <Tooltip>

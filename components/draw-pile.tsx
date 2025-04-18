@@ -60,10 +60,10 @@ export default function DrawPile({ count }: DrawPileProps) {
   const cardStack = Array(visibleCardCount).fill(null)
   
   return (
-    <div className="relative flex flex-col items-center">
+    <div className="relative flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
       {/* Draw count indicator */}
       {showDrawCount && (
-        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-50 animate-float-up">
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-50 animate-float-up sm:-top-12 md:-top-14">
           <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm shadow-lg animate-pulse">
             +{recentDrawCount}
           </div>
@@ -71,7 +71,7 @@ export default function DrawPile({ count }: DrawPileProps) {
       )}
       
       <div 
-        className={`h-40 relative draw-pile ${canDraw 
+        className={`h-36 sm:h-40 md:h-48 w-24 sm:w-32 md:w-36 relative draw-pile ${canDraw 
           ? 'cursor-pointer hover:scale-105 transition-transform duration-300 ease-out' 
           : ''}`}
         onClick={handleDrawClick}
@@ -121,10 +121,10 @@ export default function DrawPile({ count }: DrawPileProps) {
       </div>
       
       {/* Count indicator */}
-      <div className="mt-3">
+      <div className="mt-2 sm:mt-3">
         <span className={`
-          text-white text-sm font-medium 
-          backdrop-blur-md px-3 py-1.5
+          text-white text-xs sm:text-sm font-medium 
+          backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5
           rounded-full shadow-md transition-all duration-300
           ${actualCount <= 5 
             ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white" 
@@ -136,7 +136,7 @@ export default function DrawPile({ count }: DrawPileProps) {
       
       {/* Visual indicator for low cards */}
       {actualCount <= 5 && count > 0 && (
-        <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
+        <div className="absolute -bottom-2 sm:-bottom-3 left-1/2 transform -translate-x-1/2">
           <div className="animate-ping absolute h-3 w-3 rounded-full bg-red-500 opacity-75"></div>
           <div className="h-3 w-3 rounded-full bg-red-500"></div>
         </div>
@@ -144,8 +144,8 @@ export default function DrawPile({ count }: DrawPileProps) {
       
       {/* Draw card prompt when it's your turn */}
       {canDraw && (
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-full animate-bounce-gentle shadow-lg shadow-blue-500/20">
+        <div className="absolute -top-7 sm:-top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs sm:text-xs font-medium px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full animate-bounce-gentle shadow-lg shadow-blue-500/20">
             Click to draw
           </div>
         </div>

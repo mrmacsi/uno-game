@@ -24,6 +24,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const [retryCount, setRetryCount] = useState(0)
   const maxRetries = 3
 
+  const paramsObj = React.use(params)
+  const roomId = paramsObj.id
+
   // Get player ID from localStorage
   useEffect(() => {
     const getPlayerData = () => {
@@ -32,7 +35,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
       
       if (!storedPlayerId) {
         console.error("No player ID found in localStorage, redirecting to join room")
-        router.push(`/join-room?roomId=${id}`)
+        router.push(`/join-room?roomId=${roomId}`)
         return
       }
       
