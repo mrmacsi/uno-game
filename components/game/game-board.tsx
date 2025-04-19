@@ -213,12 +213,14 @@ export default function GameBoard() {
       </div>
       
       {/* Bottom section: Player hand and controls */}
-      <div className="w-full flex flex-col gap-0 sm:gap-1 mt-auto z-20">
-        <div className="relative min-h-[170px]" style={{ overflow: 'visible' }}>
-          <PlayerHand />
-          <div className="w-full">
+      <div className="w-full flex flex-col gap-1 sm:gap-2 mt-auto z-20">
+         {/* Render GameControls above PlayerHand */}
+        <div className="w-full px-0 sm:px-2 order-1">
             <GameControls />
-          </div>
+        </div>
+        {/* Adjust PlayerHand container if needed */}
+        <div className="relative min-h-[170px] order-2" style={{ overflow: 'visible' }}>
+          <PlayerHand />
         </div>
       </div>
       

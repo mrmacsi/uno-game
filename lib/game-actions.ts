@@ -38,14 +38,36 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
   const strippedState = stripFunctionsFromGameState(broadcastState);
   
   await new Promise(resolve => setTimeout(resolve, BROADCAST_DELAY_MS));
-  try {
-    await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
-    console.log(`Broadcast update sent for room ${roomId}. Payload size (approx estimate): ${JSON.stringify(strippedState).length} bytes`);
-  } catch (error) {
-    console.error(`Pusher trigger failed for room ${roomId}:`, error);
-    // Log the error but don't throw, as the main action might have succeeded
-    if (error instanceof Error && error.message.includes('413')) {
-        console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile. State snapshot:", JSON.stringify(strippedState).substring(0, 500)); // Log first 500 chars
+
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 150;
+  let attempt = 0;
+  let success = false;
+
+  while (attempt < MAX_RETRIES && !success) {
+    attempt++;
+    try {
+      await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+      success = true;
+      console.log(`Broadcast update sent for room ${roomId} on attempt ${attempt}. Payload size (approx estimate): ${JSON.stringify(strippedState).length} bytes`);
+    } catch (error) {
+      console.error(`Pusher trigger attempt ${attempt} failed for room ${roomId}:`, error);
+      // Log specific errors
+      if (error instanceof Error && error.message.includes('413')) {
+          console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile. State snapshot:", JSON.stringify(strippedState).substring(0, 500)); // Log first 500 chars
+          // Don't retry for payload size errors
+          break; 
+      }
+      // Check if it's a retryable error (like ECONNRESET) and if we haven't reached max retries
+      const isRetryable = error instanceof Error && (error as any).code === 'ECONNRESET'; // Check for ECONNRESET specifically
+      if (isRetryable && attempt < MAX_RETRIES) {
+          console.log(`Retrying Pusher trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      } else {
+          // Log final failure but don't throw, as the main action might have succeeded
+          console.error(`Pusher trigger failed definitively for room ${roomId} after ${attempt} attempts.`);
+          break; // Exit the loop
+      }
     }
   }
 }
@@ -146,22 +168,35 @@ export async function startGame(roomId: string, playerId: string): Promise<GameS
 export async function playCard(roomId: string, playerId: string, cardId: string, chosenColor?: CardColor): Promise<GameState> {
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
-  // Reset saidUno status at turn start
-  const playerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
-  const player = gameState.players[playerIndex];
-  if (player) {
-      player.saidUno = false; 
-  }
-
   if (gameState.status !== "playing") {
-    throw new Error("Game is not active")
+    throw new Error("Game is not active");
   }
   if (gameState.currentPlayer !== playerId) {
-    throw new Error("Not your turn")
+    throw new Error("Not your turn");
   }
 
+  const player = gameState.players.find((p: Player) => p.id === playerId);
   if (!player) {
     throw new Error("Player not found");
+  }
+
+  // UNO Check - must be handled before card is played
+  if (player.cards.length === 2 && !player.saidUno) {
+    console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
+    gameState.log.push(`${player.name} forgot to declare UNO! Turn passed.`);
+    
+    // Pass turn as penalty for not declaring UNO
+    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
+    const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
+    gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
+    gameState.hasDrawnThisTurn = false;
+    
+    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
+    
+    await updateGameState(roomId, gameState);
+    await broadcastUpdate(roomId, gameState);
+    
+    throw new Error("You must declare UNO before playing your second-to-last card!");
   }
 
   const cardIndex = player.cards.findIndex((c: Card) => c.id === cardId);
@@ -309,12 +344,9 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     throw new Error("Player not found");
   }
 
-  // Player must have exactly one card left to declare UNO
-  if (player.cards.length !== 1) {
+  // Allow UNO declaration when having exactly 2 cards (before playing second-to-last card)
+  if (player.cards.length !== 2) {
     console.warn(`${player.name} tried to declare UNO with ${player.cards.length} cards.`);
-    // Optionally add a penalty here? For now, just ignore the declaration.
-    // gameState.log.push(`${player.name} incorrectly declared UNO!`);
-    // if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
     // We don't update state or broadcast if the declaration is invalid
     return gameState;
   }
@@ -335,10 +367,10 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
   return gameState;
 }
 
-export async function passTurn(roomId: string, playerId: string): Promise<GameState> {
+export async function passTurn(roomId: string, playerId: string, forcePass: boolean = false): Promise<GameState> {
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
-  // Reset saidUno status at turn start
+  // Reset saidUno status at turn start (This might be redundant if handlePlayCard does it, but safe)
   const player = gameState.players.find((p: Player) => p.id === playerId);
   if (player) {
       player.saidUno = false; 
@@ -350,8 +382,9 @@ export async function passTurn(roomId: string, playerId: string): Promise<GameSt
   if (gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn");
   }
-  if (!gameState.hasDrawnThisTurn) {
-     throw new Error("Cannot pass turn unless you have drawn a card and cannot play it");
+  // Skip this check if the turn pass is forced (e.g., due to forgetting UNO)
+  if (!forcePass && !gameState.hasDrawnThisTurn) {
+     throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
   }
 
   // Determine next player
@@ -360,7 +393,12 @@ export async function passTurn(roomId: string, playerId: string): Promise<GameSt
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
   gameState.hasDrawnThisTurn = false; // Reset draw status for next player
 
-  gameState.log.push(`${gameState.players[currentPlayerIndex].name} passed their turn.`);
+  // Use a different log message if the pass was forced due to forgetting UNO
+  if (forcePass) {
+    gameState.log.push(`${gameState.players[currentPlayerIndex].name} forgot to declare UNO! Turn passed.`);
+  } else {
+    gameState.log.push(`${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`);
+  }
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   
   await updateGameState(roomId, gameState);

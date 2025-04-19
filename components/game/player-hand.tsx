@@ -161,7 +161,7 @@ export default function PlayerHand() {
   return (
     <TooltipProvider delayDuration={100}>
       <div className={`relative z-40 flex flex-col flex-grow px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`}>
-        <div className="flex items-center w-full flex-grow overflow-hidden px-1 sm:px-0">
+        <div className="flex items-center w-full flex-grow overflow-hidden px-3 sm:px-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -169,7 +169,7 @@ export default function PlayerHand() {
                 size="icon"
                 onClick={scrollLeft}
                 disabled={!canScrollLeft}
-                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 ${
+                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 mr-1 ${
                   canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
               >

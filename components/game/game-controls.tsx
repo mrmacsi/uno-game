@@ -44,6 +44,7 @@ export default function GameControls() {
   // Find current player to check if they have few cards
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
   const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2
+  const hasAlreadySaidUno = isMyTurn && currentPlayer && currentPlayer.saidUno && currentPlayer.cards.length === 2
 
   // Define color mapping based on current color
   const colorStyles = {
@@ -56,10 +57,10 @@ export default function GameControls() {
   }[state.currentColor] || "from-gray-600 to-gray-700 text-white";
 
   return (
-    <div className="bg-black/80 backdrop-blur-md p-1 sm:p-2 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-40">
-      <div className="flex flex-row items-center justify-center gap-1 sm:gap-2">
+    <div className="bg-black/80 backdrop-blur-md p-1 px-2 sm:p-2 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-40">
+      <div className="flex flex-row items-center justify-center gap-2 sm:gap-2">
         {/* Left Section: Rules Icon (Mobile Only) & Size Controls */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-1 flex-shrink-0">
           {isMobile && (
             <Drawer>
               <DrawerTrigger asChild>
@@ -198,13 +199,17 @@ export default function GameControls() {
         </Drawer>
 
         {/* Center Section: Player Name, Card Count, Turn Info */}
-        <div className="flex-shrink text-center px-1 sm:px-2 overflow-hidden"> 
+        <div className="flex-shrink text-center px-1 sm:px-2 overflow-hidden">
           {currentPlayer && (
-            <div className="flex items-baseline justify-center gap-1.5">
-              <p className="text-white font-semibold text-xs sm:text-sm truncate">
-                {isMyTurn ? (
-                  <><strong>Your Turn</strong>, {currentPlayer.name}</> 
-                ) : currentPlayer.name}
+            <div className="flex items-center justify-center gap-1.5">
+              {isMyTurn && (
+                <span className="relative flex h-2 w-2 mr-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
+              <p className={`text-white font-medium text-xs sm:text-sm truncate ${isMyTurn ? 'text-green-300' : 'text-white/90'}`}>
+                {isMyTurn ? `${currentPlayer.name} (Your Turn)` : currentPlayer.name}
               </p>
               <span className="text-white/60 text-[10px] sm:text-xs font-normal whitespace-nowrap">
                  ({currentPlayer.cards.length} cards)
@@ -234,10 +239,21 @@ export default function GameControls() {
             <Button 
               onClick={declareUno}
               size="sm"
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs order-2 sm:order-none"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs order-2 sm:order-none animate-pulse"
             >
               <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
               UNO!
+            </Button>
+          )}
+          
+          {hasAlreadySaidUno && (
+            <Button 
+              disabled
+              size="sm"
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs order-2 sm:order-none"
+            >
+              <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
+              UNO Declared!
             </Button>
           )}
           

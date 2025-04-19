@@ -23,7 +23,7 @@ type GameContextType = {
   isColorSelectionOpen: boolean
   pendingWildCardId: string | null
   closeColorSelector: () => void
-  passTurn: () => Promise<void>
+  passTurn: (forcePass?: boolean) => Promise<void>
   hasPlayableCard: () => boolean
   drawnCardPlayable: Card | null
   roomId: string | null
@@ -295,7 +295,7 @@ export function GameProvider({
             duration: 3000 
         });
         // Automatically pass the turn instead of playing the card
-        await handlePassTurn(); 
+        await handlePassTurn(true); // Pass turn forcefully
         setIsLoading(false); // Ensure loading state is reset
         return; // Stop the play card execution
     }
@@ -397,7 +397,7 @@ export function GameProvider({
         return;
     }
 
-    // Optimistic UI update
+    // Optimistic UI update for smoother UX
     dispatch({ 
         type: "UPDATE_GAME_STATE", 
         payload: {
@@ -407,7 +407,12 @@ export function GameProvider({
             )
         }
     });
-    toast({ title: "UNO Declared!", description: "Remember to play your card!", duration: 1500 });
+    toast({ 
+      title: "UNO Declared!", 
+      description: "Now you can play your second-to-last card!", 
+      duration: 1500,
+      variant: "default" 
+    });
 
     setIsLoading(true)
     setError(null)
@@ -426,6 +431,11 @@ export function GameProvider({
                 p.id === currentPlayerId ? { ...p, saidUno: false } : p // Revert the flag
             )
         }
+     });
+     toast({ 
+       title: "Failed to Declare UNO", 
+       description: err instanceof Error ? err.message : "Please try again.", 
+       variant: "destructive" 
      });
     } finally {
       setIsLoading(false)
@@ -460,7 +470,7 @@ export function GameProvider({
     setPendingWildCardId(null)
   }
 
-  const handlePassTurn = async () => {
+  const handlePassTurn = async (forcePass: boolean = false) => {
     if (!currentPlayerId) {
       console.error("[GameProvider] Cannot pass turn: No player ID")
       return
@@ -490,7 +500,7 @@ export function GameProvider({
     
     try {
       setIsLoading(true)
-      await passTurn(roomId, currentPlayerId)
+      await passTurn(roomId, currentPlayerId, forcePass)
       // State update will be handled by Pusher
       setIsLoading(false)
     } catch (error) {
