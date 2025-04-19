@@ -3,7 +3,7 @@
 import React from "react"
 import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
-import { ArrowDown, Hand, HelpCircle, Info, ZoomIn, ZoomOut } from "lucide-react"
+import { ArrowDown, Hand, HelpCircle, History, Info, ZoomIn, ZoomOut } from "lucide-react"
 import { 
   Tooltip,
   TooltipContent,
@@ -21,6 +21,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { useIsMobile } from "@/hooks/use-mobile"
+import GameLog from "./game-log"
 
 export default function GameControls() {
   const {
@@ -168,6 +169,33 @@ export default function GameControls() {
             </Tooltip>
           </TooltipProvider>
         </div>
+
+        {/* Game Log Drawer Button (Added) */}
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="bg-black/90 border-white/10 text-white">
+            <DrawerHeader>
+              <DrawerTitle>Game Log</DrawerTitle>
+              <DrawerDescription className="text-white/70">Recent game events</DrawerDescription>
+            </DrawerHeader>
+            <GameLog logs={state.log || []} /> 
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="outline" className="border-white/20 text-white">
+                  Close
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
 
         {/* Center Section: Player Name, Card Count, Turn Info */}
         <div className="flex-shrink text-center px-1 sm:px-2 overflow-hidden"> 
