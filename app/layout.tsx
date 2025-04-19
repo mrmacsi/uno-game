@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter as FontSans } from "next/font/google"
 import "@/styles/globals.css"
 import "@/styles/animations.css"
@@ -14,17 +14,24 @@ const fontSans = FontSans({
   display: "swap" 
 })
 
+// Metadata without viewport and themeColor
 export const metadata: Metadata = {
   title: "UNO Online | Play Cards With Friends",
   description: "A modern, multiplayer UNO card game. Create rooms, invite friends, and enjoy the classic card game online.",
   keywords: ["UNO", "card game", "multiplayer", "online game", "Next.js"],
   authors: [{ name: "UNO Online Team" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  generator: 'v0.dev'
+}
+
+// Dedicated Viewport export
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#111111" }
   ],
-  generator: 'v0.dev'
 }
 
 export default function RootLayout({

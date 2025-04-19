@@ -7,7 +7,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GameState } from "@/lib/types"
 import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { motion, AnimatePresence } from "framer-motion"
 
+// Skeleton component for a single room item
+const RoomListItemSkeleton = () => (
+  <Card className="overflow-hidden border border-gray-200/80 rounded-xl bg-white/90">
+    <CardHeader className="pb-2 pt-4 px-5">
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-5 w-24 rounded" /> 
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+    </CardHeader>
+    <CardContent className="p-5 pt-2">
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4 rounded-full" />
+          <Skeleton className="h-4 w-12 rounded" />
+        </div>
+        <div className="flex items-center gap-2">
+           <Skeleton className="h-4 w-4 rounded-full" />
+           <Skeleton className="h-4 w-8 rounded" />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 mt-3">
+        <Skeleton className="h-8 w-20 rounded-full" />
+        <Skeleton className="h-8 w-20 rounded-full" />
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+    </CardContent>
+  </Card>
+)
 
 export default function RoomList() {
   const [rooms, setRooms] = useState<GameState[]>([])
@@ -35,7 +64,8 @@ export default function RoomList() {
       setError("Failed to load rooms")
     } finally {
       setLoading(false)
-      setTimeout(() => setRefreshing(false), 500) // Add slight delay for animation
+      // Keep refreshing true until data is rendered to show skeleton
+      // setRefreshing(false) // Removed: set refreshing false after data is shown
     }
   }
 
@@ -218,145 +248,163 @@ export default function RoomList() {
           size="sm" 
           className="rounded-full bg-white/80 hover:bg-white border-gray-200 hover:border-gray-300 text-gray-700 px-4 transition-all duration-200 shadow-sm hover:shadow" 
           onClick={fetchRooms}
-          disabled={refreshing}
+          disabled={loading}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           <span className="text-sm">Refresh</span>
         </Button>
       </div>
       
-      <div className="space-y-4">
-        {rooms.map((room, index) => {
-          const action = actions[room.roomId] || { loading: false, message: null }
-          const statusStyle = getStatusStyle(room.status)
-          const isDefault = room.roomId === "DEFAULT"
-          
-          return (
-            <div
-              key={room.roomId}
-              className="opacity-0 translate-y-4 animate-fade-in-up"
-              style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
-            >
-              <Card 
-                className="overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl bg-white/90 backdrop-blur-sm"
-              >
-                <CardHeader className="pb-2 pt-4 px-5">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-gray-800">{room.roomId}</span>
-                        {isDefault && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide bg-gradient-to-r from-green-500/10 to-green-600/10 text-green-600 border border-green-500/20">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="px-5 pb-5">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-600/10 text-blue-600 border border-blue-500/20">
-                        <Users className="h-3.5 w-3.5 mr-1.5" />
-                        <span className="text-xs font-medium">
-                          {room.players.length}/4 Players
-                        </span>
-                      </div>
-                      
-                      <div className={`inline-flex items-center px-3 py-1.5 rounded-full ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
+      <AnimatePresence initial={false}>
+        {loading ? (
+          // Show Skeleton when loading is true (initial load or refresh)
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            {[1, 2, 3].map((i) => (
+              <RoomListItemSkeleton key={i} />
+            ))}
+          </motion.div>
+        ) : rooms.length > 0 ? (
+          // Show actual rooms when not loading and rooms exist
+          <motion.div 
+             key="rooms"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ duration: 0.3, delay: 0.1 }} // Slight delay for smoother transition
+             className="space-y-4"
+          >
+            {rooms.map((room, index) => {
+              const action = actions[room.roomId] || { loading: false, message: null }
+              const statusStyle = getStatusStyle(room.status)
+              const isDefault = room.roomId === "DEFAULT"
+              
+              return (
+                <Card 
+                  key={room.roomId}
+                  className="overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl bg-white/90 backdrop-blur-sm"
+                >
+                  <CardHeader className="pb-2 pt-4 px-5">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium text-gray-800">{room.roomId}</span>
+                          {isDefault && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide bg-gradient-to-r from-green-500/10 to-green-600/10 text-green-600 border border-green-500/20">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      </CardTitle>
+                      <span 
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}
+                      >
                         {statusStyle.icon}
-                        <span className="text-xs font-medium ml-1.5 capitalize">
-                          {room.status}
-                        </span>
+                        <span className="ml-1.5 capitalize">{room.status}</span>
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-5 pt-2">
+                    <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-gray-400" />
+                        <span>{room.players.length} / 4 Players</span>
                       </div>
                     </div>
                     
-                    {/* Player list */}
-                    {room.players.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex flex-wrap gap-2">
-                          {room.players.map((player, idx) => (
-                            <div 
-                              key={player.id}
-                              className={`
-                                inline-flex items-center px-2 py-1 rounded-md text-xs
-                                ${player.isHost 
-                                  ? "bg-gradient-to-r from-yellow-50 to-amber-50 text-amber-700 border border-amber-200" 
-                                  : "bg-gray-100 text-gray-700"}
-                              `}
-                            >
-                              {player.name}
-                              {player.isHost && (
-                                <span className="ml-1 w-2 h-2 rounded-full bg-yellow-400"></span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {action.message && (
+                      <p className={`text-xs mb-2 ${action.message.startsWith("Error") ? 'text-red-500' : 'text-green-600'}`}>
+                        {action.message}
+                      </p>
                     )}
                     
-                    {/* Action buttons */}
-                    <div className="flex gap-2 mt-4">
-                      <Link href={`/join-room?roomId=${room.roomId}`} className="flex-1">
-                        <Button 
-                          variant="default" 
-                          size="sm" 
-                          className="w-full rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1.5"
+                    <div className="flex justify-end gap-2 mt-3">
+                      {!isDefault && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full text-xs bg-white/50 hover:bg-gray-100/50 border-gray-300/70 text-gray-700"
+                          onClick={() => deleteRoom(room.roomId)}
+                          disabled={action.loading}
                         >
-                          <ArrowRightCircle className="h-4 w-4" />
-                          <span>Join Room</span>
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          {action.loading ? "Deleting..." : "Delete"}
                         </Button>
-                      </Link>
-                      
+                      )}
                       <Button
                         variant="outline"
-                        size="icon"
+                        size="sm"
+                        className="rounded-full text-xs bg-white/50 hover:bg-gray-100/50 border-gray-300/70 text-gray-700"
                         onClick={() => resetRoom(room.roomId)}
                         disabled={action.loading}
-                        className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 shadow-sm h-9 w-9"
-                        title="Reset Room"
                       >
-                        {action.loading ? 
-                          <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"/> : 
-                          <RotateCcw className="h-4 w-4 text-gray-600" />
-                        }
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                        {action.loading ? "Resetting..." : "Reset"}
                       </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => deleteRoom(room.roomId)}
-                        disabled={action.loading}
-                        className="rounded-lg border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 shadow-sm h-9 w-9"
-                        title={isDefault ? "Reset Default Room" : "Delete Room"}
-                      >
-                        {action.loading ? 
-                          <div className="animate-spin h-4 w-4 border-2 border-red-200 border-t-red-500 rounded-full"/> : 
-                          <Trash2 className="h-4 w-4" />
-                        }
-                      </Button>
+                      <Link href={`/room/${room.roomId}`} passHref>
+                        <Button 
+                          size="sm" 
+                          className="rounded-full text-xs bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all"
+                          disabled={action.loading || room.status === 'finished' || (room.status === 'playing' && room.players.length >= 4)}
+                        >
+                          {room.status === 'waiting' || room.status === 'playing' && room.players.length < 4 ? 'Join Room' : 'View'}
+                          <ArrowRightCircle className="h-4 w-4 ml-1.5" />
+                        </Button>
+                      </Link>
                     </div>
-                    
-                    {/* Status message */}
-                    {action.message && (
-                      <div className={`
-                        mt-2 px-3 py-2 rounded-lg text-xs
-                        ${action.message.includes("Error") 
-                          ? "bg-red-50 text-red-600 border border-red-100" 
-                          : "bg-green-50 text-green-600 border border-green-100"}
-                      `}>
-                        {action.message}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )
-        })}
-      </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </motion.div>
+        ) : (
+          // Show No Rooms Available message when not loading and rooms array is empty
+          <motion.div 
+            key="no-rooms"
+            initial={{ opacity: 0 }} // Keep overall fade-in
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }} // Add exit animation
+            transition={{ duration: 0.2 }} // Faster overall fade
+          >
+             <div className="rounded-xl bg-gradient-to-br from-gray-500/5 to-gray-600/5 backdrop-blur-sm border border-gray-500/20 p-6 sm:p-8 text-center">
+               {/* Animate Icon */}
+               <motion.div
+                 initial={{ scale: 0.5, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 15 }}
+               >
+                 <div className="w-16 h-16 rounded-full bg-gray-500/10 flex items-center justify-center mx-auto mb-4">
+                   <Search className="h-8 w-8 text-gray-400" />
+                 </div>
+               </motion.div>
+               {/* Animate Text 1 */}
+               <motion.p 
+                 className="text-gray-600 text-lg font-medium mb-2"
+                 initial={{ y: 10, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 transition={{ delay: 0.2, duration: 0.3 }}
+               >
+                 No rooms available
+               </motion.p>
+               {/* Animate Text 2 */}
+               <motion.p 
+                 className="text-gray-500 mb-4"
+                 initial={{ y: 10, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 transition={{ delay: 0.3, duration: 0.3 }}
+               >
+                 Create a new room to get started!
+               </motion.p>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
     </div>
   )
 }

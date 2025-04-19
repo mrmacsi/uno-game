@@ -1,37 +1,89 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room-list"
-import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe } from "lucide-react"
+import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Database, Info } from "lucide-react"
 import { motion } from "framer-motion"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+interface RedisInfo {
+  used_memory_human?: string;
+  used_memory_peak_human?: string;
+  total_system_memory_human?: string;
+}
 
 export default function Home() {
   // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
   const [redisKeys, setRedisKeys] = useState<string[]>([])
+  const [redisData, setRedisData] = useState<Record<string, any> | null>(null);
   const [cleaned, setCleaned] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [redisInfo, setRedisInfo] = useState<RedisInfo | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
 
   async function fetchKeys() {
     setLoading(true)
     setCleaned(false)
-    const res = await fetch("/api/redis")
-    const data = await res.json()
-    setRedisKeys(data.keys || [])
-    setLoading(false)
+    setRedisData(null);
+    setRedisKeys([]);
+    try {
+      const res = await fetch("/api/redis")
+      const data = await res.json()
+      if (data.keyValues) {
+        setRedisData(data.keyValues);
+        setRedisKeys(Object.keys(data.keyValues));
+      } else {
+        console.error("API did not return keyValues:", data);
+        setRedisData({});
+      }
+    } catch (error) {
+       console.error("Error fetching Redis data from API:", error);
+       setRedisData({});
+    } finally {
+       setLoading(false)
+    }
   }
 
   async function cleanKeys() {
     setLoading(true)
     setCleaned(false)
+    setRedisData(null);
+    setRedisKeys([]);
     await fetch("/api/redis", { method: "POST" })
-    setRedisKeys([])
     setCleaned(true)
     setLoading(false)
   }
+
+  async function fetchRedisInfo() {
+    setInfoLoading(true);
+    try {
+      const res = await fetch("/api/redis/info");
+      if (res.ok) {
+        const data: RedisInfo = await res.json();
+        setRedisInfo(data);
+      } else {
+        setRedisInfo({ used_memory_human: "Error fetching" });
+      }
+    } catch (error) {
+      console.error("Failed to fetch Redis info:", error);
+      setRedisInfo({ used_memory_human: "Error fetching" });
+    } finally {
+      setInfoLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchRedisInfo();
+  }, []);
 
   // Animation variants
   const containerVariants = {
@@ -71,19 +123,58 @@ export default function Home() {
             <div className="flex items-center justify-between gap-2 mb-6 sm:mb-8">
               <ThemeToggle />
             </div>
-            <div className="flex gap-2 mb-4">
-              <Button onClick={fetchKeys} disabled={loading}>List Redis Rooms</Button>
-              <Button onClick={cleanKeys} variant="destructive" disabled={loading}>Clean Redis Rooms</Button>
+            <div className="flex flex-wrap gap-2 mb-4 items-center">
+              <Button onClick={fetchKeys} disabled={loading || infoLoading}>List Redis Rooms</Button>
+              <Button onClick={cleanKeys} variant="destructive" disabled={loading || infoLoading}>Clean Redis Rooms</Button>
+              <TooltipProvider>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 p-2 border border-gray-300 dark:border-gray-700 rounded-md cursor-default">
+                      <Database className="h-4 w-4" />
+                      <span>Redis Mem:</span>
+                      {infoLoading ? (
+                        <span>Loading...</span>
+                      ) : redisInfo?.used_memory_human ? (
+                        <span className="font-semibold">{redisInfo.used_memory_human}</span>
+                      ) : (
+                        <span className="text-red-500">N/A</span>
+                      )}
+                      <Info className="h-3 w-3 ml-1 text-gray-400 dark:text-gray-500" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">
+                    {infoLoading ? (
+                      <p>Loading details...</p>
+                    ) : redisInfo ? (
+                      <div>
+                        <p>Current: {redisInfo.used_memory_human || "N/A"}</p>
+                        <p>Peak: {redisInfo.used_memory_peak_human || "N/A"}</p>
+                        <p>System Total: {redisInfo.total_system_memory_human || "N/A"}</p>
+                      </div>
+                    ) : (
+                      <p>Could not load details.</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             {loading && <div className="text-xs text-gray-500">Loading...</div>}
             {cleaned && <div className="text-xs text-green-600">All Redis rooms cleaned.</div>}
-            {redisKeys.length > 0 && (
-              <div className="mt-2 text-xs text-gray-700 dark:text-gray-300">
-                <div>Redis Room Keys:</div>
-                <ul className="list-disc ml-6">
-                  {redisKeys.map(key => <li key={key}>{key}</li>)}
+            {redisData && Object.keys(redisData).length > 0 && (
+              <div className="mt-4 p-4 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50 max-h-60 overflow-y-auto">
+                <h4 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">Redis Data (room:*)</h4>
+                <ul className="space-y-2">
+                  {Object.entries(redisData).map(([key, value]) => (
+                    <li key={key} className="text-xs text-gray-700 dark:text-gray-300 break-words">
+                      <strong className="text-gray-900 dark:text-gray-100">{key}:</strong>
+                      <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</pre>
+                    </li>
+                  ))}
                 </ul>
               </div>
+            )}
+            {redisData && Object.keys(redisData).length === 0 && !loading && (
+                 <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">No room data found in Redis.</div>
             )}
             
             <motion.div

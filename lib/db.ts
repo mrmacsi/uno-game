@@ -4,6 +4,8 @@ import type { GameState, Card } from "./types"
 const redis = createClient({ url: process.env.REDIS_URL })
 redis.connect()
 
+export { redis } // Export the client instance
+
 // Initialize database with isValidPlay function
 export const initializeGameState = (gameState: GameState) => {
   if (gameState.status === 'playing') {
