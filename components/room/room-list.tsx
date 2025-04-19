@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GameState } from "@/lib/types"
 import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 export default function RoomList() {
   const [rooms, setRooms] = useState<GameState[]>([])
@@ -83,15 +84,7 @@ export default function RoomList() {
     }
   }
 
-  const deleteRoom = async (roomId: string) => {
-    if (roomId === "DEFAULT") {
-      return resetRoom(roomId)
-    }
-    
-    if (!confirm(`Are you sure you want to delete room ${roomId}?`)) {
-      return
-    }
-    
+  const performDeleteRoom = async (roomId: string) => {
     try {
       setActions(prev => ({
         ...prev,
@@ -122,6 +115,14 @@ export default function RoomList() {
         ...prev,
         [roomId]: { loading: false, message: "Error: Something went wrong" }
       }))
+    }
+  }
+
+  const handleAttemptDelete = (roomId: string) => {
+    if (roomId === "DEFAULT") {
+      resetRoom(roomId)
+    } else {
+      performDeleteRoom(roomId)
     }
   }
 
@@ -265,16 +266,24 @@ export default function RoomList() {
                 
                 <div className="flex justify-end gap-2 mt-3">
                   {!isDefault && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full text-xs bg-white/50 hover:bg-gray-100/50 border-gray-300/70 text-gray-700"
-                      onClick={() => deleteRoom(room.roomId)}
-                      disabled={action.loading}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                      {action.loading ? "Deleting..." : "Delete"}
-                    </Button>
+                    <ConfirmationDialog
+                      triggerButton={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full text-xs bg-white/50 hover:bg-gray-100/50 border-gray-300/70 text-gray-700"
+                          disabled={action.loading}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          {action.loading ? "Deleting..." : "Delete"}
+                        </Button>
+                      }
+                      title={`Delete Room ${room.roomId}?`}
+                      description="Are you sure you want to delete this room? This action cannot be undone."
+                      confirmAction={() => handleAttemptDelete(room.roomId)}
+                      confirmText={action.loading ? "Deleting..." : "Yes, Delete"}
+                      isDestructive={true}
+                    />
                   )}
                   <Button
                     variant="outline"

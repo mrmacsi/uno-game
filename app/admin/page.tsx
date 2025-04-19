@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Database, Info, Trash2, List, RefreshCw, Loader2 } from "lucide-react"
+import { Database, Info, Trash2, List, RefreshCw, Loader2, Ban } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { getAllRooms, deleteRoom, resetRoom } from "@/lib/room-actions"
 import { clearDb } from "@/lib/db-actions"
 import { useToast } from "@/components/ui/use-toast"
 import type { GameState } from "@/lib/types"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 // ... RedisInfo interface ...
 interface RedisInfo {
@@ -52,22 +53,20 @@ export default function AdminPage() {
   }, [fetchRooms]);
 
   // Action Handlers (use fetchRooms defined above)
-  const handleDeleteRoom = async (roomId: string) => {
+  const performDeleteRoom = async (roomId: string) => {
     if (!roomId || roomId === "DEFAULT") return;
-    if (window.confirm(`Are you sure you want to delete room ${roomId}? This is irreversible.`)) {
-      setSelectedRoom(roomId);
-      setLoadingAction("delete");
-      try {
-        await deleteRoom(roomId);
-        toast({ title: "Room Deleted", description: `Room ${roomId} was deleted.` });
-        fetchRooms(); // Refresh list
-      } catch (error: unknown) { // Specify type for error
-        console.error("Failed to delete room:", error);
-        toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete room.", variant: "destructive" });
-      } finally {
-        setLoadingAction(null);
-        setSelectedRoom(null);
-      }
+    setSelectedRoom(roomId);
+    setLoadingAction("delete");
+    try {
+      await deleteRoom(roomId);
+      toast({ title: "Room Deleted", description: `Room ${roomId} was deleted.` });
+      fetchRooms(); // Refresh list
+    } catch (error: unknown) { // Specify type for error
+      console.error("Failed to delete room:", error);
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete room.", variant: "destructive" });
+    } finally {
+      setLoadingAction(null);
+      setSelectedRoom(null);
     }
   };
 
@@ -88,19 +87,19 @@ export default function AdminPage() {
     }
   };
 
-  const handleClearDb = async () => {
+  const performClearAllRooms = async () => {
     if (window.confirm("DANGER! Are you sure you want to delete ALL non-DEFAULT rooms? This is irreversible.")) {
-        setLoadingAction("clearDb");
-        try {
-            await clearDb();
-            toast({ title: "Database Cleared", description: `All rooms cleared.` });
-            fetchRooms(); // Refresh list
-        } catch (error: unknown) { // Specify type for error
-            console.error("Failed to clear DB:", error);
-            toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear database.", variant: "destructive" });
-        } finally {
-            setLoadingAction(null);
-        }
+      setLoadingAction("clearDb");
+      try {
+        await clearDb();
+        toast({ title: "Database Cleared", description: `All rooms cleared.` });
+        fetchRooms(); // Refresh list
+      } catch (error: unknown) { // Specify type for error
+        console.error("Failed to clear DB:", error);
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear database.", variant: "destructive" });
+      } finally {
+        setLoadingAction(null);
+      }
     }
   };
 
@@ -155,29 +154,18 @@ export default function AdminPage() {
                 </Button>
                 
                 {/* Wrap Clean Button in AlertDialog */}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={loading || infoLoading}>
-                      <Trash2 className="h-4 w-4 mr-2"/> Clean Rooms Data
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-white dark:bg-gray-800">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete all keys matching 
-                        <code className="mx-1 px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded font-mono text-sm">room:*</code> 
-                        from the Redis database.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClearDb} className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800">
-                        Yes, delete data
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <ConfirmationDialog
+                    triggerButton={
+                        <Button variant="destructive" disabled={loading || infoLoading}>
+                            <Trash2 className="h-4 w-4 mr-2"/> Clean Rooms Data
+                        </Button>
+                    }
+                    title="Clear All Rooms?"
+                    description="DANGER! This will delete ALL non-DEFAULT rooms. This action is irreversible."
+                    confirmAction={performClearAllRooms}
+                    confirmText="Yes, Clear All"
+                    isDestructive={true}
+                />
 
                 {/* ... Memory Info Tooltip ... */}
                 <TooltipProvider>
@@ -242,15 +230,18 @@ export default function AdminPage() {
                                 {/* Reset Button */} 
                                 <Button variant="outline" size="sm" onClick={() => handleResetRoom(room.roomId)} disabled={loadingAction === 'reset' && selectedRoom === room.roomId}>{loadingAction === 'reset' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</Button>
                                 {/* Delete Button */} 
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                         <Button variant="destructive" size="sm" disabled={loadingAction === 'delete' && selectedRoom === room.roomId || room.roomId === "DEFAULT"}>{loadingAction === 'delete' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        {/* ... Delete Confirmation Dialog ... */} 
-                                         <AlertDialogHeader><AlertDialogTitle>Delete Room {room.roomId}?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteRoom(room.roomId)}>Delete</AlertDialogAction></AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                <ConfirmationDialog
+                                    triggerButton={
+                                        <Button variant="destructive" size="sm" className="flex items-center gap-1 text-xs">
+                                            <Trash2 className="h-3 w-3" /> Delete
+                                        </Button>
+                                    }
+                                    title={`Delete Room ${room.roomId}?`}
+                                    description="Are you sure you want to delete this room? This action is irreversible."
+                                    confirmAction={() => performDeleteRoom(room.roomId)}
+                                    confirmText="Yes, Delete"
+                                    isDestructive={true}
+                                />
                             </TableCell>
                           </TableRow>
                         ))}
