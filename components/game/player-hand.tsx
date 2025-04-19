@@ -271,11 +271,20 @@ export default function PlayerHand() {
                         
                         // Always attempt to play - server will validate
                         try {
-                          console.log(`Attempting playCard for ${card.id}`);
-                          await playCard(card.id); 
-                          console.log(`playCard succeeded for ${card.id}`);
-                          // Reset animation state on successful server response
-                          setAnimatingCard(null); 
+                          if (card.type === 'wild' || card.type === 'wild4') {
+                            // Explicitly check turn again before opening selector
+                            if (!isMyTurn) {
+                                console.warn("Tried to select wild card color when not player's turn.");
+                                setAnimatingCard(null); // Reset animation
+                                return;
+                            }
+                            // TODO: Open color selector (logic likely in useGame/GameProvider)
+                            console.log("Opening color selector for card:", card.id);
+                            // Assuming useGame provides a function like openColorSelector(cardId)
+                            // openColorSelector(card.id); 
+                          } else {
+                            await playCard(card.id);
+                          }
                         } catch (error: unknown) {
                           console.error("Failed to play card (error caught in PlayerHand onClick):", error);
                           const errorMessage = error instanceof Error ? error.message : "Failed to play card. Please try again.";

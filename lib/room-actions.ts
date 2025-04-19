@@ -17,7 +17,7 @@ function generateRoomCode(): string {
 }
 
 // Create a new game room
-export async function createRoom(playerName: string): Promise<string> {
+export async function createRoom(playerName: string): Promise<{ roomId: string; playerId: string }> {
   const roomId = generateRoomCode()
   const playerId = uuidv4()
 
@@ -38,11 +38,12 @@ export async function createRoom(playerName: string): Promise<string> {
     discardPile: [],
     currentColor: "red", // Default color
     winner: null,
+    log: [], // Initialize log array
   }
 
   await storeGameState(roomId, gameState)
   console.log(`Created room ${roomId} with player ${playerName}, player ID: ${playerId}`)
-  return roomId
+  return { roomId, playerId }
 }
 
 // Join an existing game room
@@ -107,6 +108,7 @@ export async function createDefaultRoom(): Promise<void> {
     discardPile: [],
     currentColor: "red",
     winner: null,
+    log: [], // Initialize log array
   }
 
   await storeGameState(DEFAULT_ROOM_ID, gameState)

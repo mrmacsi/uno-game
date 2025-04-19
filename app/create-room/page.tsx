@@ -45,12 +45,16 @@ export default function CreateRoom() {
 
     setIsCreating(true)
     try {
-      const roomId = await createRoom(playerName)
+      const { roomId, playerId } = await createRoom(playerName)
+      
+      // Store the server-generated player ID in localStorage
+      storePlayerIdInLocalStorage(playerId) 
+      
       router.push(`/room/${roomId}`)
       
       // Generate a client-side ID and store it in localStorage
-      const clientPlayerId = generateClientUUID()
-      storePlayerIdInLocalStorage(clientPlayerId)
+      // const clientPlayerId = generateClientUUID()
+      // storePlayerIdInLocalStorage(clientPlayerId)
     } catch (error) {
       console.error("Failed to create room:", error)
       setIsCreating(false)

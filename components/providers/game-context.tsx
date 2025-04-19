@@ -273,6 +273,14 @@ export function GameProvider({
     setIsLoading(true)
     setError(null)
     try {
+      // Check if it is the current player's turn first
+      if (state.currentPlayer !== currentPlayerId) {
+        console.warn("[GameProvider] Attempted action when not current player's turn.")
+        toast({ title: "Not Your Turn", description: "Please wait for your turn.", variant: "destructive" })
+        setIsLoading(false) // Reset loading state
+        return // Prevent action
+      }
+      
       const player = state.players.find(p => p.id === currentPlayerId)
       const card = player?.cards.find(c => c.id === cardId)
       if (!card) throw new Error("Card not in hand (client check)")

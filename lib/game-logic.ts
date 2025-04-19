@@ -140,9 +140,33 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex);
       break;
   }
+
+  // Check if the player who just played forgot to say UNO
+  const playerWhoPlayed = gameState.players[currentPlayerIndex];
+  if (playerWhoPlayed.cards.length === 1 && !playerWhoPlayed.saidUno) {
+      console.log(`${playerWhoPlayed.name} forgot to say UNO! Penalty draw.`);
+      // Ensure log array exists before pushing
+      if (!gameState.log) {
+          gameState.log = [];
+      }
+      gameState.log.push(`${playerWhoPlayed.name} forgot to say UNO! Drawing 2 penalty cards.`);
+      reshuffleIfNeeded(gameState); // Ensure draw pile has cards
+      const penaltyCards = gameState.drawPile.splice(0, 2);
+      if (penaltyCards.length > 0) {
+          playerWhoPlayed.cards.push(...penaltyCards);
+      }
+      // No need to reset saidUno flag here, they drew cards.
+  }
+
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   gameState.drawPileCount = gameState.drawPile.length;
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
+
+  // Reset saidUno status for the player whose turn is *about to begin*
+  const nextPlayer = gameState.players[nextPlayerIndex];
+  if (nextPlayer && nextPlayer.cards.length !== 1) { // Only reset if they don't currently have 1 card
+      nextPlayer.saidUno = false;
+  }
 }
 
 // Checks if a card play is valid based on game state
@@ -154,13 +178,21 @@ export function checkPlayValidity(gameState: GameState, card: Card): boolean {
   // Wild cards are always valid (color choice handled separately)
   if (card.type === "wild" || card.type === "wild4") return true;
 
-  // Check if the card matches the current effective color OR the top card's actual color, type, or value
-  return (
-    card.color === gameState.currentColor || // Match the active color (especially after a wild)
-    card.color === topCard.color ||        // Match the top card's color
-    card.type === topCard.type ||          // Match the top card's type (regardless of color)
-    (card.type === "number" && topCard.type === "number" && card.value === topCard.value) // Match number value
-  );
+  // Check for valid play conditions:
+  // 1. Card color matches the current color (set by previous card or a wild)
+  if (card.color === gameState.currentColor) return true;
+  
+  // 2. Card color matches the actual color of the top card (if not a wild)
+  if (card.color === topCard.color) return true;
+
+  // 3. Card type is number and value matches top card's value (if it's a number card)
+  if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) return true;
+  
+  // 4. Card type is action (skip, reverse, draw2) and type matches top card's type (if it's an action card)
+  if (card.type !== "number" && card.type === topCard.type) return true; 
+
+  // If none of the above conditions are met, the play is invalid
+  return false;
 }
 
 // --- Scoring ---
