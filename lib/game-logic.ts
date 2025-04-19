@@ -148,17 +148,19 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
 // Checks if a card play is valid based on game state
 export function checkPlayValidity(gameState: GameState, card: Card): boolean {
   const topCard = gameState.discardPile[gameState.discardPile.length - 1];
-  if (!topCard) return true; // Should only happen on first turn, maybe remove check later
+  // If discard pile is empty (shouldn't happen mid-game, but safety check)
+  if (!topCard) return true; 
 
-  // Wild cards are always valid (color chosen separately)
+  // Wild cards are always valid (color choice handled separately)
   if (card.type === "wild" || card.type === "wild4") return true;
-  
-  // Match current color or match card type or value
-  if (card.color === gameState.currentColor) return true;
-  if (card.type === topCard.type) return true; // Allows action card on same action card
-  if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) return true;
 
-  return false; // Invalid play
+  // Check if the card matches the current effective color OR the top card's actual color, type, or value
+  return (
+    card.color === gameState.currentColor || // Match the active color (especially after a wild)
+    card.color === topCard.color ||        // Match the top card's color
+    card.type === topCard.type ||          // Match the top card's type (regardless of color)
+    (card.type === "number" && topCard.type === "number" && card.value === topCard.value) // Match number value
+  );
 }
 
 // --- Scoring ---

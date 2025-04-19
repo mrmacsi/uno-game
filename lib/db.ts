@@ -6,35 +6,10 @@ redis.connect()
 
 export { redis } // Export the client instance
 
-// Initialize database with isValidPlay function
+// Initialize database
 export const initializeGameState = (gameState: GameState) => {
-  if (gameState.status === 'playing') {
-    gameState.isValidPlay = function (card: Card) {
-      const topCard = this.discardPile[this.discardPile.length - 1]
-      
-      // Wild cards can always be played
-      if (card.type === "wild" || card.type === "wild4") {
-        return true
-      }
-      
-      // Reverse cards can be played on any other reverse card regardless of color
-      if (card.type === "reverse" && topCard.type === "reverse") {
-        return true
-      }
-      
-      // Skip cards can be played on any other skip card regardless of color
-      if (card.type === "skip" && topCard.type === "skip") {
-        return true
-      }
-      
-      // Standard matching rules
-      return (
-        card.color === this.currentColor ||
-        card.type === topCard.type ||
-        (card.type === "number" && topCard.type === "number" && card.value === topCard.value)
-      )
-    }
-  }
+  // The isValidPlay logic should live on the client-side (e.g., in GameProvider or useGame hook)
+  // Do not attach functions to the state object that gets serialized from the server.
   return gameState
 }
 

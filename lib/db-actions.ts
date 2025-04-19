@@ -32,12 +32,12 @@ export async function dbKeys(): Promise<string[]> {
 // Get all room states
 export async function getAllRooms(): Promise<GameState[]> {
     const keys = await dbKeys();
-    // Filter out the default room key before fetching
-    const filteredKeys = keys.filter(key => key !== `${ROOM_PREFIX}DEFAULT`);
-    if (filteredKeys.length === 0) return []; // Return early if no keys
+    // Don't filter out DEFAULT room key here; let the status filter handle visibility.
+    // const filteredKeys = keys.filter(key => key !== `${ROOM_PREFIX}DEFAULT`);
+    if (keys.length === 0) return []; // Return early if no keys at all
 
-    // Use mGet (multi-get) for efficiency
-    const roomsData = await redis.mGet(filteredKeys);
+    // Use mGet (multi-get) for efficiency, fetching all rooms including DEFAULT
+    const roomsData = await redis.mGet(keys);
     
     const rooms = roomsData
         // Add type annotation for the data parameter in map
@@ -45,8 +45,8 @@ export async function getAllRooms(): Promise<GameState[]> {
             if (!data) return null;
             try {
                 const room = initializeGameState(JSON.parse(data)) as GameState;
-                // Only return rooms in waiting state for the public list
-                if (room && room.status === 'waiting') {
+                // Return rooms that are waiting OR currently playing for the public list
+                if (room && (room.status === 'waiting' || room.status === 'playing')) {
                     return room;
                 }
             } catch (error) {
