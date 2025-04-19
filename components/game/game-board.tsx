@@ -137,7 +137,7 @@ export default function GameBoard() {
           <div className="absolute top-1/2 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           
           {/* Card piles container - position them for better animation path */}
-          <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10">
+          <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10 mt-8 sm:mt-12">
             {/* Draw pile positioned on the left for better animation path */}
             <div className="relative">
               <DrawPile count={state.drawPileCount || 0} />
@@ -152,8 +152,8 @@ export default function GameBoard() {
       </div>
       
       {/* Bottom section: Player hand and controls */}
-      <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto z-20">
-        <div className="relative min-h-[200px]" style={{ overflow: 'visible' }}>
+      <div className="w-full flex flex-col gap-0 sm:gap-1 mt-auto z-20">
+        <div className="relative min-h-[170px]" style={{ overflow: 'visible' }}>
           <PlayerHand />
           <div className="w-full">
             <GameControls />

@@ -33,6 +33,9 @@ type GameContextType = {
   resetGame: () => Promise<void>
   leaveRoom: () => void
   promptColorSelection: (cardId: string) => void
+  cardScale: number
+  increaseCardSize: () => void
+  decreaseCardSize: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -65,6 +68,8 @@ export function GameProvider({
   
   const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
   const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
+  
+  const [cardScale, setCardScale] = useState(100)
   
   const previousLogRef = useRef<string[]>([])
   
@@ -510,6 +515,14 @@ export function GameProvider({
     router.push("/")
   }
 
+  const increaseCardSize = () => {
+    setCardScale(prev => Math.min(prev + 10, 150)) // Increase by 10%, max 150%
+  }
+
+  const decreaseCardSize = () => {
+    setCardScale(prev => Math.max(prev - 10, 70)) // Decrease by 10%, min 70%
+  }
+
   const contextValue: GameContextType = {
     state,
     playCard: handlePlayCard,
@@ -539,6 +552,9 @@ export function GameProvider({
       setPendingWildCardId(cardId)
       setIsColorSelectionOpen(true)
     },
+    cardScale,
+    increaseCardSize,
+    decreaseCardSize,
   }
 
   return (

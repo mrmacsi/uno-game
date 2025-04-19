@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useGame } from "../providers/game-context"
 import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
@@ -8,17 +8,29 @@ import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { toast } from "@/hooks/use-toast"
 import { checkPlayValidity } from "@/lib/game-logic"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function PlayerHand() {
-  const { state, currentPlayerId, playCard, error: gameError, isLoading, promptColorSelection } = useGame()
+  const { 
+    state, 
+    currentPlayerId, 
+    playCard, 
+    error: gameError, 
+    isLoading, 
+    promptColorSelection,
+    cardScale, // Get from context
+    increaseCardSize, // Get from context
+    decreaseCardSize // Get from context
+  } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const [handWidth, setHandWidth] = useState(0)
   const [handScrollPos, setHandScrollPos] = useState(0)
   const [recentlyDrawnCard, setRecentlyDrawnCard] = useState<string | null>(null)
-  const [cardScale, setCardScale] = useState(100) // Card size as percentage
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
   
   // Show toast on game error
   useEffect(() => {
@@ -68,32 +80,66 @@ export default function PlayerHand() {
     prevCardsRef.current = currentCardIds
   }, [state?.players, currentPlayerId])
 
-  // Scroll handlers for mobile card browsing
+  // Effect to check scrollability
+  const checkScrollability = useCallback(() => {
+    const container = scrollContainerRef.current
+    if (container) {
+      const scrollableWidth = container.scrollWidth - container.clientWidth
+      // Revert to checking > 0 for the left edge
+      setCanScrollLeft(container.scrollLeft > 0)
+      // Keep a threshold for the right edge
+      setCanScrollRight(container.scrollLeft < scrollableWidth - 1)
+    } else {
+      setCanScrollLeft(false)
+      setCanScrollRight(false)
+    }
+  }, []) // Empty dependency array, relies on refs
+
+  // Update scrollability on resize and initial load
+  useEffect(() => {
+    checkScrollability() // Initial check
+    const container = scrollContainerRef.current // Capture ref value
+
+    window.addEventListener('resize', checkScrollability)
+    if (container) {
+      container.addEventListener('scroll', checkScrollability)
+    }
+
+    // Use MutationObserver to detect changes in children affecting scrollWidth
+    const observer = new MutationObserver(checkScrollability)
+    if (container) {
+      observer.observe(container, { childList: true, subtree: true })
+    }
+
+    return () => {
+      window.removeEventListener('resize', checkScrollability)
+      if (container) {
+        container.removeEventListener('scroll', checkScrollability)
+      }
+      observer.disconnect()
+    }
+  }, [checkScrollability, state?.players, cardScale]) // Re-check when players/cards change or scale changes
+
+  // Scroll handlers
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      const newPos = Math.max(0, handScrollPos - 100)
+      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.6, 250) // Scroll by 60% of visible width or 250px max
+      const newPos = Math.max(0, scrollContainerRef.current.scrollLeft - scrollAmount)
       scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
-      setHandScrollPos(newPos)
+      setHandScrollPos(newPos) // Keep this if used elsewhere, otherwise remove
     }
-  }
-  
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      const newPos = handScrollPos + 100
-      scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
-      setHandScrollPos(newPos)
-    }
-  }
-  
-  // Card size adjusters
-  const increaseCardSize = () => {
-    setCardScale(Math.min(cardScale + 10, 130))
-  }
-  
-  const decreaseCardSize = () => {
-    setCardScale(Math.max(cardScale - 10, 50))
   }
 
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.6, 250)
+      const maxScroll = scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth
+      const newPos = Math.min(maxScroll, scrollContainerRef.current.scrollLeft + scrollAmount)
+      scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
+      setHandScrollPos(newPos) // Keep this if used elsewhere, otherwise remove
+    }
+  }
+  
   if (!currentPlayerId || !state || !state.players) return null
 
   const currentPlayer = state.players.find((p: { id: string }) => p.id === currentPlayerId)
@@ -108,239 +154,183 @@ export default function PlayerHand() {
   const minOverlap = handWidth < 640 ? 30 : 20
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
+  // Determine container height based on scale - adjust as needed
+  const baseHeight = handWidth < 640 ? 88 : 180
+  const containerHeight = `${(baseHeight * (cardScale / 100))}px`
+
   return (
-    <div className={`relative z-30 flex flex-col px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`}>
-      <div className="flex flex-col items-center w-full">
-        <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-0 sm:mb-3 gap-0 sm:gap-0 px-3 pt-3">
-          <div className="flex items-center gap-3">
-            <h2 className="text-white text-base sm:text-lg font-semibold tracking-tight flex items-center gap-2">
-              Your Hand
-              <span className="text-xs text-white/60 font-normal">
-                ({currentPlayer.cards.length} cards)
-              </span>
-            </h2>
-            
-            <div className="hidden sm:flex items-center space-x-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={decreaseCardSize} 
-                className="h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
+    <TooltipProvider delayDuration={100}>
+      <div className={`relative z-40 flex flex-col flex-grow px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`}>
+        <div className="flex items-center w-full flex-grow overflow-hidden px-1 sm:px-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollLeft}
+                disabled={!canScrollLeft}
+                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 ${
+                  canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
               >
-                <Minus className="h-3 w-3" />
+                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
               </Button>
-              <span className="text-xs text-white/60">{cardScale}%</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={increaseCardSize} 
-                className="h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mt-1 mb-2 flex justify-start">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'}`}> 
-              {state.direction === 1 ? '➡️ Clockwise' : '⬅️ Counter-Clockwise'}
-            </span>
-            
-            {isMyTurn && (
-              <div className="ml-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-medium px-3 py-0.5 rounded-full shadow-md">
-                Your Turn
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Mobile scroll controls */}
-        {isMobile && cardCount > 4 && (
-          <div className="flex justify-between items-center w-full px-2 mb-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={scrollLeft} 
-              className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex items-center space-x-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={decreaseCardSize} 
-                className="h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={increaseCardSize} 
-                className="h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={scrollRight} 
-              className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 text-white/70"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        
-        <div 
-          ref={scrollContainerRef}
-          className="relative w-full overflow-x-auto py-0.5 px-0 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent sm:mx-0 hide-scrollbar"
-          style={{ scrollbarWidth: 'none', overflowY: 'visible' }}
-        >
-          <div 
-            className="flex justify-center mx-auto w-full"
-            style={{ 
-              paddingBottom: handWidth < 640 ? "0.15rem" : "0.5rem", 
-              paddingTop: handWidth < 640 ? "1rem" : "1.5rem",
-              minHeight: handWidth < 640 ? "88px" : "180px",
-              transform: `scale(${cardScale/100})`,
-              transformOrigin: 'center bottom'
+            </TooltipTrigger>
+            {canScrollLeft && <TooltipContent side="top">Scroll Left</TooltipContent>}
+          </Tooltip>
+          <div
+            ref={scrollContainerRef}
+            className="relative w-full flex-grow overflow-x-auto py-0.5 px-1 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent sm:mx-0 hide-scrollbar"
+            style={{ scrollbarWidth: 'none', overflowY: 'visible' }}
+            onScroll={(e) => {
+              setHandScrollPos(e.currentTarget.scrollLeft)
             }}
           >
-            <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
-              {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
-                const isPlayable = isMyTurn && checkPlayValidity(state, card);
-                
-                const animationDelay = `${index * 0.05}s`;
-                const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
-                const isRecentlyDrawn = card.id === recentlyDrawnCard;
-                return (
-                  <div 
-                    key={card.id} 
-                    className={`transform transition-all duration-300 ease-out relative group`}
-                    style={{ 
-                      marginLeft: undefined,
-                      zIndex: isPlayable ? 50 + index : index,
-                      transform: `rotate(${rotationDeg}deg)`,
-                      transformOrigin: 'bottom center'
-                    }}
-                  >
-                    {isRecentlyDrawn && (
-                      <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
-                    )}
+            <div 
+              className="flex justify-center mx-auto w-full h-full items-end"
+              style={{ 
+                paddingBottom: handWidth < 640 ? "0.15rem" : "0.5rem", 
+                paddingTop: handWidth < 640 ? "1rem" : "1.5rem",
+                transform: `scale(${cardScale/100})`,
+                transformOrigin: 'center bottom'
+              }}
+            >
+              <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} items-stretch h-full ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
+                {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
+                  const isPlayable = isMyTurn && checkPlayValidity(state, card);
+                  
+                  const animationDelay = `${index * 0.05}s`;
+                  const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
+                  const isRecentlyDrawn = card.id === recentlyDrawnCard;
+                  return (
                     <div 
-                      className={`z-10 relative ${isPlayable && !isLoading ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
-                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
-                      style={{ animationDelay }}
-                      onAnimationEnd={() => {
-                        if (animatingCard === card.id) setAnimatingCard(null)
-                      }}
-                      onClick={async () => {
-                        // --- Stricter Guard --- 
-                        // Re-check turn and loading status at the exact moment of click
-                        if (!isMyTurn || isLoading || animatingCard) {
-                            console.log('--> Click blocked by stricter guard (not turn / loading / animating)');
-                            return; 
-                        }
-                        
-                        // Re-check play validity based on current state *at click time*
-                        const cardIsCurrentlyPlayable = checkPlayValidity(state, card);
-                        if (!cardIsCurrentlyPlayable) {
-                            console.log('--> Click blocked by stricter guard (card became unplayable)');
-                            // Optionally provide feedback, though a refresh/update should fix UI soon
-                             toast({ title: "Action Blocked", description: "Game state changed, try again.", variant: "destructive" });
-                            return;
-                        }
-                        // --- End Stricter Guard ---
-
-                        // Log state at the moment of click (keep for debugging)
-                        const topCard = state.discardPile[state.discardPile.length - 1];
-                        const currentPlayable = isMyTurn && checkPlayValidity(state, card);
-                        const blockConditionMet = animatingCard || !currentPlayable || isLoading;
-
-                        console.log('PlayerHand onClick:', {
-                          cardId: card.id,
-                          isPlayable_render: isPlayable,
-                          isPlayable_click: currentPlayable,
-                          isMyTurn,
-                          isLoading,
-                          animatingCard,
-                          state_currentColor: state.currentColor,
-                          state_topCardId: topCard?.id,
-                          state_topCardColor: topCard?.color,
-                          state_topCardType: topCard?.type,
-                          blockConditionMet: blockConditionMet
-                        });
-
-                        // REMOVE client-side guard - let server handle validation
-                        // if (blockConditionMet) {
-                        //   console.log('--> Click blocked by client guard');
-                        //   return;
-                        // }
-                        // console.log('--> Client guard passed, attempting play...');
-                        
-                        // Immediately set animating state
-                        setAnimatingCard(card.id);
-                        
-                        // Always attempt to play - server will validate
-                        try {
-                          if (card.type === 'wild' || card.type === 'wild4') {
-                            // Explicitly check turn again before opening selector
-                            if (!isMyTurn) {
-                                console.warn("Tried to select wild card color when not player's turn.");
-                                setAnimatingCard(null); // Reset animation
-                                return;
-                            }
-                            // Call context function to handle color selection
-                            promptColorSelection(card.id); 
-                          } else {
-                            await playCard(card.id);
-                          }
-                        } catch (error: unknown) {
-                          console.error("Failed to play card (error caught in PlayerHand onClick):", error);
-                          const errorMessage = error instanceof Error ? error.message : "Failed to play card. Please try again.";
-                          toast({
-                            title: "Action Failed",
-                            description: errorMessage,
-                            variant: "destructive",
-                          });
-                        }
+                      key={card.id} 
+                      className={`transform transition-all duration-300 ease-out relative group h-full`}
+                      style={{ 
+                        marginLeft: undefined,
+                        zIndex: isPlayable ? 50 + index : index,
+                        transform: `rotate(${rotationDeg}deg)`,
+                        transformOrigin: 'bottom center'
                       }}
                     >
-                      <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
-                        <UnoCard
-                          card={card}
-                          disabled={!isPlayable}
-                          animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
-                          isMobile={isMobile}
-                        />
+                      {isRecentlyDrawn && (
+                        <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
+                      )}
+                      <div 
+                        className={`z-10 relative h-full ${isPlayable && !isLoading ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
+                        } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
+                        style={{ animationDelay }}
+                        onAnimationEnd={() => {
+                          if (animatingCard === card.id) setAnimatingCard(null)
+                        }}
+                        onClick={async () => {
+                          // --- Stricter Guard ---
+                          if (!isMyTurn || isLoading || animatingCard) {
+                            console.log('--> Click blocked by stricter guard (not turn / loading / animating)');
+                            return;
+                          }
+                          const cardIsCurrentlyPlayable = checkPlayValidity(state, card);
+                          if (!cardIsCurrentlyPlayable) {
+                             console.log('--> Click blocked by stricter guard (card became unplayable)');
+                             toast({ title: "Action Blocked", description: "Game state changed, try again.", variant: "destructive" });
+                             return;
+                          }
+                          // --- End Stricter Guard ---
+
+                          const topCard = state.discardPile[state.discardPile.length - 1];
+                          const currentPlayable = isMyTurn && checkPlayValidity(state, card);
+                          const blockConditionMet = animatingCard || !currentPlayable || isLoading;
+
+                          console.log('PlayerHand onClick:', {
+                            cardId: card.id,
+                            isPlayable_render: isPlayable,
+                            isPlayable_click: currentPlayable,
+                            isMyTurn,
+                            isLoading,
+                            animatingCard,
+                            state_currentColor: state.currentColor,
+                            state_topCardId: topCard?.id,
+                            state_topCardColor: topCard?.color,
+                            state_topCardType: topCard?.type,
+                            blockConditionMet: blockConditionMet
+                          });
+
+                          // Immediately set animating state
+                          setAnimatingCard(card.id);
+
+                          // Always attempt to play - server will validate
+                          try {
+                            if (
+                              card.type === "wild" ||
+                              card.type === "wild4"
+                            ) {
+                              // Explicitly check turn again before opening selector
+                              if (!isMyTurn) {
+                                  setAnimatingCard(null); // Reset if turn changes mid-action
+                                  console.log('--> Play blocked: Not your turn (checked before color prompt)');
+                                  toast({ title: "Not Your Turn", description: "Wait for your turn to play.", variant: "default" });
+                                  return;
+                              }
+                              // Restore original logic: promptColorSelection likely handles calling playCard internally
+                              promptColorSelection(card.id);
+                            } else {
+                              await playCard(card.id);
+                            }
+                          } catch (error) {
+                            console.error("Error playing card:", error);
+                            // Error handled by useEffect hook now, but reset animation just in case
+                            setAnimatingCard(null);
+                          }
+                          // Animation reset is handled by onAnimationEnd
+                        }}
+                      >
+                        <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
+                          <UnoCard
+                            card={card}
+                            disabled={!isPlayable}
+                            animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
+                            isMobile={isMobile}
+                          />
+                        </div>
                       </div>
+                      
+                      {/* Enhanced "new card" indicator */}
+                      {isRecentlyDrawn && (
+                        <div className="absolute -top-4 sm:-top-6 left-1/2 transform -translate-x-1/2 z-20 whitespace-nowrap">
+                          <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-md animate-bounce-gentle">
+                            New card
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Playable card glow effect */}
+                      {isPlayable && !isLoading && (
+                        <div className="absolute inset-0 rounded-xl bg-green-500/10 filter blur-md opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-0"></div>
+                      )}
                     </div>
-                    
-                    {/* Enhanced "new card" indicator */}
-                    {isRecentlyDrawn && (
-                      <div className="absolute -top-4 sm:-top-6 left-1/2 transform -translate-x-1/2 z-20 whitespace-nowrap">
-                        <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-md animate-bounce-gentle">
-                          New card
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Playable card glow effect */}
-                    {isPlayable && !isLoading && (
-                      <div className="absolute inset-0 rounded-xl bg-green-500/10 filter blur-md opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-0"></div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollRight}
+                disabled={!canScrollRight}
+                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 ${
+                  canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              >
+                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+              </Button>
+            </TooltipTrigger>
+            {canScrollRight && <TooltipContent side="top">Scroll Right</TooltipContent>}
+          </Tooltip>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

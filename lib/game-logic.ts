@@ -142,21 +142,21 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
   }
 
   // Check if the player who just played forgot to say UNO
-  const playerWhoPlayed = gameState.players[currentPlayerIndex];
-  if (playerWhoPlayed.cards.length === 1 && !playerWhoPlayed.saidUno) {
-      console.log(`${playerWhoPlayed.name} forgot to say UNO! Penalty draw.`);
-      // Ensure log array exists before pushing
-      if (!gameState.log) {
-          gameState.log = [];
-      }
-      gameState.log.push(`${playerWhoPlayed.name} forgot to say UNO! Drawing 2 penalty cards.`);
-      reshuffleIfNeeded(gameState); // Ensure draw pile has cards
-      const penaltyCards = gameState.drawPile.splice(0, 2);
-      if (penaltyCards.length > 0) {
-          playerWhoPlayed.cards.push(...penaltyCards);
-      }
-      // No need to reset saidUno flag here, they drew cards.
-  }
+  // const playerWhoPlayed = gameState.players[currentPlayerIndex];
+  // if (playerWhoPlayed.cards.length === 1 && !playerWhoPlayed.saidUno) {
+  //     console.log(`${playerWhoPlayed.name} forgot to say UNO! Penalty draw.`);
+  //     // Ensure log array exists before pushing
+  //     if (!gameState.log) {
+  //         gameState.log = [];
+  //     }
+  //     gameState.log.push(`${playerWhoPlayed.name} forgot to say UNO! Drawing 2 penalty cards.`);
+  //     reshuffleIfNeeded(gameState); // Ensure draw pile has cards
+  //     const penaltyCards = gameState.drawPile.splice(0, 2);
+  //     if (penaltyCards.length > 0) {
+  //         playerWhoPlayed.cards.push(...penaltyCards);
+  //     }
+  //     // No need to reset saidUno flag here, they drew cards.
+  // }
 
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   gameState.drawPileCount = gameState.drawPile.length;
