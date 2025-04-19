@@ -275,10 +275,34 @@ export function GameProvider({
   }
 
   const handlePlayCard = async (cardId: string, selectedColor?: CardColor) => {
-    if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID")
     setIsLoading(true)
     setError(null)
+
+    const player = state.players.find(p => p.id === currentPlayerId)
+    if (!player) {
+      setError("Player not found.")
+      setIsLoading(false)
+      return
+    }
+
+    // --- UNO Declaration Check ---    
+    if (player.cards.length === 2 && !player.saidUno) {
+        console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Passing turn.`);
+        toast({ 
+            title: "UNO!", 
+            description: "You must declare UNO before playing your second-to-last card! Turn passed.",
+            variant: "destructive",
+            duration: 3000 
+        });
+        // Automatically pass the turn instead of playing the card
+        await handlePassTurn(); 
+        setIsLoading(false); // Ensure loading state is reset
+        return; // Stop the play card execution
+    }
+    // --- End UNO Declaration Check ---
+
     try {
+      console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, state_currentColor: state.currentColor, turn: state.currentPlayer })
       // Check if it is the current player's turn first
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
@@ -287,7 +311,6 @@ export function GameProvider({
         return // Prevent action
       }
       
-      const player = state.players.find(p => p.id === currentPlayerId)
       const card = player?.cards.find(c => c.id === cardId)
       if (!card) throw new Error("Card not in hand (client check)")
       if (!checkPlayValidityLogic(state, card)) {
@@ -362,23 +385,49 @@ export function GameProvider({
   }
 
   const handleDeclareUno = async () => {
-    if (!currentPlayerId) {
-      console.error("[GameProvider] Cannot declare UNO: No player ID")
-      return
+    if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID")
+    if (state.currentPlayer !== currentPlayerId) {
+      toast({ title: "Not Your Turn", description: "You can only declare UNO on your turn.", variant: "default" });
+      return;
     }
     
+    const player = state.players.find(p => p.id === currentPlayerId);
+    if (!player || player.cards.length !== 2) {
+        toast({ title: "Invalid Action", description: "You can only declare UNO when you have exactly two cards.", variant: "default" });
+        return;
+    }
+
+    // Optimistic UI update
+    dispatch({ 
+        type: "UPDATE_GAME_STATE", 
+        payload: {
+            ...state,
+            players: state.players.map(p => 
+                p.id === currentPlayerId ? { ...p, saidUno: true } : p
+            )
+        }
+    });
+    toast({ title: "UNO Declared!", description: "Remember to play your card!", duration: 1500 });
+
+    setIsLoading(true)
+    setError(null)
     try {
-      setIsLoading(true)
       await declareUno(roomId, currentPlayerId)
-      // State update will be handled by Pusher
-      setIsLoading(false)
-    } catch (error) {
-      console.error("[GameProvider] Failed to declare UNO:", error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to declare UNO",
-        variant: "destructive",
-      })
+      // State will be updated via Pusher, no need to manually dispatch here after await
+    } catch (err) {
+      console.error("[handleDeclareUno] Error declaring UNO:", err)
+      setError(err instanceof Error ? err.message : "Failed to declare UNO")
+      // Revert optimistic update on error
+      dispatch({ 
+        type: "UPDATE_GAME_STATE", 
+        payload: {
+            ...state,
+            players: state.players.map(p => 
+                p.id === currentPlayerId ? { ...p, saidUno: false } : p // Revert the flag
+            )
+        }
+     });
+    } finally {
       setIsLoading(false)
     }
   }

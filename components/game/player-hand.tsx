@@ -232,7 +232,6 @@ export default function PlayerHand() {
                           const cardIsCurrentlyPlayable = checkPlayValidity(state, card);
                           if (!cardIsCurrentlyPlayable) {
                              console.log('--> Click blocked by stricter guard (card became unplayable)');
-                             toast({ title: "Action Blocked", description: "Game state changed, try again.", variant: "destructive" });
                              return;
                           }
                           // --- End Stricter Guard ---

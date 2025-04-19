@@ -141,24 +141,28 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       break;
   }
 
-  // Check if the player who just played forgot to say UNO
-  // const playerWhoPlayed = gameState.players[currentPlayerIndex];
-  // if (playerWhoPlayed.cards.length === 1 && !playerWhoPlayed.saidUno) {
-  //     console.log(`${playerWhoPlayed.name} forgot to say UNO! Penalty draw.`);
-  //     // Ensure log array exists before pushing
-  //     if (!gameState.log) {
-  //         gameState.log = [];
-  //     }
-  //     gameState.log.push(`${playerWhoPlayed.name} forgot to say UNO! Drawing 2 penalty cards.`);
-  //     reshuffleIfNeeded(gameState); // Ensure draw pile has cards
-  //     const penaltyCards = gameState.drawPile.splice(0, 2);
-  //     if (penaltyCards.length > 0) {
-  //         playerWhoPlayed.cards.push(...penaltyCards);
-  //     }
-  //     // No need to reset saidUno flag here, they drew cards.
-  // }
+  // Check if the player who just played is down to one card
+  const playerWhoPlayed = gameState.players[currentPlayerIndex];
+  if (playerWhoPlayed.cards.length === 1) {
+    // This assumes the play was only allowed if saidUno was true when they had 2 cards.
+    // So, if they have 1 card now, they must have successfully declared UNO.
+    if (playerWhoPlayed.saidUno) {
+        console.log(`${playerWhoPlayed.name} successfully declared UNO!`);
+        if (!gameState.log) { gameState.log = []; }
+        gameState.log.push(`UNO! ${playerWhoPlayed.name} has one card left!`);
+    } else {
+        // This case should ideally not be reached if handlePlayCard blocks correctly.
+        // Log a warning if it happens.
+        console.warn(`${playerWhoPlayed.name} reached 1 card but saidUno flag was false. Play should have been blocked.`);
+        // We can still log they have one card left.
+        if (!gameState.log) { gameState.log = []; }
+        gameState.log.push(`${playerWhoPlayed.name} has one card left! (Warning: UNO flag was false)`);
+    }
+  }
 
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
+  // Limit log length *before* setting next player
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10); 
+  
   gameState.drawPileCount = gameState.drawPile.length;
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
 

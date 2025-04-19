@@ -76,11 +76,17 @@ export default function GameControls() {
                   <DrawerDescription className="text-white/70">Quick reference for game rules</DrawerDescription>
                 </DrawerHeader>
                 <div className="px-4 space-y-2 text-sm">
-                  <p>• Match the top card by color, number, or action</p>
-                  <p>• Draw card when you can't play</p>
-                  <p>• End your turn if you still can't play</p>
-                  <p>• Say "UNO" when you have 1 card left!</p>
-                  <p>• First player to get rid of all cards wins</p>
+                  <p>• Play a card matching the discard pile's color, number, or symbol.</p>
+                  <p>• If you can't play, you must draw a card.</p>
+                  <p>• After drawing, you can play the drawn card if it's valid.</p>
+                  <p>• If you still can't play after drawing, your turn ends (click End Turn).</p>
+                  <p>• Wild cards can be played on any color. You choose the next color.</p>
+                  <p>• Wild Draw 4: Choose the next color. The next player draws 4 cards and loses their turn.</p>
+                  <p>• Draw 2: Next player draws 2 and loses their turn.</p>
+                  <p>• Reverse: Reverses the direction of play.</p>
+                  <p>• Skip: Skips the next player's turn.</p>
+                  <p>• When you have one card left, click the "UNO!" button before playing your second-to-last card.</p>
+                  <p>• First player to empty their hand wins the round!</p>
                 </div>
                 <DrawerFooter>
                   <DrawerClose asChild>
@@ -105,12 +111,21 @@ export default function GameControls() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs bg-black/95 border-white/20 text-white z-[100]">
-                  <p className="font-medium">UNO Rules:</p>
+                  <p className="font-medium">UNO Quick Rules:</p>
                   <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
-                    <li>Match the top card by color, number, or action</li>
-                    <li>Click the draw pile to draw a card</li>
-                    <li>After drawing, if you cannot play, end your turn</li>
-                    <li>Say "UNO" when you have 1 card left!</li>
+                    <li>Match the top card by color, number, or symbol.</li>
+                    <li>Click the draw pile (deck icon) if you can't play.</li>
+                    <li>Play the drawn card if possible, otherwise click 'End Turn'.</li>
+                    <li>Special Cards:</li>
+                      <ul className="list-[circle] pl-3">
+                        <li>Wild: Choose next color.</li>
+                        <li>Wild Draw 4: Choose color, next player draws 4.</li>
+                        <li>Draw 2: Next player draws 2.</li>
+                        <li>Reverse: Change play direction.</li>
+                        <li>Skip: Next player loses turn.</li>
+                      </ul>
+                    <li>Click "UNO!" button when you have one card left.</li>
+                    <li>First to play all cards wins!</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>
@@ -159,7 +174,9 @@ export default function GameControls() {
           {currentPlayer && (
             <div className="flex items-baseline justify-center gap-1.5">
               <p className="text-white font-semibold text-xs sm:text-sm truncate">
-                {isMyTurn ? <strong>Your Turn</strong> : currentPlayer.name}
+                {isMyTurn ? (
+                  <><strong>Your Turn</strong>, {currentPlayer.name}</> 
+                ) : currentPlayer.name}
               </p>
               <span className="text-white/60 text-[10px] sm:text-xs font-normal whitespace-nowrap">
                  ({currentPlayer.cards.length} cards)
