@@ -144,19 +144,17 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
   // Check if the player who just played is down to one card
   const playerWhoPlayed = gameState.players[currentPlayerIndex];
   if (playerWhoPlayed.cards.length === 1) {
-    // This assumes the play was only allowed if saidUno was true when they had 2 cards.
-    // So, if they have 1 card now, they must have successfully declared UNO.
     if (playerWhoPlayed.saidUno) {
         console.log(`${playerWhoPlayed.name} successfully declared UNO!`);
         if (!gameState.log) { gameState.log = []; }
         gameState.log.push(`UNO! ${playerWhoPlayed.name} has one card left!`);
     } else {
-        // This case should ideally not be reached if handlePlayCard blocks correctly.
-        // Log a warning if it happens.
-        console.warn(`${playerWhoPlayed.name} reached 1 card but saidUno flag was false. Play should have been blocked.`);
-        // We can still log they have one card left.
+        // Player reached 1 card but didn't declare UNO beforehand.
+        // The turn pass logic is handled upstream in handlePlayCard.
+        console.log(`${playerWhoPlayed.name} reached 1 card but forgot to declare UNO!`);
         if (!gameState.log) { gameState.log = []; }
-        gameState.log.push(`${playerWhoPlayed.name} has one card left! (Warning: UNO flag was false)`);
+        // Log that they forgot, but still have one card.
+        gameState.log.push(`${playerWhoPlayed.name} forgot to declare UNO! (Has 1 card left)`);
     }
   }
 

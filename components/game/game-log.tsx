@@ -8,6 +8,7 @@ interface GameLogProps {
 }
 
 export default function GameLog({ logs }: GameLogProps) {
+  console.log("[GameLog] Received logs:", logs);
   if (!logs || logs.length === 0) {
     return <p className="text-center text-sm text-white/60 py-4">No game events yet.</p>;
   }

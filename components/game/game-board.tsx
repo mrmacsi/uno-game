@@ -44,6 +44,7 @@ export default function GameBoard() {
 
     // Check if a new card was added to the top
     if (currentTopCard && currentTopCard.id !== previousTopCardId) {
+      console.log("[GameBoard] New card detected on discard pile:", currentTopCard);
       // Find the player who likely played the card (the one whose turn it *was*)
       // This relies on the log potentially being updated before the state or having a specific format
       // A more robust way might involve adding `lastPlayedBy` to the state itself.
@@ -61,6 +62,7 @@ export default function GameBoard() {
            }
          }
       }
+      console.log(`[GameBoard] Determined player name: ${playerName}`);
       
       // Construct toast description
       let cardDescription = `${currentTopCard.color} ${currentTopCard.type}`;
@@ -70,6 +72,7 @@ export default function GameBoard() {
       // Capitalize for display
       cardDescription = cardDescription.charAt(0).toUpperCase() + cardDescription.slice(1);
 
+      console.log(`[GameBoard] Calling toast with: Title='${playerName} Played', Desc='${cardDescription}'`);
       toast({
         title: `${playerName} Played`,
         description: cardDescription,
