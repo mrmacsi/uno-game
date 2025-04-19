@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react"
 import { useRouter } from 'next/navigation'
 import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction, Card, CardColor } from "@/lib/types"
+import type { GameState, GameAction, Card, CardColor, LogEntry } from "@/lib/types"
 import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction } from "@/lib/game-actions"
 import { getRoom, resetRoom } from "@/lib/room-actions"
 import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
@@ -49,6 +49,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
+// Helper function to format card description
+function formatCardDescription(logEntry: LogEntry): string {
+  if (!logEntry.cardType) return "a card"; // Fallback
+  const color = logEntry.cardColor && logEntry.cardColor !== 'black' ? `${logEntry.cardColor.charAt(0).toUpperCase() + logEntry.cardColor.slice(1)} ` : "";
+  if (logEntry.cardType === 'number') {
+    return `${color}${logEntry.cardValue}`;
+  }
+  const typeName = logEntry.cardType.charAt(0).toUpperCase() + logEntry.cardType.slice(1).replace('4', ' 4');
+  return `${color}${typeName}`;
+}
+
 export function GameProvider({
   children,
   initialState,
@@ -71,7 +82,7 @@ export function GameProvider({
   
   const [cardScale, setCardScale] = useState(100)
   
-  const previousLogRef = useRef<string[]>([])
+  const previousLogRef = useRef<LogEntry[]>([])
   
   const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null)
   
@@ -96,16 +107,77 @@ export function GameProvider({
     const prevLog = previousLogRef.current
     const currentLog = state.log
     
-    if (prevLog.length > 0 && currentLog.length > prevLog.length) {
-      const newestEntry = currentLog[currentLog.length - 1]
-      if (!prevLog.includes(newestEntry)) {
-        toast({
-          description: newestEntry,
-          duration: 300,
-        })
+    // Only show toast for entries added since the last check
+    const newEntries = currentLog.slice(prevLog.length);
+
+    newEntries.forEach(newestEntry => {
+      // Check if this specific entry ID has already been processed (handle potential duplicates)
+      if (prevLog.some(entry => entry.id === newestEntry.id)) {
+        return; // Skip already processed entry
       }
-    }
+      
+      let toastTitle = "Game Update";
+      let toastDescription = newestEntry.message;
+      let toastVariant: "default" | "destructive" = "default";
+      let duration = 2000;
+
+      switch (newestEntry.eventType) {
+        case 'play':
+          toastTitle = `${newestEntry.player || 'Someone'} Played`;
+          toastDescription = formatCardDescription(newestEntry);
+          duration = 1500; // Shorter duration for play events
+          break;
+        case 'draw':
+          toastTitle = `${newestEntry.player || 'Someone'} Drew`;
+          // message might contain count, keep it
+          break;
+        case 'skip':
+          toastTitle = `${newestEntry.player || 'Someone'} Skipped`;
+          // message explains who was skipped
+          break;
+        case 'reverse':
+          toastTitle = `Direction Reversed`;
+          // message is generic
+          break;
+        case 'uno':
+          toastTitle = `${newestEntry.player || 'Someone'} Declared UNO!`;
+          // message confirms
+          break;
+        case 'uno_fail':
+          toastTitle = `UNO! Missed`;
+          toastDescription = `${newestEntry.player || 'Someone'} forgot to declare UNO!`;
+          toastVariant = "destructive";
+          break;
+        case 'win':
+          toastTitle = `Game Over!`;
+          toastDescription = `${newestEntry.player || 'Winner'} has won the game!`;
+          duration = 5000;
+          break;
+        case 'join':
+          toastTitle = `Player Joined`;
+          toastDescription = `${newestEntry.player || 'Someone'} joined the room.`;
+           duration = 1500;
+          break;
+         case 'leave':
+          toastTitle = `Player Left`;
+          toastDescription = `${newestEntry.player || 'Someone'} left the room.`;
+          duration = 1500;
+          break;
+        case 'system': // General system messages
+        default:
+          // Use default title and message
+          break;
+      }
+      
+      toast({
+        title: toastTitle,
+        description: toastDescription,
+        variant: toastVariant,
+        duration: duration,
+      })
+    });
     
+    // Update the ref with the full current log
     previousLogRef.current = currentLog
   }, [state.log])
 

@@ -29,50 +29,6 @@ export default function GameBoard() {
   const { toast } = useToast()
   const previousDiscardPileRef = useRef<Card[]>([])
 
-  // Effect to show toast when a card is played
-  useEffect(() => {
-    // Ensure state and discardPile exist
-    if (!state?.discardPile) {
-      previousDiscardPileRef.current = state?.discardPile || [];
-      return;
-    }
-
-    // Get the current top card and the previous top card ID
-    const currentPile = state.discardPile;
-    const previousPile = previousDiscardPileRef.current;
-    const currentTopCard = currentPile.length > 0 ? currentPile[currentPile.length - 1] : null;
-    const previousTopCardId = previousPile.length > 0 ? previousPile[previousPile.length - 1]?.id : null;
-
-    // Check if a new card was added to the top
-    if (currentTopCard && currentTopCard.id !== previousTopCardId) {
-      console.log("[GameBoard] New card detected on discard pile:", currentTopCard);
-      // Find the player who likely played the card (the one whose turn it *was*)
-      // This relies on the log potentially being updated before the state or having a specific format
-      // A more robust way might involve adding `lastPlayedBy` to the state itself.
-      const logEntry: LogEntry | undefined = state.log[state.log.length - 1];
-      let playerName = logEntry?.player || "Someone";
-      let cardDescription = "";
-      if (logEntry?.card || logEntry?.color) {
-        cardDescription = `${logEntry.color || ""} ${logEntry.card || ""}`.trim();
-      } else if (currentTopCard) {
-        cardDescription = `${currentTopCard.color} ${currentTopCard.type}`;
-        if (currentTopCard.type === "number") {
-          cardDescription = `${currentTopCard.color} ${currentTopCard.value}`;
-        }
-        cardDescription = cardDescription.charAt(0).toUpperCase() + cardDescription.slice(1);
-      }
-      toast({
-        title: `${playerName} Played`,
-        description: cardDescription,
-        duration: 2000,
-      });
-    }
-
-    // Update the ref for the next render
-    previousDiscardPileRef.current = currentPile;
-
-  }, [state?.discardPile, state?.log, toast]); // Depend on discardPile, log, and toast fn
-
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
   const isMyTurn = state.currentPlayer === currentPlayerId

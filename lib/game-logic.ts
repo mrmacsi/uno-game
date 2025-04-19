@@ -106,20 +106,65 @@ export function getNextPlayerIndex(gameState: GameState, currentIndex: number): 
 // Applies effects of a played card (draws, skips, reverse)
 export function applyCardEffects(gameState: GameState, card: Card): void {
   const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
+  const playerWhoPlayed = gameState.players[currentPlayerIndex];
   let nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
+
+  // Log the card play itself
+  if (!gameState.log) { gameState.log = []; } // Initialize log if it doesn't exist
+  let logMessage = `${playerWhoPlayed.name} played a ${card.color} ${card.type}`;
+  if (card.type === "number" && card.value !== undefined) {
+      logMessage += ` ${card.value}`;
+  } else if (card.type === "wild" || card.type === "wild4") {
+      logMessage += ` (chose ${gameState.currentColor})`; // Assuming gameState.currentColor is updated *before* calling this
+  }
+  gameState.log.push({
+    id: uuidv4(),
+    eventType: 'play',
+    message: logMessage,
+    timestamp: Date.now(),
+    player: playerWhoPlayed.name,
+    cardType: card.type,
+    cardColor: card.color,
+    cardValue: card.type === "number" ? card.value : undefined // Add value if it's a number card
+  });
 
   switch (card.type) {
     case "skip":
-      gameState.log.push(`${gameState.players[nextPlayerIndex].name} was skipped!`)
+      gameState.log.push({
+        id: uuidv4(),
+        eventType: 'skip',
+        message: `${gameState.players[nextPlayerIndex].name} was skipped!`,
+        timestamp: Date.now(),
+        player: gameState.players[nextPlayerIndex].name,
+        cardType: card.type,
+        cardColor: card.color
+      })
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); // Skip the next player
       break;
     case "reverse":
        gameState.direction *= -1;
        if (gameState.players.length === 2) {
-         gameState.log.push(`Direction reversed! ${gameState.players[nextPlayerIndex].name} was skipped!`)
+         // In a 2-player game, reverse acts like skip
+         gameState.log.push({
+           id: uuidv4(),
+           eventType: 'skip', // Treat as skip log for 2 players
+           message: `Direction reversed! ${gameState.players[nextPlayerIndex].name} was skipped!`,
+           timestamp: Date.now(),
+           player: gameState.players[nextPlayerIndex].name,
+           cardType: card.type,
+           cardColor: card.color
+         })
          nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); 
        } else {
-          gameState.log.push(`Direction reversed!`)
+          gameState.log.push({
+            id: uuidv4(),
+            eventType: 'reverse',
+            message: `Direction reversed!`,
+            timestamp: Date.now(),
+            player: playerWhoPlayed.name, // Player who played the reverse
+            cardType: card.type,
+            cardColor: card.color
+          })
           nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
        }
       break;
@@ -128,7 +173,7 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       const cardsToDraw2 = gameState.drawPile.splice(0, 2);
       gameState.players[nextPlayerIndex].cards.push(...cardsToDraw2);
       gameState.drawCardEffect = { playerId: gameState.players[nextPlayerIndex].id, count: 2 };
-      gameState.log.push(`${gameState.players[nextPlayerIndex].name} draws 2 cards and is skipped!`)
+      // Log is handled by the assumed 'play' event log now
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex);
       break;
     case "wild4":
@@ -136,25 +181,33 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       const cardsToDraw4 = gameState.drawPile.splice(0, 4);
       gameState.players[nextPlayerIndex].cards.push(...cardsToDraw4);
       gameState.drawCardEffect = { playerId: gameState.players[nextPlayerIndex].id, count: 4 };
-      gameState.log.push(`${gameState.players[nextPlayerIndex].name} draws 4 cards and is skipped!`)
+      // Log is handled by the assumed 'play' event log now
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex);
       break;
   }
 
   // Check if the player who just played is down to one card
-  const playerWhoPlayed = gameState.players[currentPlayerIndex];
   if (playerWhoPlayed.cards.length === 1) {
     if (playerWhoPlayed.saidUno) {
         console.log(`${playerWhoPlayed.name} successfully declared UNO!`);
         if (!gameState.log) { gameState.log = []; }
-        gameState.log.push(`UNO! ${playerWhoPlayed.name} has one card left!`);
+        gameState.log.push({
+          id: uuidv4(),
+          eventType: 'uno',
+          message: `UNO! ${playerWhoPlayed.name} has one card left!`,
+          timestamp: Date.now(),
+          player: playerWhoPlayed.name
+        });
     } else {
-        // Player reached 1 card but didn't declare UNO beforehand.
-        // The turn pass logic is handled upstream in handlePlayCard.
         console.log(`${playerWhoPlayed.name} reached 1 card but forgot to declare UNO!`);
         if (!gameState.log) { gameState.log = []; }
-        // Log that they forgot, but still have one card.
-        gameState.log.push(`${playerWhoPlayed.name} forgot to declare UNO! (Has 1 card left)`);
+        gameState.log.push({
+          id: uuidv4(),
+          eventType: 'uno_fail',
+          message: `${playerWhoPlayed.name} forgot to declare UNO! (Has 1 card left)`,
+          timestamp: Date.now(),
+          player: playerWhoPlayed.name
+        });
     }
   }
 

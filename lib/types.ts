@@ -33,8 +33,10 @@ export interface LogEntry {
   message: string
   timestamp: number
   player?: string
-  card?: string
-  color?: CardColor
+  eventType?: 'play' | 'draw' | 'skip' | 'reverse' | 'uno' | 'uno_fail' | 'system' | 'join' | 'leave' | 'win'
+  cardType?: CardType
+  cardValue?: number
+  cardColor?: CardColor
 }
 
 export interface GameState {
