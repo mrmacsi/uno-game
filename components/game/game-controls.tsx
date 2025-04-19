@@ -55,7 +55,8 @@ export default function GameControls() {
   return (
     <div className="bg-black/80 backdrop-blur-md p-2 sm:p-3 sm:rounded-xl rounded-none sm:mt-2 sm:mb-4 mb-0 shadow-xl border-t sm:border border-white/10 w-full z-30">
       <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 min-h-12">
-        <div className="flex items-center gap-2">
+        {/* Left Section: Current Color & Rules */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${colorStyles} mr-2 shadow-md`}>
             {state.currentColor.toUpperCase()}
           </span>
@@ -95,7 +96,17 @@ export default function GameControls() {
           )}
         </div>
 
-        <div className="flex gap-1 sm:gap-2 items-center">
+        {/* Center Section: Player Name & Turn Info */}
+        <div className="flex-1 text-center px-2">
+          {currentPlayer && (
+            <p className="text-white font-semibold text-sm sm:text-base truncate">
+              {currentPlayer.name} {isMyTurn ? "(Your Turn)" : ""}
+            </p>
+          )}
+        </div>
+
+        {/* Right Section: Action Buttons & Help */}
+        <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
           {canSayUno && (
             <Button 
               onClick={declareUno}

@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast"
 import { checkPlayValidity } from "@/lib/game-logic"
 
 export default function PlayerHand() {
-  const { state, currentPlayerId, playCard, error: gameError, isLoading } = useGame()
+  const { state, currentPlayerId, playCard, error: gameError, isLoading, promptColorSelection } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const [handWidth, setHandWidth] = useState(0)
   const [handScrollPos, setHandScrollPos] = useState(0)
@@ -109,7 +109,7 @@ export default function PlayerHand() {
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
 
   return (
-    <div className={`flex flex-col min-h-0 px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`} style={{ overflow: 'visible' }}>
+    <div className={`relative z-30 flex flex-col px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`}>
       <div className="flex flex-col items-center w-full">
         <div className="w-full flex flex-col sm:flex-row justify-between items-center mb-0 sm:mb-3 gap-0 sm:gap-0 px-3 pt-3">
           <div className="flex items-center gap-3">
@@ -198,14 +198,14 @@ export default function PlayerHand() {
         
         <div 
           ref={scrollContainerRef}
-          className="relative w-full overflow-x-auto py-0.5 px-0 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent -mx-1 sm:mx-0 hide-scrollbar"
-          style={{ scrollbarWidth: 'none' }}
+          className="relative w-full overflow-x-auto py-0.5 px-0 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent sm:mx-0 hide-scrollbar"
+          style={{ scrollbarWidth: 'none', overflowY: 'visible' }}
         >
           <div 
             className="flex justify-center mx-auto w-full"
             style={{ 
               paddingBottom: handWidth < 640 ? "0.15rem" : "0.5rem", 
-              paddingTop: handWidth < 640 ? "0.15rem" : "0.5rem",
+              paddingTop: handWidth < 640 ? "1rem" : "1.5rem",
               minHeight: handWidth < 640 ? "88px" : "180px",
               transform: `scale(${cardScale/100})`,
               transformOrigin: 'center bottom'
@@ -221,7 +221,7 @@ export default function PlayerHand() {
                 return (
                   <div 
                     key={card.id} 
-                    className={`transform transition-all duration-300 ease-out relative group`} 
+                    className={`transform transition-all duration-300 ease-out relative group`}
                     style={{ 
                       marginLeft: undefined,
                       zIndex: isPlayable ? 50 + index : index,
@@ -233,13 +233,30 @@ export default function PlayerHand() {
                       <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
                     )}
                     <div 
-                      className={`transition-all duration-300 z-10 relative ${isPlayable ? 'hover:translate-y-[-32px] sm:hover:translate-y-[-40px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
+                      className={`z-10 relative ${isPlayable && !isLoading ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
                       } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={async () => {
+                        // --- Stricter Guard --- 
+                        // Re-check turn and loading status at the exact moment of click
+                        if (!isMyTurn || isLoading || animatingCard) {
+                            console.log('--> Click blocked by stricter guard (not turn / loading / animating)');
+                            return; 
+                        }
+                        
+                        // Re-check play validity based on current state *at click time*
+                        const cardIsCurrentlyPlayable = checkPlayValidity(state, card);
+                        if (!cardIsCurrentlyPlayable) {
+                            console.log('--> Click blocked by stricter guard (card became unplayable)');
+                            // Optionally provide feedback, though a refresh/update should fix UI soon
+                             toast({ title: "Action Blocked", description: "Game state changed, try again.", variant: "destructive" });
+                            return;
+                        }
+                        // --- End Stricter Guard ---
+
                         // Log state at the moment of click (keep for debugging)
                         const topCard = state.discardPile[state.discardPile.length - 1];
                         const currentPlayable = isMyTurn && checkPlayValidity(state, card);
@@ -278,10 +295,8 @@ export default function PlayerHand() {
                                 setAnimatingCard(null); // Reset animation
                                 return;
                             }
-                            // TODO: Open color selector (logic likely in useGame/GameProvider)
-                            console.log("Opening color selector for card:", card.id);
-                            // Assuming useGame provides a function like openColorSelector(cardId)
-                            // openColorSelector(card.id); 
+                            // Call context function to handle color selection
+                            promptColorSelection(card.id); 
                           } else {
                             await playCard(card.id);
                           }
@@ -293,8 +308,6 @@ export default function PlayerHand() {
                             description: errorMessage,
                             variant: "destructive",
                           });
-                          // Reset animation state on error
-                          setAnimatingCard(null);
                         }
                       }}
                     >
@@ -318,7 +331,7 @@ export default function PlayerHand() {
                     )}
                     
                     {/* Playable card glow effect */}
-                    {isPlayable && (
+                    {isPlayable && !isLoading && (
                       <div className="absolute inset-0 rounded-xl bg-green-500/10 filter blur-md opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-0"></div>
                     )}
                   </div>

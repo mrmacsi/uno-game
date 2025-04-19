@@ -27,9 +27,27 @@ async function fetchAndValidateGameState(roomId: string, playerId?: string): Pro
 }
 
 async function broadcastUpdate(roomId: string, gameState: GameState) {
-  const strippedState = stripFunctionsFromGameState(gameState);
+  // Create a copy of the state to modify for broadcasting
+  const broadcastState = { ...gameState };
+
+  // Remove the large drawPile array to reduce payload size
+  // Clients should rely on drawPileCount
+  broadcastState.drawPile = []; // Set to empty array or null
+
+  // Strip any remaining functions (if any were added back temporarily)
+  const strippedState = stripFunctionsFromGameState(broadcastState);
+  
   await new Promise(resolve => setTimeout(resolve, BROADCAST_DELAY_MS));
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  try {
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+    console.log(`Broadcast update sent for room ${roomId}. Payload size (approx estimate): ${JSON.stringify(strippedState).length} bytes`);
+  } catch (error) {
+    console.error(`Pusher trigger failed for room ${roomId}:`, error);
+    // Log the error but don't throw, as the main action might have succeeded
+    if (error instanceof Error && error.message.includes('413')) {
+        console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile. State snapshot:", JSON.stringify(strippedState).substring(0, 500)); // Log first 500 chars
+    }
+  }
 }
 
 export async function createGame(hostId: string, hostName: string): Promise<GameState> {

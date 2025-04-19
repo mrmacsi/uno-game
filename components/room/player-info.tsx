@@ -10,53 +10,54 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
   return (
     <div 
       className={`
-        backdrop-blur-lg rounded-xl overflow-hidden transition-all duration-300
+        rounded-md sm:rounded-lg overflow-hidden transition-all duration-300
         ${isCurrentTurn 
-          ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-yellow-400/30 shadow-lg shadow-yellow-500/10" 
-          : "bg-black/30 border border-white/10 hover:bg-black/40"}
+          ? "border border-yellow-400/40 bg-amber-500/20" 
+          : "bg-black/50"} 
       `}
     >
-      <div className="p-3">
-        <div className="flex items-center gap-3">
-          <div className={`
-            w-10 h-10 rounded-full flex items-center justify-center shrink-0
-            transition-all duration-300
-            ${isCurrentTurn 
-              ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-yellow-900 shadow-md" 
-              : "bg-white/10 text-white/70"}
-            ${player.isHost ? "ring-2 ring-yellow-400/40" : ""}
-          `}>
-            {player.isHost ? 
-              <Crown className="w-5 h-5" /> : 
-              <User className="w-5 h-5" />
-            }
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-medium truncate">{player.name}</p>
-            <div className="flex items-center text-white/70 text-xs mt-1">
-              <div className="flex items-center">
-                <div className={`
-                  flex items-center gap-1.5
-                  ${isCurrentTurn ? "text-yellow-300 font-medium" : ""}
-                `}>
-                  {player.cards.length} cards
-                </div>
+      <div className="p-1 sm:p-1.5 flex flex-col items-center">
+        {/* Player name - very small */}
+        <p className="text-white font-medium truncate text-[10px] sm:text-xs text-center w-full mb-0.5 sm:mb-1">{player.name}</p>
+        
+        <div className="flex items-center justify-between w-full gap-1 sm:gap-1.5">
+          {/* Avatar and Host indicator - very small */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className={`
+                w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0
+                transition-all duration-300
+                ${isCurrentTurn 
+                  ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-yellow-900 shadow-sm" 
+                  : "bg-white/10 text-white/70"}
+                ${player.isHost ? "ring-1 ring-yellow-400/50" : ""}
+              `}>
+                {player.isHost ? 
+                  <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : 
+                  <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                }
               </div>
-            </div>
+              {/* Card Count - very small */}
+               <div className="flex items-center text-white/60 text-[10px] sm:text-xs">
+                 <div className={`
+                    flex items-center gap-0.5 sm:gap-1
+                    ${isCurrentTurn ? "text-yellow-200 font-semibold" : ""}
+                 `}>
+                   {player.cards.length} <span className="hidden sm:inline">cards</span>
+                 </div>
+               </div>
           </div>
           
           {isCurrentTurn && (
-            <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs px-3 py-1.5 rounded-full font-medium shrink-0 shadow-sm">
-              <Clock className="w-3 h-3" />
+            <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold shrink-0 shadow-sm whitespace-nowrap">
+              <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
               <span>Turn</span>
             </div>
           )}
         </div>
       </div>
       
-      {/* Card count visualization */}
-      <div className="h-1.5 bg-black/30">
+      {/* Card count visualization - very thin */}
+      <div className="h-0.5 bg-black/40">
         <div 
           className={`h-full ${isCurrentTurn 
             ? "bg-gradient-to-r from-amber-400 to-yellow-500" 

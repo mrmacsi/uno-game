@@ -83,19 +83,49 @@ export default function GameBoard() {
       </div>
       
       {/* Players section - always visible */}
-      <div className="flex-1 flex flex-col min-h-0" style={{ overflow: 'visible' }}>
-        {/* Other players - Adjust grid for mobile and always show */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-3 p-1 sm:p-3">
-          {otherPlayers.map((player) => (
-            // Wrap PlayerInfo and apply scaling for mobile view
-            <div key={player.id} className="sm:scale-100 scale-90 origin-top-left sm:origin-center">
-              <PlayerInfo player={player} isCurrentTurn={player.id === state.currentPlayer} />
-            </div>
-          ))}
+      {/* Main container: flex column, takes remaining height */}
+      <div className="flex-1 flex flex-col relative" style={{ overflow: 'visible' }}>
+        {/* Top section wrapper: Takes available space, relative positioning context */}
+        <div className="flex-1 relative">
+          {/* Opponent player info positioned absolutely within the top section wrapper */}
+          <div className="absolute inset-0 pointer-events-none z-10">
+            {/* Player 1 (Top) */}
+            {/* Renders top player only if 1 or 3 opponents */}
+            {(otherPlayers.length === 1 || otherPlayers.length === 3) && (
+              <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 pointer-events-auto w-44 sm:w-56">
+                <PlayerInfo 
+                  player={otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]} 
+                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]).id === state.currentPlayer} 
+                />
+              </div>
+            )}
+            {/* Player 2 (Left) */}
+            {/* Renders left player only if 2 or 3 opponents */}
+            {otherPlayers.length > 1 && (
+              <div className="absolute top-1/2 -translate-y-1/2 left-2 sm:left-4 pointer-events-auto w-32 sm:w-40">
+                <PlayerInfo 
+                  player={otherPlayers[0]} 
+                  isCurrentTurn={otherPlayers[0].id === state.currentPlayer} 
+                />
+              </div>
+            )}
+            {/* Player 3 (Right) */}
+            {/* Renders right player only if 2 or 3 opponents */}
+            {otherPlayers.length > 1 && (
+              <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-4 pointer-events-auto w-32 sm:w-40">
+                <PlayerInfo 
+                   // If 2 players, right is index 1. If 3 players, right is index 2.
+                  player={otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]} 
+                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer} 
+                />
+              </div>
+            )}
+          </div>
         </div>
-        
-        {/* Game area - middle section with card piles */}
-        <div className="flex-1 flex items-center justify-center overflow-visible gap-4 sm:gap-16 p-2 sm:p-4 relative">
+
+        {/* Game area - middle section with card piles (sibling to opponent container, inside wrapper) */}
+        {/* Centered within the top section wrapper */}
+        <div className="flex items-center justify-center absolute inset-0 overflow-visible gap-4 sm:gap-16 p-2 sm:p-4">
           {/* Enhanced decorative elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-white/5 absolute animate-pulse-slow"></div>
@@ -119,13 +149,14 @@ export default function GameBoard() {
             </div>
           </div>
         </div>
-        
-        <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto">
-          <div className="relative z-30">
-            <PlayerHand />
-            <div className="w-full">
-              <GameControls />
-            </div>
+      </div>
+      
+      {/* Bottom section: Player hand and controls */}
+      <div className="w-full flex flex-col gap-0 sm:gap-2 mt-auto z-20">
+        <div className="relative min-h-[200px]" style={{ overflow: 'visible' }}>
+          <PlayerHand />
+          <div className="w-full">
+            <GameControls />
           </div>
         </div>
       </div>

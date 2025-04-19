@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react"
 import { useRouter } from 'next/navigation'
 import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction, Card, CardColor } from "@/lib/types"
+import type { GameState, GameAction, Card, CardColor, Player } from "@/lib/types"
 import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction } from "@/lib/game-actions"
 import { getRoom, resetRoom } from "@/lib/room-actions"
 import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
@@ -32,6 +32,7 @@ type GameContextType = {
   startGame: () => Promise<void>
   resetGame: () => Promise<void>
   leaveRoom: () => void
+  promptColorSelection: (cardId: string) => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -529,6 +530,15 @@ export function GameProvider({
     startGame: handleStartGame,
     resetGame: handleResetGame,
     leaveRoom: handleLeaveRoom,
+    promptColorSelection: (cardId: string) => {
+      if (!state || state.currentPlayer !== currentPlayerId) {
+        console.warn("Attempted to prompt color selection when not current player or state unavailable.")
+        return
+      }
+      console.log('Prompting color selection for card:', cardId)
+      setPendingWildCardId(cardId)
+      setIsColorSelectionOpen(true)
+    },
   }
 
   return (

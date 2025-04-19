@@ -226,22 +226,29 @@ export default function AdminPage() {
                             <TableCell className="font-mono">{room.roomId}</TableCell>
                             <TableCell>{room.status}</TableCell>
                             <TableCell>{room.players.length}</TableCell>
-                            <TableCell className="text-right space-x-2">
-                                {/* Reset Button */} 
-                                <Button variant="outline" size="sm" onClick={() => handleResetRoom(room.roomId)} disabled={loadingAction === 'reset' && selectedRoom === room.roomId}>{loadingAction === 'reset' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</Button>
-                                {/* Delete Button */} 
-                                <ConfirmationDialog
-                                    triggerButton={
-                                        <Button variant="destructive" size="sm" className="flex items-center gap-1 text-xs">
-                                            <Trash2 className="h-3 w-3" /> Delete
-                                        </Button>
-                                    }
-                                    title={`Delete Room ${room.roomId}?`}
-                                    description="Are you sure you want to delete this room? This action is irreversible."
-                                    confirmAction={() => performDeleteRoom(room.roomId)}
-                                    confirmText="Yes, Delete"
-                                    isDestructive={true}
-                                />
+                            <TableCell className="text-right">
+                                <div className="flex justify-end items-center space-x-2">
+                                    {/* Reset Button */} 
+                                    <Button variant="outline" size="icon" onClick={() => handleResetRoom(room.roomId)} disabled={loadingAction === 'reset' && selectedRoom === room.roomId} title="Reset Room">{loadingAction === 'reset' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</Button>
+                                    {/* Delete Button */} 
+                                    <ConfirmationDialog
+                                        triggerButton={
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="flex items-center gap-1 text-red-500 border-red-500/50 hover:bg-red-500/10 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 dark:border-red-500/40 dark:hover:bg-red-900/30" 
+                                                title="Delete Room"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        }
+                                        title={`Delete Room ${room.roomId}?`}
+                                        description="Are you sure you want to delete this room? This action is irreversible."
+                                        confirmAction={() => performDeleteRoom(room.roomId)}
+                                        confirmText="Yes, Delete"
+                                        isDestructive={true}
+                                    />
+                                </div>
                             </TableCell>
                           </TableRow>
                         ))}
