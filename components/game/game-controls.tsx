@@ -43,7 +43,7 @@ export default function GameControls() {
   
   // Find current player to check if they have few cards
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
-  const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2
+  const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2 && !currentPlayer.saidUno
   const hasAlreadySaidUno = isMyTurn && currentPlayer && currentPlayer.saidUno && currentPlayer.cards.length === 2
 
   // Define color mapping based on current color
@@ -205,7 +205,9 @@ export default function GameControls() {
             <DrawerTitle>Game Log</DrawerTitle>
             <DrawerDescription className="text-white/70">Recent game events</DrawerDescription>
           </DrawerHeader>
-          <GameLog logs={state.log || []} /> 
+          <div className="px-2">
+            <GameLog logs={state.log} />
+          </div>
           <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline" className="border-white/20 text-white">

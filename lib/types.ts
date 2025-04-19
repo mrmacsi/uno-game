@@ -28,6 +28,15 @@ export interface MatchResult {
   finalScore: number
 }
 
+export interface LogEntry {
+  id: string
+  message: string
+  timestamp: number
+  player?: string
+  card?: string
+  color?: CardColor
+}
+
 export interface GameState {
   roomId: string
   status: "waiting" | "playing" | "finished"
@@ -43,7 +52,7 @@ export interface GameState {
     count: number
   }
   hasDrawnThisTurn?: boolean
-  log: string[]
+  log: LogEntry[]
   matchHistory?: MatchResult[]
   drawPileCount?: number
   isDrawing?: boolean

@@ -12,6 +12,7 @@ import {
 } from "./game-logic"
 import { pusherServer } from "@/lib/pusher-server"
 import { stripFunctionsFromGameState } from "./utils"
+import { v4 as uuidv4 } from "uuid"
 
 const BROADCAST_DELAY_MS = 150
 
@@ -85,7 +86,12 @@ export async function createGame(hostId: string, hostName: string): Promise<Game
     discardPile: [],
     currentColor: "black",
     winner: null,
-    log: [`Room ${roomId} created by ${hostName}`],
+    log: [{
+      id: uuidv4(),
+      message: `Room ${roomId} created by ${hostName}`,
+      timestamp: Date.now(),
+      player: hostName
+    }],
   };
   await updateGameState(roomId, initialState);
   console.log(`Game created successfully: ${roomId}`);
@@ -107,7 +113,12 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
 
   const newPlayer: Player = { id: playerId, name: playerName, cards: [], isHost: false };
   gameState.players.push(newPlayer);
-  gameState.log.push(`${playerName} joined the room.`);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${playerName} joined the room.`,
+    timestamp: Date.now(),
+    player: playerName
+  });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
   await updateGameState(roomId, gameState);
@@ -149,12 +160,18 @@ export async function startGame(roomId: string, playerId: string): Promise<GameS
   gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id;
   gameState.status = "playing";
   
-  // Ensure log array exists before pushing
   if (!gameState.log) {
       gameState.log = [];
   }
   
-  gameState.log.push(`Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.value}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.value}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
+    timestamp: Date.now(),
+    player: player.name,
+    card: firstCard.value ? String(firstCard.value) : undefined,
+    color: firstCard.color
+  });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
   console.log(`Game started successfully for room ${roomId}. Current player: ${gameState.currentPlayer}`);
@@ -183,7 +200,12 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   // UNO Check - must be handled before card is played
   if (player.cards.length === 2 && !player.saidUno) {
     console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
-    gameState.log.push(`${player.name} forgot to declare UNO! Turn passed.`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${player.name} forgot to declare UNO! Turn passed.`,
+      timestamp: Date.now(),
+      player: player.name
+    });
     
     // Pass turn as penalty for not declaring UNO
     const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
@@ -219,7 +241,14 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       throw new Error("Must choose a color for wild card")
     }
     gameState.currentColor = chosenColor;
-    gameState.log.push(`${player.name} played a ${cardToPlay.type} and chose ${chosenColor}`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${player.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
+      timestamp: Date.now(),
+      player: player.name,
+      card: cardToPlay.type === "wild" ? undefined : String(cardToPlay.value),
+      color: chosenColor
+    });
   }
   
   player.cards.splice(cardIndex, 1);
@@ -232,7 +261,12 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   if (player.cards.length === 0) {
     gameState.status = "finished";
     gameState.winner = playerId;
-    gameState.log.push(`${player.name} won the game!`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${player.name} won the game!`,
+      timestamp: Date.now(),
+      player: player.name
+    });
     calculatePoints(gameState);
     await updateGameState(roomId, gameState);
     await broadcastUpdate(roomId, gameState);
@@ -242,7 +276,12 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   
   if (player.cards.length === 1 && !player.saidUno) {
       console.log(`${player.name} forgot to say UNO!`);
-       gameState.log.push(`${player.name} forgot to say UNO!`);
+       gameState.log.push({
+        id: uuidv4(),
+        message: `${player.name} forgot to say UNO!`,
+        timestamp: Date.now(),
+        player: player.name
+      });
   }
    if (player.cards.length > 1) {
       player.saidUno = false;
@@ -291,7 +330,12 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
   }
   player.cards.push(drawnCard);
   gameState.hasDrawnThisTurn = true;
-  gameState.log.push(`${player.name} drew a card.`);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${player.name} drew a card.`,
+    timestamp: Date.now(),
+    player: player.name
+  });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   gameState.drawPileCount = gameState.drawPile.length;
 
@@ -300,7 +344,12 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
 
   if (!isPlayable) {
     // Drawn card is not playable, automatically end the turn
-    gameState.log.push(`${player.name}'s drawn card wasn't playable. Turn passes.`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${player.name}'s drawn card wasn't playable. Turn passes.`,
+      timestamp: Date.now(),
+      player: player.name
+    });
     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
@@ -357,7 +406,12 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
   }
   
   player.saidUno = true;
-  gameState.log.push(`${player.name} declared UNO!`);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${player.name} declared UNO!`,
+    timestamp: Date.now(),
+    player: player.name
+  });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   console.log(`Player ${playerId} declared UNO.`);
 
@@ -395,9 +449,19 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
 
   // Use a different log message if the pass was forced due to forgetting UNO
   if (forcePass) {
-    gameState.log.push(`${gameState.players[currentPlayerIndex].name} forgot to declare UNO! Turn passed.`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${gameState.players[currentPlayerIndex].name} forgot to declare UNO! Turn passed.`,
+      timestamp: Date.now(),
+      player: gameState.players[currentPlayerIndex].name
+    });
   } else {
-    gameState.log.push(`${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`);
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
+      timestamp: Date.now(),
+      player: gameState.players[currentPlayerIndex].name
+    });
   }
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   

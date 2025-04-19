@@ -14,6 +14,7 @@ import { Home, Maximize, Minimize } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { Card } from "@/lib/types"
+import type { LogEntry } from "@/lib/types"
 
 export default function GameBoard() {
   const {
@@ -48,35 +49,22 @@ export default function GameBoard() {
       // Find the player who likely played the card (the one whose turn it *was*)
       // This relies on the log potentially being updated before the state or having a specific format
       // A more robust way might involve adding `lastPlayedBy` to the state itself.
-      const logEntry = state.log[state.log.length - 1]; 
-      let playerName = "Someone"; // Default name
-      // Basic check if log exists and might contain player name
-      if (logEntry && typeof logEntry === 'string') {
-         // Attempt to extract player name if log format is like "Player Name played ..." or similar
-         const match = logEntry.match(/^([\w\s]+?)\s+(played|declared|drew|forgot)/);
-         if (match && match[1]) {
-           playerName = match[1].trim();
-           // Special case for UNO declaration log
-           if (logEntry.startsWith("UNO!")) {
-             playerName = logEntry.split("UNO! ")[1]?.split(" has")[0] || playerName;
-           }
-         }
+      const logEntry: LogEntry | undefined = state.log[state.log.length - 1];
+      let playerName = logEntry?.player || "Someone";
+      let cardDescription = "";
+      if (logEntry?.card || logEntry?.color) {
+        cardDescription = `${logEntry.color || ""} ${logEntry.card || ""}`.trim();
+      } else if (currentTopCard) {
+        cardDescription = `${currentTopCard.color} ${currentTopCard.type}`;
+        if (currentTopCard.type === "number") {
+          cardDescription = `${currentTopCard.color} ${currentTopCard.value}`;
+        }
+        cardDescription = cardDescription.charAt(0).toUpperCase() + cardDescription.slice(1);
       }
-      console.log(`[GameBoard] Determined player name: ${playerName}`);
-      
-      // Construct toast description
-      let cardDescription = `${currentTopCard.color} ${currentTopCard.type}`;
-      if (currentTopCard.type === "number") {
-        cardDescription = `${currentTopCard.color} ${currentTopCard.value}`;
-      }
-      // Capitalize for display
-      cardDescription = cardDescription.charAt(0).toUpperCase() + cardDescription.slice(1);
-
-      console.log(`[GameBoard] Calling toast with: Title='${playerName} Played', Desc='${cardDescription}'`);
       toast({
         title: `${playerName} Played`,
         description: cardDescription,
-        duration: 2000, // Show for 2 seconds
+        duration: 2000,
       });
     }
 

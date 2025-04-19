@@ -23,6 +23,9 @@ export interface LogEntry {
   id: string
   message: string
   timestamp: number
+  player?: string
+  card?: string
+  color?: CardColor
 }
 
 export interface GameState {

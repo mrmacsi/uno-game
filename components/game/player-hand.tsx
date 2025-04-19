@@ -64,9 +64,7 @@ export default function PlayerHand() {
       // Find the new card id (the one not in the previous array)
       const newCardId = currentCardIds.find((id: string) => !prevCardsRef.current.includes(id))
       if (newCardId && prevCardsRef.current.length > 0) {
-        setTimeout(() => {
-          setAnimatingCard(newCardId)
-        }, 3000)
+        setAnimatingCard(newCardId)
       }
     }
     

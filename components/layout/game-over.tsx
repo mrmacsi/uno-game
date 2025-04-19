@@ -123,7 +123,11 @@ export default function GameOver() {
                 </h3>
                 <div className="space-y-2">
                   {state.players
-                    .sort((a, b) => a.cards.length - b.cards.length)
+                    .map(player => ({
+                      ...player,
+                      points: calculateHandPoints(player.cards)
+                    }))
+                    .sort((a, b) => a.cards.length - b.cards.length || b.points - a.points)
                     .map((player, index) => (
                       <div
                         key={player.id}
@@ -160,11 +164,9 @@ export default function GameOver() {
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <div className="text-sm text-gray-600">{player.cards.length} cards</div>
-                            {player.points !== undefined && (
-                              <div className={`text-sm font-semibold ${player.id === state.winner ? "text-green-600" : "text-gray-800"}`}>
-                                {player.id === state.winner ? "Winner!" : `${calculateHandPoints(player.cards)} points`}
-                              </div>
-                            )}
+                            <div className={`text-sm font-semibold ${player.id === state.winner ? "text-green-600" : "text-gray-800"}`}>
+                              {player.id === state.winner ? "Winner!" : `${player.points} points`}
+                            </div>
                           </div>
                           {player.id === state.winner && (
                             <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center">
@@ -295,50 +297,52 @@ export default function GameOver() {
                 </h3>
                 {state.matchHistory && state.matchHistory.length > 0 ? (
                   <div className="space-y-3">
-                    {state.matchHistory.map((match, index) => {
-                      const matchWinner = match.playerResults.find(p => p.playerId === match.winner)
-                      return (
-                        <div
-                          key={index}
-                          className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 animate-fade-in-up"
-                          style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
-                        >
-                          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <Trophy className="w-4 h-4 text-yellow-500" />
-                                <span className="font-medium text-gray-800">
-                                  Winner: {matchWinner?.playerName}
-                                </span>
-                              </div>
-                              <span className="text-xs text-gray-500">
-                                {new Date(match.date).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="p-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Player Points:</h4>
-                            <div className="space-y-1">
-                              {match.playerResults.map(player => (
-                                <div key={player.playerId} className="flex justify-between text-sm px-1 py-1">
-                                  <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
-                                    {player.playerName}
-                                    {player.playerId === match.winner && (
-                                      <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                                        Winner
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className={`font-medium ${player.playerId === match.winner ? "text-indigo-600" : "text-gray-700"}`}>
-                                    {player.points} points
+                    {[...state.matchHistory]
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((match, index) => {
+                        const matchWinner = match.playerResults.find(p => p.playerId === match.winner)
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 animate-fade-in-up"
+                            style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
+                          >
+                            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <Trophy className="w-4 h-4 text-yellow-500" />
+                                  <span className="font-medium text-gray-800">
+                                    Winner: {matchWinner?.playerName}
                                   </span>
                                 </div>
-                              ))}
+                                <span className="text-xs text-gray-500">
+                                  {new Date(match.date).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="p-3">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Player Points:</h4>
+                              <div className="space-y-1">
+                                {match.playerResults.map(player => (
+                                  <div key={player.playerId} className="flex justify-between text-sm px-1 py-1">
+                                    <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
+                                      {player.playerName}
+                                      {player.playerId === match.winner && (
+                                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
+                                          Winner
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span className={`font-medium ${player.playerId === match.winner ? "text-indigo-600" : "text-gray-700"}`}>
+                                      {player.points} points
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
                   </div>
                 ) : (
                   <div className="bg-gray-50 rounded-xl p-8 text-center border border-gray-100">
