@@ -25,6 +25,7 @@ export default function PlayerHand() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [isScrollableWidth, setIsScrollableWidth] = useState(false)
   
   // Show toast on game error
   useEffect(() => {
@@ -78,13 +79,13 @@ export default function PlayerHand() {
     const container = scrollContainerRef.current
     if (container) {
       const scrollableWidth = container.scrollWidth - container.clientWidth
-      // Revert to checking > 0 for the left edge
       setCanScrollLeft(container.scrollLeft > 0)
-      // Keep a threshold for the right edge
       setCanScrollRight(container.scrollLeft < scrollableWidth - 1)
+      setIsScrollableWidth(scrollableWidth > 0)
     } else {
       setCanScrollLeft(false)
       setCanScrollRight(false)
+      setIsScrollableWidth(false)
     }
   }, []) // Empty dependency array, relies on refs
 
@@ -278,7 +279,7 @@ export default function PlayerHand() {
         <div className="flex items-center justify-center w-full overflow-hidden h-full">
           <div
             ref={scrollContainerRef}
-            className="w-full h-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent px-3 overflow-x-auto overflow-y-visible"
+            className={`w-full h-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent px-3 ${isScrollableWidth ? 'overflow-x-auto' : 'overflow-x-hidden'} overflow-y-visible`}
             style={{ scrollbarWidth: 'thin' }}
             onScroll={() => checkScrollability()}
           >
@@ -290,8 +291,7 @@ export default function PlayerHand() {
                 transform: `scale(${cardScale/100})`,
                 transformOrigin: 'center bottom',
                 width: 'max-content',
-                paddingLeft: '50%', // Add left padding of 50% of container width
-                paddingRight: '50%'  // Add right padding of 50% of container width
+                ...(isScrollableWidth ? { paddingLeft: '50%', paddingRight: '50%' } : {})
               }}
             >
               <div className="flex items-stretch h-full">
@@ -324,8 +324,8 @@ export default function PlayerHand() {
                         }}
                         onClick={async () => {
                           // --- Stricter Guard ---
-                          if (!isMyTurn || isLoading || animatingCard) {
-                            console.log('--> Click blocked by stricter guard (not turn / loading / animating)');
+                          if (!isMyTurn) {
+                            console.log('--> Click blocked by stricter guard (not turn)');
                             return;
                           }
                           const cardIsCurrentlyPlayable = checkPlayValidity(state, card);

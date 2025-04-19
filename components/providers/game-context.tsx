@@ -303,25 +303,41 @@ export function GameProvider({
 
     try {
       console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, state_currentColor: state.currentColor, turn: state.currentPlayer })
-      // Check if it is the current player's turn first
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
         toast({ title: "Not Your Turn", description: "Please wait for your turn.", variant: "destructive" })
-        setIsLoading(false) // Reset loading state
-        return // Prevent action
+        setIsLoading(false)
+        return
       }
-      
       const card = player?.cards.find(c => c.id === cardId)
       if (!card) throw new Error("Card not in hand (client check)")
       if (!checkPlayValidityLogic(state, card)) {
         throw new Error("Invalid play (client check)")
       }
       if ((card.type === "wild" || card.type === "wild4") && !selectedColor) {
-        console.log("[GameProvider] Wild card played, opening color selector")
         setPendingWildCardId(cardId)
         setIsColorSelectionOpen(true)
         setIsLoading(false)
         return
+      }
+      // Optimistic update for non-wild cards
+      if (card.type !== "wild" && card.type !== "wild4") {
+        const updatedPlayers = state.players.map(p =>
+          p.id === currentPlayerId
+            ? { ...p, cards: p.cards.filter(c => c.id !== cardId) }
+            : p
+        )
+        const updatedDiscardPile = [...state.discardPile, card]
+        const updatedColor = card.color
+        dispatch({
+          type: "UPDATE_GAME_STATE",
+          payload: {
+            ...state,
+            players: updatedPlayers,
+            discardPile: updatedDiscardPile,
+            currentColor: updatedColor,
+          },
+        })
       }
       await playCard(roomId, currentPlayerId, cardId, selectedColor)
       setPendingWildCardId(null)

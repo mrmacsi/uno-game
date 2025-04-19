@@ -220,9 +220,9 @@ export default function GameControls() {
       <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
          {/* Direction Indicator */}
          <span 
-           className={`hidden sm:inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'} order-first`} 
+           className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'} order-first`} 
            title={state.direction === 1 ? "Clockwise" : "Counter-Clockwise"}
-          >
+         >
           {state.direction === 1 ? '➡️' : '⬅️'}
         </span>
          {/* Color Indicator */}
