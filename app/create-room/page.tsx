@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { createRoom } from "@/lib/room-actions"
 import { Home, User, ArrowRight, Wand2 } from "lucide-react"
-import { storePlayerIdInLocalStorage, generateClientUUID } from "@/lib/client-utils"
+import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { generateRandomName } from "@/lib/name-generator"
 import { motion } from "framer-motion"
 

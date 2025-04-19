@@ -4,8 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useGame } from "../providers/game-context"
 import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { checkPlayValidity } from "@/lib/game-logic"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -19,16 +18,11 @@ export default function PlayerHand() {
     isLoading, 
     promptColorSelection,
     cardScale, // Get from context
-    increaseCardSize, // Get from context
-    decreaseCardSize // Get from context
   } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const [handWidth, setHandWidth] = useState(0)
-  const [handScrollPos, setHandScrollPos] = useState(0)
-  const [recentlyDrawnCard, setRecentlyDrawnCard] = useState<string | null>(null)
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const isMobile = useIsMobile()
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   
@@ -69,9 +63,8 @@ export default function PlayerHand() {
       // Find the new card id (the one not in the previous array)
       const newCardId = currentCardIds.find((id: string) => !prevCardsRef.current.includes(id))
       if (newCardId && prevCardsRef.current.length > 0) {
-        setRecentlyDrawnCard(newCardId)
         setTimeout(() => {
-          setRecentlyDrawnCard(null)
+          setAnimatingCard(newCardId)
         }, 3000)
       }
     }
@@ -123,22 +116,66 @@ export default function PlayerHand() {
   // Scroll handlers
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.6, 250) // Scroll by 60% of visible width or 250px max
+      // Smaller scroll amount - 30% of visible width or 120px max
+      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.3, 120)
       const newPos = Math.max(0, scrollContainerRef.current.scrollLeft - scrollAmount)
       scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
-      setHandScrollPos(newPos) // Keep this if used elsewhere, otherwise remove
+
+      // Force recheck of scrollability after animation
+      setTimeout(() => checkScrollability(), 500)
     }
   }
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.6, 250)
+      // Smaller scroll amount - 30% of visible width or 120px max
+      const scrollAmount = Math.min(scrollContainerRef.current.clientWidth * 0.3, 120)
       const maxScroll = scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth
       const newPos = Math.min(maxScroll, scrollContainerRef.current.scrollLeft + scrollAmount)
       scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
-      setHandScrollPos(newPos) // Keep this if used elsewhere, otherwise remove
+      
+      // Force recheck of scrollability after animation
+      setTimeout(() => checkScrollability(), 500)
     }
   }
+
+  // Center a specific card in view
+  const centerCard = (index: number) => {
+    if (scrollContainerRef.current && currentPlayer?.cards?.length) {
+      // Get approximate card width (including overlap)
+      const cardElements = scrollContainerRef.current.querySelectorAll('.card-wrapper')
+      if (cardElements.length > 0) {
+        // Calculate the desired scroll position to center the card
+        const cardWidth = 80 // Approximate card width after scaling and overlap
+        const containerWidth = scrollContainerRef.current.clientWidth
+        const totalCardsWidth = cardWidth * currentPlayer.cards.length - (currentPlayer.cards.length - 1) * 20 // Adjust for overlap
+        
+        // Calculate left position of the card
+        const cardPosition = (index * cardWidth) - (index * 20) // Adjust for overlap
+        
+        // Center position calculation
+        const scrollPos = cardPosition - (containerWidth / 2) + (cardWidth / 2)
+        
+        // Constrain to valid scroll range
+        const maxScroll = scrollContainerRef.current.scrollWidth - containerWidth
+        const newPos = Math.max(0, Math.min(maxScroll, scrollPos))
+        
+        // Smooth scroll to position
+        scrollContainerRef.current.scrollTo({ left: newPos, behavior: 'smooth' })
+      }
+    }
+  }
+  
+  useEffect(() => {
+    const handleScrollLeft = () => scrollLeft()
+    const handleScrollRight = () => scrollRight()
+    window.addEventListener('player-hand-scroll-left', handleScrollLeft)
+    window.addEventListener('player-hand-scroll-right', handleScrollRight)
+    return () => {
+      window.removeEventListener('player-hand-scroll-left', handleScrollLeft)
+      window.removeEventListener('player-hand-scroll-right', handleScrollRight)
+    }
+  }, [])
   
   if (!currentPlayerId || !state || !state.players) return null
 
@@ -150,64 +187,126 @@ export default function PlayerHand() {
   
   // Calculate card spread based on number of cards and screen width
   const cardCount = currentPlayer.cards.length
-  const maxOverlap = handWidth < 640 ? 50 : 40 // More overlap on small screens
-  const minOverlap = handWidth < 640 ? 30 : 20
+  const maxOverlap = 40
+  const minOverlap = 20
   const overlap = Math.max(minOverlap, maxOverlap - cardCount * 1.5)
-
-  // Determine container height based on scale - adjust as needed
-  const baseHeight = handWidth < 640 ? 88 : 180
-  const containerHeight = `${(baseHeight * (cardScale / 100))}px`
+  
+  // Dynamic card spacing to ensure cards are visible and scrollable
+  const cardSpacing = Math.max(0, -10 + (10 * Math.min(1, 10/cardCount)))
+  
+  // Check scrollability after cards are rendered - moved here after cardCount is defined
+  useEffect(() => {
+    // Check scrollability after a short delay to ensure cards are rendered
+    const timer = setTimeout(() => checkScrollability(), 200)
+    return () => clearTimeout(timer)
+  }, [checkScrollability, cardCount])
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className={`relative z-40 flex flex-col flex-grow px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg`}>
-        <div className="flex items-center w-full flex-grow overflow-hidden px-3 sm:px-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={scrollLeft}
-                disabled={!canScrollLeft}
-                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 mr-1 ${
-                  canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-              </Button>
-            </TooltipTrigger>
-            {canScrollLeft && <TooltipContent side="top">Scroll Left</TooltipContent>}
-          </Tooltip>
+      <div className="relative z-40 flex flex-col flex-grow px-0 pb-1 sm:px-3 sm:pb-4 bg-black/40 backdrop-blur-md rounded-t-xl border-t border-x border-white/10 shadow-lg justify-center h-full w-full">
+        
+        {/* Absolutely Positioned Player Info Box -- REMOVED */}
+        {/*
+        {currentPlayer && (
+          <div className="absolute -top-12 sm:-top-16 left-1/2 -translate-x-1/2 pointer-events-auto w-44 sm:w-56 z-50">
+             
+            <div className="rounded-md sm:rounded-lg overflow-hidden transition-all duration-300 bg-black/50 shadow-md">
+              <div className="p-1 sm:p-1.5 flex flex-col items-center">
+                <p className={`text-white font-medium truncate text-[10px] sm:text-xs text-center w-full mb-0.5 sm:mb-1 ${isMyTurn ? 'text-green-300' : 'text-white/90'}`}>
+                  {currentPlayer.name} {isMyTurn ? '(Your Turn)' : ''}
+                </p>
+                <div className="flex items-center justify-between w-full gap-1 sm:gap-1.5">
+                  
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {isMyTurn && (
+                      <div className="relative flex h-3 w-3 sm:h-4 sm:h-4 mr-0.5 sm:mr-1 items-center justify-center">
+                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                         <span className="relative inline-flex rounded-full h-full w-full bg-green-500"></span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center text-white/60 text-[10px] sm:text-xs">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        {currentPlayer.cards.length} <span className="hidden sm:inline">cards</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+               
+              
+              
+            </div>
+          </div>
+        )}
+        */}
+
+        {/* Card count indicator removed */}
+        {/*
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3/4 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-50 border border-white/20">
+          {cardCount} cards
+        </div>
+        */}
+
+        {/* Scroll buttons removed */}
+        {/*
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center z-50 pointer-events-none px-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className={`h-8 w-8 rounded-full bg-black/70 border-white/30 backdrop-blur-md text-white shadow-lg pointer-events-auto
+              ${canScrollLeft ? 'opacity-80 hover:opacity-100' : 'opacity-40 cursor-not-allowed'}`}
+            onClick={scrollLeft}
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon" 
+            className={`h-8 w-8 rounded-full bg-black/70 border-white/30 backdrop-blur-md text-white shadow-lg pointer-events-auto
+              ${canScrollRight ? 'opacity-80 hover:opacity-100' : 'opacity-40 cursor-not-allowed'}`}
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+        */}
+        
+        <div className="flex items-center justify-center w-full overflow-hidden h-full">
           <div
             ref={scrollContainerRef}
-            className="relative w-full flex-grow overflow-x-auto py-0.5 px-1 sm:px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent sm:mx-0 hide-scrollbar"
-            style={{ scrollbarWidth: 'none', overflowY: 'visible' }}
-            onScroll={(e) => {
-              setHandScrollPos(e.currentTarget.scrollLeft)
-            }}
+            className="w-full h-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent px-3 overflow-x-auto overflow-y-visible"
+            style={{ scrollbarWidth: 'thin' }}
+            onScroll={() => checkScrollability()}
           >
             <div 
-              className="flex justify-center mx-auto w-full h-full items-end"
+              className="flex justify-center items-center h-full min-w-max mx-auto"
               style={{ 
-                paddingBottom: handWidth < 640 ? "0.15rem" : "0.5rem", 
-                paddingTop: handWidth < 640 ? "1rem" : "1.5rem",
+                paddingBottom: '0.5rem', 
+                paddingTop: '1.5rem',
                 transform: `scale(${cardScale/100})`,
-                transformOrigin: 'center bottom'
+                transformOrigin: 'center bottom',
+                width: 'max-content',
+                paddingLeft: '50%', // Add left padding of 50% of container width
+                paddingRight: '50%'  // Add right padding of 50% of container width
               }}
             >
-              <div className={`flex ${handWidth < 640 ? 'gap-2' : 'gap-1'} items-stretch h-full ${handWidth < 640 ? 'stagger-fade-in-up' : ''}`} style={{ marginLeft: handWidth < 640 ? undefined : `${overlap/2}px` }}>
+              <div className="flex items-stretch h-full">
                 {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
                   const isPlayable = isMyTurn && checkPlayValidity(state, card);
                   
                   const animationDelay = `${index * 0.05}s`;
                   const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
-                  const isRecentlyDrawn = card.id === recentlyDrawnCard;
+                  const isRecentlyDrawn = card.id === animatingCard;
                   return (
                     <div 
                       key={card.id} 
-                      className={`transform transition-all duration-300 ease-out relative group h-full`}
+                      className={`transform transition-all duration-300 ease-out relative group h-full card-wrapper`}
                       style={{ 
-                        marginLeft: undefined,
+                        marginLeft: index > 0 ? `-${Math.min(20, 45 - Math.min(45, cardCount * 1.5))}px` : undefined,
                         zIndex: isPlayable ? 50 + index : index,
                         transform: `rotate(${rotationDeg}deg)`,
                         transformOrigin: 'bottom center'
@@ -288,7 +387,6 @@ export default function PlayerHand() {
                             card={card}
                             disabled={!isPlayable}
                             animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
-                            isMobile={isMobile}
                           />
                         </div>
                       </div>
@@ -312,22 +410,11 @@ export default function PlayerHand() {
               </div>
             </div>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={scrollRight}
-                disabled={!canScrollRight}
-                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex-shrink-0 transition-opacity duration-200 ${
-                  canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-              </Button>
-            </TooltipTrigger>
-            {canScrollRight && <TooltipContent side="top">Scroll Right</TooltipContent>}
-          </Tooltip>
+        </div>
+
+        {/* Mobile swipe indicator */}
+        <div className="flex justify-center mt-1 sm:hidden">
+          <div className="w-12 h-1 bg-white/20 rounded-full"></div>
         </div>
       </div>
     </TooltipProvider>

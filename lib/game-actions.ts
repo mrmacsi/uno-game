@@ -59,7 +59,7 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
           break; 
       }
       // Check if it's a retryable error (like ECONNRESET) and if we haven't reached max retries
-      const isRetryable = error instanceof Error && (error as any).code === 'ECONNRESET'; // Check for ECONNRESET specifically
+      const isRetryable = error instanceof Error && typeof (error as { code?: string }) === "object" && (error as { code?: string }).code === 'ECONNRESET';
       if (isRetryable && attempt < MAX_RETRIES) {
           console.log(`Retrying Pusher trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));

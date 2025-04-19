@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react"
 import { useRouter } from 'next/navigation'
 import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction, Card, CardColor, Player } from "@/lib/types"
+import type { GameState, GameAction, Card, CardColor } from "@/lib/types"
 import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction } from "@/lib/game-actions"
 import { getRoom, resetRoom } from "@/lib/room-actions"
 import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"

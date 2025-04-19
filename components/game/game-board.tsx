@@ -86,6 +86,8 @@ export default function GameBoard() {
   }, [state?.discardPile, state?.log, toast]); // Depend on discardPile, log, and toast fn
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
+  const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+  const isMyTurn = state.currentPlayer === currentPlayerId
 
   if (state.status === "finished") {
     return <GameOver />
@@ -212,14 +214,27 @@ export default function GameBoard() {
         </div>
       </div>
       
-      {/* Bottom section: Player hand and controls */}
-      <div className="w-full flex flex-col gap-1 sm:gap-2 mt-auto z-20">
-         {/* Render GameControls above PlayerHand */}
-        <div className="w-full px-0 sm:px-2 order-1">
-            <GameControls />
+      {/* Bottom section: Game controls and Player hand */}
+      <div className="w-full flex flex-col gap-1 sm:gap-2 mt-auto z-20 flex-shrink-0">
+        {/* Current Player Info (Above Controls) */}
+        <div className="w-full flex justify-center px-2 pb-1">
+          {currentPlayer && (
+            <div className="w-44 sm:w-56">
+              <PlayerInfo 
+                player={currentPlayer} 
+                isCurrentTurn={isMyTurn} 
+              />
+            </div>
+          )}
         </div>
-        {/* Adjust PlayerHand container if needed */}
-        <div className="relative min-h-[170px] order-2" style={{ overflow: 'visible' }}>
+        
+        {/* Game controls container */}
+        <div className="w-full px-2 py-1 bg-black/30 backdrop-blur-sm border-t border-white/10 shadow-md z-30">
+          <GameControls />
+        </div>
+        
+        {/* Player hand - gets full focus with more space */}
+        <div className="relative w-full flex items-center justify-center min-h-[140px] sm:min-h-[150px] overflow-visible">
           <PlayerHand />
         </div>
       </div>

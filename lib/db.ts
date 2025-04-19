@@ -1,5 +1,5 @@
 import { createClient } from 'redis'
-import type { GameState, Card } from "./types"
+import type { GameState } from "./types"
 
 const redis = createClient({ url: process.env.REDIS_URL })
 redis.connect()
