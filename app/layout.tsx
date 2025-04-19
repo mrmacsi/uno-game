@@ -1,14 +1,14 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter as FontSans } from "next/font/google"
-import "@/styles/globals.css"
+import { Inter } from "next/font/google"
+import "../styles/globals.css"
 import "@/styles/animations.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import SafeHydration from "@/components/safe-hydration"
+import { ThemeProvider } from "@/components/providers/theme-provider"
+import SafeHydration from "@/components/layout/safe-hydration"
 import { cn } from "@/lib/utils"
 
 // Better font loading with display swap
-const fontSans = FontSans({ 
+const fontSans = Inter({ 
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap" 

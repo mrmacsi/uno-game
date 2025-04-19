@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getAllRooms } from "@/lib/game-actions"
+import { getAllRooms } from "@/lib/room-actions"
 
 export async function GET() {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { deleteRoom } from "@/lib/game-actions"
+import { deleteRoom } from "@/lib/room-actions"
 
 export async function POST(request: NextRequest) {
   try {

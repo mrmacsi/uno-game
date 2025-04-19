@@ -1,5 +1,5 @@
 export type CardColor = "red" | "blue" | "green" | "yellow" | "black" | "wild"
-export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4"
+export type CardType = "number" | "skip" | "reverse" | "draw2" | "wild" | "wild4" | "back"
 
 export interface Card {
   id: string
@@ -25,6 +25,7 @@ export interface MatchResult {
     playerName: string
     points: number
   }[]
+  finalScore: number
 }
 
 export interface GameState {
@@ -38,12 +39,12 @@ export interface GameState {
   currentColor: CardColor
   winner: string | null
   drawCardEffect?: {
-    active: boolean
-    type: "draw2" | "wild4"
+    playerId: string
+    count: number
   }
   hasDrawnThisTurn?: boolean
+  log: string[]
   matchHistory?: MatchResult[]
-  log?: string[]
   drawPileCount?: number
   isDrawing?: boolean
   isValidPlay?: (card: Card) => boolean

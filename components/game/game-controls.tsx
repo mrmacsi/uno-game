@@ -1,6 +1,7 @@
 "use client"
 
-import { useGame } from "./game-context"
+import React from "react"
+import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { ArrowDown, Hand, HelpCircle, Info } from "lucide-react"
 import { 
@@ -22,7 +23,14 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function GameControls() {
-  const { state, currentPlayerId, endTurn, sayUno, hasPlayableCard, drawCard, drawnCardPlayable } = useGame()
+  const {
+    state,
+    currentPlayerId,
+    hasPlayableCard,
+    drawCard,
+    passTurn,
+    declareUno,
+  } = useGame()
   const isMobile = useIsMobile()
 
   const isMyTurn = state.currentPlayer === currentPlayerId
@@ -90,7 +98,7 @@ export default function GameControls() {
         <div className="flex gap-1 sm:gap-2 items-center">
           {canSayUno && (
             <Button 
-              onClick={sayUno} 
+              onClick={declareUno}
               size="sm"
               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-8 text-xs"
             >
@@ -115,7 +123,7 @@ export default function GameControls() {
               Draw Card
             </Button>
             <Button 
-              onClick={endTurn} 
+              onClick={passTurn}
               disabled={!canEndTurn}
               size="sm"
               className={`h-9 px-3 text-xs rounded-full shadow-md

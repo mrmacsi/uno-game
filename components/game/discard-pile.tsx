@@ -17,6 +17,7 @@ export default function DiscardPile({ topCard }: DiscardPileProps) {
       const timer = setTimeout(() => setAnimateCard(false), 700)
       return () => clearTimeout(timer)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topCard?.id])
 
   if (!topCard) {

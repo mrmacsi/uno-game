@@ -1,8 +1,11 @@
+"use client"
+import React from "react"
 import { useEffect, useState } from "react"
 import UnoCard from "./uno-card"
 import type { Card } from "@/lib/types"
 import { Layers } from "lucide-react"
-import { useGame } from "./game-context"
+import { useGame } from "../providers/game-context"
+// import { motion } from "framer-motion" // Remove unused import
 
 interface DrawPileProps {
   count: number

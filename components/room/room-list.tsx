@@ -13,13 +13,11 @@ export default function RoomList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actions, setActions] = useState<Record<string, { loading: boolean, message: string | null }>>({})
-  const [refreshing, setRefreshing] = useState(false)
 
   const fetchRooms = async () => {
     try {
       setLoading(true)
       setError(null)
-      setRefreshing(true)
       
       const response = await fetch("/api/rooms")
       
@@ -34,7 +32,6 @@ export default function RoomList() {
       setError("Failed to load rooms")
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 

@@ -1,8 +1,7 @@
 'use client'
 
 import type { GameState, Card } from "@/lib/types"
-import { isIOS } from "./browser-utils"
-import { checkPlayValidity } from "./utils"
+import { checkPlayValidity } from "./game-logic"
 
 // For iOS devices, use this as a backup if localStorage fails
 let inMemoryPlayerIdFallback: string | null = null

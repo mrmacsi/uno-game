@@ -1,13 +1,13 @@
 "use client"
 
-import { useGame } from "./game-context"
+import React, { useState, useEffect, useRef } from "react"
+import { useGame } from "../providers/game-context"
 import UnoCard from "./uno-card"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect, useRef } from "react"
-import { Play, ChevronLeft, ChevronRight, Hand, Plus, Minus } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { toast } from "@/hooks/use-toast"
-import { checkPlayValidity } from "@/lib/utils"
+import { checkPlayValidity } from "@/lib/game-logic"
 
 export default function PlayerHand() {
   const { state, currentPlayerId, playCard, error: gameError, isLoading } = useGame()
@@ -276,11 +276,12 @@ export default function PlayerHand() {
                           console.log(`playCard succeeded for ${card.id}`);
                           // Reset animation state on successful server response
                           setAnimatingCard(null); 
-                        } catch (error: any) {
+                        } catch (error: unknown) {
                           console.error("Failed to play card (error caught in PlayerHand onClick):", error);
+                          const errorMessage = error instanceof Error ? error.message : "Failed to play card. Please try again.";
                           toast({
                             title: "Action Failed",
-                            description: error.message || "Failed to play card. Please try again.",
+                            description: errorMessage,
                             variant: "destructive",
                           });
                           // Reset animation state on error

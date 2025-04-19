@@ -1,21 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useGame } from "./game-context"
+import React, { useState, useEffect } from "react"
+import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { startGame } from "@/lib/game-actions"
-import { Copy, Home, RefreshCw, Play, Users, Crown, AlertCircle } from "lucide-react"
+import { Copy, Play, RefreshCw, Users, Home, Crown, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
 import ResetRoomButton from "./reset-room-button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import type { Player } from "@/lib/types"
+import { startGame } from "@/lib/game-actions"
 
 export default function WaitingRoom() {
-  const { state, currentPlayerId, refreshGameState } = useGame()
-  const { toast } = useToast()
+  const {
+    state,
+    refreshGameState,
+    currentPlayerId
+  } = useGame()
   const router = useRouter()
   const [isStarting, setIsStarting] = useState(false)
+  const { toast } = useToast()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [playerJoined, setPlayerJoined] = useState(false)
   
@@ -96,11 +102,11 @@ export default function WaitingRoom() {
 
     setIsStarting(true)
     try {
-      await startGame(state.roomId)
-    } catch (error: any) {
-      console.error("Failed to start game:", error)
+      await startGame(state.roomId, currentPlayerId!)
+    } catch (err: unknown) {
+      console.error("Failed to start game:", err)
       let description = "Please try again."
-      if (error instanceof Error && error.message === "Game has already started") {
+      if (err instanceof Error && err.message === "Game has already started") {
         description = "Game has already started. Please refresh or rejoin the room."
       }
       toast({
@@ -267,43 +273,47 @@ export default function WaitingRoom() {
               </div>
               
               {/* Player cards */}
-              <div className="space-y-2">
-                {state.players.map((player) => (
-                  <div 
-                    key={player.id} 
-                    className={`
-                      p-3 rounded-xl flex justify-between items-center 
-                      ${player.id === currentPlayerId 
-                        ? "bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 shadow-sm" 
-                        : "bg-white border border-gray-100"}
-                      transition-all duration-200 hover:shadow-sm
-                    `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center
-                        ${player.isHost 
-                          ? "bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-800 shadow-md" 
-                          : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-500"}
-                      `}>
-                        {player.isHost ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                      </div>
-                      <span className="font-medium text-gray-800">
-                        {player.name} 
-                        {player.id === currentPlayerId && (
-                          <span className="ml-1 text-xs text-indigo-500">(You)</span>
+              <ScrollArea className="h-[200px] flex-1">
+                <div className="space-y-2 pr-4">
+                  {state.players.map((player: Player) => {
+                    return (
+                      <div 
+                        key={player.id} 
+                        className={`
+                          p-3 rounded-xl flex justify-between items-center 
+                          ${player.id === currentPlayerId 
+                            ? "bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 shadow-sm" 
+                            : "bg-white border border-gray-100"}
+                          transition-all duration-200 hover:shadow-sm
+                        `}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            w-8 h-8 rounded-full flex items-center justify-center
+                            ${player.isHost 
+                              ? "bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-800 shadow-md" 
+                              : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-500"}
+                          `}>
+                            {player.isHost ? <Crown className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                          </div>
+                          <span className="font-medium text-gray-800">
+                            {player.name} 
+                            {player.id === currentPlayerId && (
+                              <span className="ml-1 text-xs text-indigo-500">(You)</span>
+                            )}
+                          </span>
+                        </div>
+                        
+                        {player.isHost && (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
+                            Host
+                          </span>
                         )}
-                      </span>
-                    </div>
-                    
-                    {player.isHost && (
-                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
-                        Host
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
             </div>
             
             {/* Info message */}

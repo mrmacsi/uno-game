@@ -1,27 +1,18 @@
 "use client"
 
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button"
-import React, { useState, useEffect } from "react";
-import { Database, Info, Trash2, List, RefreshCw } from "lucide-react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog" // Import AlertDialog components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Database, Info, Trash2, List, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { getAllRooms, deleteRoom, resetRoom } from "@/lib/room-actions"
+import { clearDb } from "@/lib/db-actions"
+import { useToast } from "@/components/ui/use-toast"
+import type { GameState } from "@/lib/types"
 
 // ... RedisInfo interface ...
 interface RedisInfo {
@@ -31,58 +22,87 @@ interface RedisInfo {
 }
 
 export default function AdminPage() {
-  // State moved from main page
-  const [redisData, setRedisData] = useState<Record<string, any> | null>(null);
-  const [cleaned, setCleaned] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [rooms, setRooms] = useState<GameState[]>([]);
+  const [loading, setLoading] = useState(true);
   const [redisInfo, setRedisInfo] = useState<RedisInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
-  // Removed state for dialog open/close, handled by AlertDialogTrigger
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // ... fetchKeys function ...
-  async function fetchKeys() {
+  // Define fetchRooms function
+  const fetchRooms = useCallback(async () => {
     setLoading(true);
-    setCleaned(false);
-    setRedisData(null);
     try {
-      const res = await fetch("/api/redis");
-      const data = await res.json();
-      if (data.keyValues) {
-        setRedisData(data.keyValues);
-      } else {
-        console.error("API did not return keyValues:", data);
-        setRedisData({});
-      }
+      const fetchedRooms = await getAllRooms(); // Use imported function
+      // Only include active rooms or filter as needed for admin view
+      setRooms(fetchedRooms);
     } catch (error) {
-      console.error("Error fetching Redis data from API:", error);
-      setRedisData({});
+      console.error("Failed to fetch rooms:", error);
+      toast({ title: "Error", description: "Could not fetch rooms.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
-  // cleanKeys now just prepares, handleConfirmClean does the work
-  async function cleanKeys() {
-    // This function is now implicitly handled by AlertDialogTrigger and AlertDialogAction
-    // The logic is moved to handleConfirmClean
-    console.log("Clean keys action triggered");
-  }
-  
-  // New function for the actual cleaning logic after confirmation
-  async function handleConfirmClean() {
-    setLoading(true);
-    setCleaned(false);
-    setRedisData(null);
-    try {
-      await fetch("/api/redis", { method: "POST" }); 
-      setCleaned(true);
-    } catch (error) {
-       console.error("Error cleaning Redis keys:", error);
-       // Optionally set an error state here
-    } finally {
-       setLoading(false);
+  // Initial fetch
+  useEffect(() => {
+    fetchRooms();
+    // fetchRedisInfo(); // Keep if needed
+  }, [fetchRooms]);
+
+  // Action Handlers (use fetchRooms defined above)
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!roomId || roomId === "DEFAULT") return;
+    if (window.confirm(`Are you sure you want to delete room ${roomId}? This is irreversible.`)) {
+      setSelectedRoom(roomId);
+      setLoadingAction("delete");
+      try {
+        await deleteRoom(roomId);
+        toast({ title: "Room Deleted", description: `Room ${roomId} was deleted.` });
+        fetchRooms(); // Refresh list
+      } catch (error: unknown) { // Specify type for error
+        console.error("Failed to delete room:", error);
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete room.", variant: "destructive" });
+      } finally {
+        setLoadingAction(null);
+        setSelectedRoom(null);
+      }
     }
-  }
+  };
+
+  const handleResetRoom = async (roomId: string) => {
+    if (!roomId) return;
+    setSelectedRoom(roomId);
+    setLoadingAction("reset");
+    try {
+      await resetRoom(roomId);
+      toast({ title: "Room Reset", description: `Room ${roomId} was reset.` });
+      fetchRooms(); // Refresh list
+    } catch (error: unknown) { // Specify type for error
+      console.error("Failed to reset room:", error);
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not reset room.", variant: "destructive" });
+    } finally {
+      setLoadingAction(null);
+      setSelectedRoom(null);
+    }
+  };
+
+  const handleClearDb = async () => {
+    if (window.confirm("DANGER! Are you sure you want to delete ALL non-DEFAULT rooms? This is irreversible.")) {
+        setLoadingAction("clearDb");
+        try {
+            await clearDb();
+            toast({ title: "Database Cleared", description: `All rooms cleared.` });
+            fetchRooms(); // Refresh list
+        } catch (error: unknown) { // Specify type for error
+            console.error("Failed to clear DB:", error);
+            toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear database.", variant: "destructive" });
+        } finally {
+            setLoadingAction(null);
+        }
+    }
+  };
 
   // ... fetchRedisInfo function ...
   async function fetchRedisInfo() {
@@ -130,7 +150,7 @@ export default function AdminPage() {
             <div className="border dark:border-gray-700 rounded-lg p-4">
               <h2 className="text-lg font-medium mb-4 text-gray-700 dark:text-gray-200">Redis Management</h2>
               <div className="flex flex-wrap gap-4 items-center mb-4"> 
-                <Button onClick={fetchKeys} disabled={loading || infoLoading}>
+                <Button onClick={fetchRooms} disabled={loading || infoLoading}>
                   <List className="h-4 w-4 mr-2"/> List Rooms Data
                 </Button>
                 
@@ -152,7 +172,7 @@ export default function AdminPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleConfirmClean} className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800">
+                      <AlertDialogAction onClick={handleClearDb} className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800">
                         Yes, delete data
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -196,28 +216,50 @@ export default function AdminPage() {
                  </Button>
               </div>
               {loading && <div className="text-sm text-gray-500 dark:text-gray-400">Loading Redis data...</div>}
-              {cleaned && <div className="text-sm text-green-600 dark:text-green-400">All Redis room data cleaned.</div>}
             </div>
 
             {/* ... Redis Data Display Section ... */}
-             {redisData && (
-              <div className="border dark:border-gray-700 rounded-lg p-4">
-                 <h2 className="text-lg font-medium mb-4 text-gray-700 dark:text-gray-200">Current Room Data (room:*)</h2>
-                {Object.keys(redisData).length > 0 ? (
-                  <div className="mt-4 p-4 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50 max-h-96 overflow-y-auto">
-                    <ul className="space-y-2">
-                      {Object.entries(redisData).map(([key, value]) => (
-                        <li key={key} className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                          <strong className="text-gray-900 dark:text-gray-100">{key}:</strong>
-                          <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs whitespace-pre-wrap">{JSON.stringify(value, null, 2)}</pre>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                   <div className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">No room data found in Redis or data hasn't been listed yet.</div>
-                )}
-              </div>
+             {rooms.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Rooms ({rooms.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex justify-center items-center h-32">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Room ID</TableHead><TableHead>Status</TableHead><TableHead>Players</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {rooms.map((room) => (
+                          <TableRow key={room.roomId}>
+                            <TableCell className="font-mono">{room.roomId}</TableCell>
+                            <TableCell>{room.status}</TableCell>
+                            <TableCell>{room.players.length}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                                {/* Reset Button */} 
+                                <Button variant="outline" size="sm" onClick={() => handleResetRoom(room.roomId)} disabled={loadingAction === 'reset' && selectedRoom === room.roomId}>{loadingAction === 'reset' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</Button>
+                                {/* Delete Button */} 
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                         <Button variant="destructive" size="sm" disabled={loadingAction === 'delete' && selectedRoom === room.roomId || room.roomId === "DEFAULT"}>{loadingAction === 'delete' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        {/* ... Delete Confirmation Dialog ... */} 
+                                         <AlertDialogHeader><AlertDialogTitle>Delete Room {room.roomId}?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteRoom(room.roomId)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {rooms.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No active rooms found.</TableCell></TableRow>}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
              )}
           </div>
         </div>

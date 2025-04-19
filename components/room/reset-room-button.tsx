@@ -26,6 +26,7 @@ export default function ResetRoomButton({ roomId, className }: ResetRoomButtonPr
   }
 
   const handleReset = async () => {
+    setShowConfirm(false)
     try {
       setResetting(true)
       
@@ -52,15 +53,11 @@ export default function ResetRoomButton({ roomId, className }: ResetRoomButtonPr
           variant: "destructive"
         })
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred while resetting the room",
-        variant: "destructive"
-      })
+    } catch (err: unknown) {
+      console.error("Reset game failed:", err)
+      toast({ title: "Error", description: "Failed to reset room.", variant: "destructive" })
     } finally {
       setResetting(false)
-      setShowConfirm(false)
     }
   }
 

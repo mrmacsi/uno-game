@@ -34,7 +34,7 @@ const nextConfig = {
       'types',
       'utils',
     ],
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
     ignoreBuildErrors: true,

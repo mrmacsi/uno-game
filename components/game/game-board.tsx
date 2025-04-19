@@ -1,28 +1,29 @@
 "use client"
 
-import { useGame } from "./game-context"
+import React, { useState } from "react"
+import { useGame } from "../providers/game-context"
 import PlayerHand from "./player-hand"
-import DiscardPile from "./discard-pile"
 import DrawPile from "./draw-pile"
-import PlayerInfo from "./player-info"
+import DiscardPile from "./discard-pile"
 import GameControls from "./game-controls"
-import GameOver from "./game-over"
+import GameOver from "../layout/game-over"
 import ColorSelector from "./color-selector"
+import PlayerInfo from "../room/player-info"
 import { Button } from "@/components/ui/button"
-import { Home, Settings, Maximize, Minimize } from "lucide-react"
+import { Home, Maximize, Minimize } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function GameBoard() {
-  const { state, selectWildCardColor, isColorSelectionOpen, closeColorSelector, currentPlayerId } = useGame()
+  const {
+    state,
+    selectWildCardColor,
+    isColorSelectionOpen,
+    closeColorSelector,
+    currentPlayerId,
+  } = useGame()
   const router = useRouter()
   const [fullscreen, setFullscreen] = useState(false)
-  const isMobile = useIsMobile()
 
-  // Find the player that belongs to the user
-  const myPlayer = state.players.find(p => p.id === currentPlayerId)
-  // Filter out the user's player from the list of players displayed at the top
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
 
   if (state.status === "finished") {
@@ -105,7 +106,7 @@ export default function GameBoard() {
           {/* Animated card path - a visual guide for the card animation */}
           <div className="absolute top-1/2 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           
-          {/* Card piles container - position them for better animation */}
+          {/* Card piles container - position them for better animation path */}
           <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10">
             {/* Draw pile positioned on the left for better animation path */}
             <div className="relative">
