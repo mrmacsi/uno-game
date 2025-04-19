@@ -11,3 +11,5 @@ node_modules
 .next/trace
 .vercel
 *.DS_Store
+
+certificates

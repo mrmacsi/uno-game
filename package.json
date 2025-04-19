@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_NO_WARNINGS=1 next dev -H 0.0.0.0",
+    "dev": "NODE_NO_WARNINGS=1 next dev -H 0.0.0.0 --experimental-https",
     "build": "NODE_NO_WARNINGS=1 next build",
     "start": "NODE_NO_WARNINGS=1 next start",
     "lint": "NODE_NO_WARNINGS=1 next lint"

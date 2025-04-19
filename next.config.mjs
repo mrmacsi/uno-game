@@ -22,7 +22,6 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
   eslint: {
     dirs: [
       'app',
@@ -47,6 +46,17 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+  },
+  experimental: {
+    esmExternals: false,
+  },
+  webpack: (config) => {
+    // Fix clipboard API issues in development mode
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      navigator: false
+    };
+    return config;
   },
 }
 
