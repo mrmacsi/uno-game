@@ -90,7 +90,8 @@ export async function createGame(hostId: string, hostName: string, hostAvatarInd
       id: uuidv4(),
       message: `Room ${roomId} created by ${hostName}`,
       timestamp: Date.now(),
-      player: hostName
+      player: hostName,
+      avatarIndex: hostAvatarIndex
     }],
   };
   await updateGameState(roomId, initialState);
@@ -117,7 +118,8 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
     id: uuidv4(),
     message: `${playerName} joined the room.`,
     timestamp: Date.now(),
-    player: playerName
+    player: playerName,
+    avatarIndex: avatarIndex
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
@@ -169,6 +171,7 @@ export async function startGame(roomId: string, playerId: string): Promise<GameS
     message: `Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
     timestamp: Date.now(),
     player: player.name,
+    avatarIndex: player.avatar_index,
     eventType: 'system',
     cardType: firstCard.type,
     cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
@@ -206,7 +209,8 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       id: uuidv4(),
       message: `${player.name} forgot to declare UNO! Turn passed.`,
       timestamp: Date.now(),
-      player: player.name
+      player: player.name,
+      avatarIndex: player.avatar_index
     });
     
     // Pass turn as penalty for not declaring UNO
@@ -248,6 +252,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       message: `${player.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
       timestamp: Date.now(),
       player: player.name,
+      avatarIndex: player.avatar_index,
       eventType: 'play',
       cardType: cardToPlay.type,
       cardValue: undefined,
@@ -269,7 +274,8 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       id: uuidv4(),
       message: `${player.name} won the game!`,
       timestamp: Date.now(),
-      player: player.name
+      player: player.name,
+      avatarIndex: player.avatar_index
     });
     calculatePoints(gameState);
     await updateGameState(roomId, gameState);
@@ -284,7 +290,8 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
         id: uuidv4(),
         message: `${player.name} forgot to say UNO!`,
         timestamp: Date.now(),
-        player: player.name
+        player: player.name,
+        avatarIndex: player.avatar_index
       });
   }
    if (player.cards.length > 1) {
@@ -338,7 +345,8 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     id: uuidv4(),
     message: `${player.name} drew a card.`,
     timestamp: Date.now(),
-    player: player.name
+    player: player.name,
+    avatarIndex: player.avatar_index
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   gameState.drawPileCount = gameState.drawPile.length;
@@ -352,7 +360,8 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
       id: uuidv4(),
       message: `${player.name}'s drawn card wasn't playable. Turn passes.`,
       timestamp: Date.now(),
-      player: player.name
+      player: player.name,
+      avatarIndex: player.avatar_index
     });
     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
@@ -414,7 +423,8 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     id: uuidv4(),
     message: `${player.name} declared UNO!`,
     timestamp: Date.now(),
-    player: player.name
+    player: player.name,
+    avatarIndex: player.avatar_index
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   console.log(`Player ${playerId} declared UNO.`);
@@ -457,14 +467,16 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
       id: uuidv4(),
       message: `${gameState.players[currentPlayerIndex].name} forgot to declare UNO! Turn passed.`,
       timestamp: Date.now(),
-      player: gameState.players[currentPlayerIndex].name
+      player: gameState.players[currentPlayerIndex].name,
+      avatarIndex: gameState.players[currentPlayerIndex].avatar_index
     });
   } else {
     gameState.log.push({
       id: uuidv4(),
       message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
       timestamp: Date.now(),
-      player: gameState.players[currentPlayerIndex].name
+      player: gameState.players[currentPlayerIndex].name,
+      avatarIndex: gameState.players[currentPlayerIndex].avatar_index
     });
   }
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);

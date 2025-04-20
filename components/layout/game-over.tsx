@@ -9,8 +9,10 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Award, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
 import UnoCard from "../game/uno-card"
+import { AvatarDisplay } from "../game/avatar-display"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import type { Card as UnoCardType } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 const calculateHandPoints = (cards: UnoCardType[]): number => {
   let points = 0;
@@ -142,18 +144,15 @@ export default function GameOver() {
                         style={{animationDelay: `${index * 100}ms`, animationFillMode: 'forwards'}}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`
-                            w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                            ${index === 0 
-                              ? "bg-yellow-100 text-yellow-700" 
-                              : index === 1 
-                                ? "bg-gray-100 text-gray-700" 
-                                : index === 2 
-                                  ? "bg-amber-100 text-amber-700" 
-                                  : "bg-gray-50 text-gray-500"}
-                          `}>
-                            {index + 1}
-                          </div>
+                          <AvatarDisplay 
+                            index={player.avatar_index ?? 0} 
+                            size="sm" 
+                            className={cn(
+                              index === 0 && "ring-2 ring-yellow-300",
+                              index === 1 && "ring-2 ring-gray-300",
+                              index === 2 && "ring-2 ring-amber-300",
+                            )}
+                          />
                           <span className="font-medium text-gray-800">{player.name}</span>
                           {player.id === state.winner && (
                             <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 font-medium">
@@ -224,8 +223,9 @@ export default function GameOver() {
                           className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in-up"
                           style={{animationDelay: `${playerIndex * 100}ms`, animationFillMode: 'forwards'}}
                         >
-                          <h5 className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-100">
-                            {player.name}'s Cards
+                          <h5 className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
+                            <AvatarDisplay index={player.avatar_index ?? 0} size="xs" />
+                            <span>{player.name}'s Cards</span>
                           </h5>
                           <div className="space-y-1.5">
                             {numberCards.length > 0 && (
@@ -324,7 +324,7 @@ export default function GameOver() {
                               <h4 className="text-sm font-medium text-gray-700 mb-2">Player Points:</h4>
                               <div className="space-y-1">
                                 {match.playerResults.map(player => (
-                                  <div key={player.playerId} className="flex justify-between text-sm px-1 py-1">
+                                  <div key={player.playerId} className="flex justify-between items-center text-sm px-1 py-1">
                                     <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
                                       {player.playerName}
                                       {player.playerId === match.winner && (

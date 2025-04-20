@@ -1,5 +1,7 @@
 import type { Player } from "@/lib/types"
-import { User, Clock, Crown } from "lucide-react"
+import { Clock, Crown } from "lucide-react"
+import { AvatarDisplay } from "../game/avatar-display"
+import { cn } from "@/lib/utils"
 
 interface PlayerInfoProps {
   player: Player
@@ -23,18 +25,21 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
         <div className="flex items-center justify-between w-full gap-1 sm:gap-1.5">
           {/* Avatar and Host indicator - very small */}
           <div className="flex items-center gap-1 sm:gap-1.5">
-              <div className={`
-                w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0
-                transition-all duration-300
-                ${isCurrentTurn 
-                  ? "bg-gradient-to-br from-amber-400 to-yellow-500 text-yellow-900 shadow-sm" 
-                  : "bg-white/10 text-white/70"}
-                ${player.isHost ? "ring-1 ring-yellow-400/50" : ""}
-              `}>
-                {player.isHost ? 
-                  <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : 
-                  <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                }
+              <div className="relative">
+                <AvatarDisplay 
+                  index={player.avatar_index ?? 0}
+                  size="xs"
+                  className={cn(
+                    "transition-all duration-300",
+                    isCurrentTurn && "ring-2 ring-offset-1 ring-offset-amber-500/30 ring-yellow-400",
+                    player.isHost && "ring-1 ring-yellow-400/60"
+                  )}
+                />
+                {player.isHost && (
+                  <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 shadow">
+                    <Crown className="w-2 h-2 text-yellow-900" />
+                  </div>
+                )}
               </div>
               {/* Card Count - very small */}
                <div className="flex items-center text-white/60 text-[10px] sm:text-xs">

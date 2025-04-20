@@ -38,6 +38,7 @@ export interface LogEntry {
   cardType?: CardType
   cardValue?: number
   cardColor?: CardColor
+  avatarIndex?: number
 }
 
 export interface GameState {

@@ -3,6 +3,8 @@
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LogEntry } from "@/lib/types";
+import { AvatarDisplay } from "./avatar-display";
+import { cn } from "@/lib/utils";
 
 interface GameLogProps {
   logs: LogEntry[];
@@ -17,7 +19,7 @@ export default function GameLog({ logs }: GameLogProps) {
     <ScrollArea className="h-[300px] w-full p-4 bg-black/20 rounded-md border border-white/10">
       <div className="space-y-2">
         {logs.map((log) => {
-          const { id, message, player, cardType, cardColor } = log;
+          const { id, message, player, avatarIndex } = log;
           const safeMessage = typeof message === 'string' ? message : '';
           const isUnoDeclaration = safeMessage.startsWith("UNO!");
           const isPenalty = safeMessage.includes("penalty");
@@ -34,15 +36,21 @@ export default function GameLog({ logs }: GameLogProps) {
           else if (isReverse) colorClass = "text-purple-300";
           else if (isPlay) colorClass = "text-green-300";
 
-          let display = safeMessage;
-          if (player || cardType || cardColor) {
-            display = `${player ? player + ' ' : ''}${cardType ? cardType + ' ' : ''}${cardColor ? cardColor + ' ' : ''}- ${safeMessage}`.trim();
-          }
-
           return (
-            <p key={id} className={`text-xs ${colorClass}`}>
-              {display}
-            </p>
+            <div key={id} className={cn(
+              "flex items-start gap-2 text-xs", 
+              colorClass
+            )}>
+              {avatarIndex !== undefined ? (
+                 <AvatarDisplay index={avatarIndex} size="xs" className="mt-0.5 flex-shrink-0" />
+              ) : (
+                 <div className="w-[24px] h-[24px] flex-shrink-0"></div> 
+              )}
+              <p className="flex-grow">
+                {player && <span className="font-medium">{player}: </span>}
+                {safeMessage}
+              </p>
+            </div>
           );
         })}
       </div>
