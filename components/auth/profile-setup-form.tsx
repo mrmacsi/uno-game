@@ -224,12 +224,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
       }
 
       toast.success('Profile saved successfully!')
-      // Redirect logic: if editing (isEditing), go back to admin users page, otherwise go to home
-      if (isEditing) {
-          router.push('/admin/users'); // Redirect back to user list after edit
-      } else {
-          router.push('/') // Redirect to main page after initial save
-      }
+      router.push('/')
     } catch (error) {
       console.error("Error saving profile:", error)
       // Use a type assertion or check the error structure

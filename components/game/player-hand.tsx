@@ -20,8 +20,7 @@ export default function PlayerHand() {
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isScrollableWidth, setIsScrollableWidth] = useState(false)
-  const [initialScrollSet, setInitialScrollSet] = useState(false); // Track if initial scroll is done
-  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [hasEverUserScrolled, setHasEverUserScrolled] = useState(false);
 
   useEffect(() => {
     if (gameError) {
@@ -52,20 +51,19 @@ export default function PlayerHand() {
     if (container) {
       const canScroll = container.scrollWidth > container.clientWidth;
       setIsScrollableWidth(canScroll);
-      if (canScroll && !initialScrollSet && !userHasScrolled) {
+      if (canScroll && !hasEverUserScrolled) {
         requestAnimationFrame(() => {
           if (scrollContainerRef.current) {
             const currentContainer = scrollContainerRef.current;
             const middleScroll = (currentContainer.scrollWidth - currentContainer.clientWidth) / 2;
             currentContainer.scrollLeft = middleScroll;
-            setInitialScrollSet(true);
           }
         });
       }
     } else {
       setIsScrollableWidth(false)
     }
-  }, [initialScrollSet, userHasScrolled]);
+  }, [hasEverUserScrolled]);
 
   // Derive currentPlayer and cardCount just before the useEffect that needs cardCount
   const currentPlayerForEffect = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
@@ -73,13 +71,11 @@ export default function PlayerHand() {
 
   useEffect(() => {
     checkScrollability();
-    setInitialScrollSet(false);
-    setUserHasScrolled(false);
     const container = scrollContainerRef.current;
     window.addEventListener('resize', checkScrollability)
+    const userScrollHandler = () => setHasEverUserScrolled(true);
     if (container) {
-      container.addEventListener('scroll', checkScrollability)
-      container.addEventListener('scroll', () => setUserHasScrolled(true))
+      container.addEventListener('scroll', userScrollHandler)
     }
     const observer = new MutationObserver(checkScrollability)
     if (container) {
@@ -88,12 +84,11 @@ export default function PlayerHand() {
     return () => {
       window.removeEventListener('resize', checkScrollability)
       if (container) {
-        container.removeEventListener('scroll', checkScrollability)
-        container.removeEventListener('scroll', () => setUserHasScrolled(true))
+        container.removeEventListener('scroll', userScrollHandler)
       }
       observer.disconnect()
     }
-  }, [checkScrollability, state?.players, cardScale, cardCountForEffect]); // Use derived cardCount
+  }, [checkScrollability, state?.players, cardScale, cardCountForEffect]);
 
   const scrollLeft = useCallback(() => {
     if (scrollContainerRef.current) {

@@ -256,17 +256,9 @@ export function checkPlayValidity(gameState: GameState, card: Card): boolean {
 export function calculatePoints(gameState: GameState): void {
   if (gameState.status !== "finished" || !gameState.winner) return;
 
-  let roundScore = 0;
-  gameState.players.forEach(player => {
-    // Calculate score based on *opponents'* hands
-    if (player.id !== gameState.winner) {
-      roundScore += calculateHandPoints(player.cards); // Use the helper function
-    }
-  });
-
   // Ensure matchHistory exists
   if (!gameState.matchHistory) gameState.matchHistory = [];
-  
+
   const matchResult: MatchResult = {
     winner: gameState.winner,
     date: new Date().toISOString(),
@@ -274,14 +266,14 @@ export function calculatePoints(gameState: GameState): void {
       playerId: player.id,
       playerName: player.name,
       avatar_index: player.avatar_index,
-      // Assign score correctly: Winner gets the total round score,
-      // losers get the points from their *own* remaining hand.
-      points: player.id === gameState.winner ? roundScore : calculateHandPoints(player.cards)
+      points: player.id === gameState.winner ? 0 : calculateHandPoints(player.cards)
     })),
-    finalScore: roundScore // Overall score for the round remains the sum of losers' cards
+    finalScore: gameState.players
+      .filter(player => player.id !== gameState.winner)
+      .reduce((acc, player) => acc + calculateHandPoints(player.cards), 0)
   };
   gameState.matchHistory.push(matchResult);
-  console.log(`Round finished. Winner: ${gameState.winner}. Score awarded: ${roundScore}`); // Log the score awarded
+  console.log(`Round finished. Winner: ${gameState.winner}. All losers' points summed: ${matchResult.finalScore}`);
 }
 
 // --- Scoring Utilities (Moved from GameOver component) ---
