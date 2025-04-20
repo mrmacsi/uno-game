@@ -11,54 +11,59 @@ interface PlayerInfoProps {
 export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
   return (
     <div 
-      className={`
-        rounded-md sm:rounded-lg overflow-hidden transition-all duration-300
-        ${isCurrentTurn 
+      className={cn(
+        "rounded-md sm:rounded-lg overflow-hidden transition-all duration-300",
+        isCurrentTurn 
           ? "border border-yellow-400/40 bg-amber-500/20" 
-          : "bg-black/50"} 
-      `}
+          : "bg-black/50"
+      )}
     >
-      <div className="p-1 sm:p-1.5 flex flex-col items-center">
-        {/* Player name - very small */}
-        <p className="text-white font-medium truncate text-[10px] sm:text-xs text-center w-full mb-0.5 sm:mb-1">{player.name}</p>
-        
-        <div className="flex items-center justify-between w-full gap-1 sm:gap-1.5">
-          {/* Avatar and Host indicator - very small */}
-          <div className="flex items-center gap-1 sm:gap-1.5">
-              <div className="relative">
-                <AvatarDisplay 
-                  index={player.avatar_index ?? 0}
-                  size="xs"
-                  className={cn(
-                    "transition-all duration-300",
-                    isCurrentTurn && "ring-2 ring-offset-1 ring-offset-amber-500/30 ring-yellow-400",
-                    player.isHost && "ring-1 ring-yellow-400/60"
-                  )}
-                />
-                {player.isHost && (
-                  <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 shadow">
-                    <Crown className="w-2 h-2 text-yellow-900" />
-                  </div>
-                )}
+      <div className="p-1 sm:p-1.5 flex items-center justify-between gap-1 sm:gap-1.5">
+        {/* Main container for Avatar, Name, Card Count */}
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-grow min-w-0"> 
+          {/* Avatar and Host indicator */}
+          <div className="relative flex-shrink-0">
+            <AvatarDisplay 
+              index={player.avatar_index ?? 0}
+              size="xs"
+              className={cn(
+                "transition-all duration-300",
+                isCurrentTurn && "ring-2 ring-offset-1 ring-offset-amber-500/30 ring-yellow-400",
+                player.isHost && "ring-1 ring-yellow-400/60"
+              )}
+            />
+            {player.isHost && (
+              <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 shadow">
+                <Crown className="w-2 h-2 text-yellow-900" />
               </div>
-              {/* Card Count - very small */}
-               <div className="flex items-center text-white/60 text-[10px] sm:text-xs">
-                 <div className={`
-                    flex items-center gap-0.5 sm:gap-1
-                    ${isCurrentTurn ? "text-yellow-200 font-semibold" : ""}
-                 `}>
-                   {player.cards.length} <span className="hidden sm:inline">cards</span>
-                 </div>
-               </div>
+            )}
           </div>
-          
-          {isCurrentTurn && (
-            <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold shrink-0 shadow-sm whitespace-nowrap">
-              <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-              <span>Turn</span>
-            </div>
-          )}
+
+          {/* Player name and Card Count (Vertical Flex) */}
+          <div className="flex flex-col min-w-0 flex-grow">
+             <p 
+               className="text-white font-medium truncate text-[10px] sm:text-xs w-full leading-tight"
+               title={player.name}
+             >
+               {player.name}
+             </p>
+             {/* Card Count */}
+             <div className={cn(
+                "flex items-center text-white/60 text-[9px] sm:text-[10px] leading-tight",
+                isCurrentTurn && "text-yellow-200 font-semibold"
+             )}>
+               {player.cards.length} <span className="hidden sm:inline ml-0.5">cards</span>
+             </div>
+          </div>
         </div>
+        
+        {/* Turn Indicator (if applicable) */}
+        {isCurrentTurn && (
+          <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold flex-shrink-0 shadow-sm whitespace-nowrap">
+            <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+            <span>Turn</span>
+          </div>
+        )}
       </div>
       
       {/* Card count visualization - very thin */}

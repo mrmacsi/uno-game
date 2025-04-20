@@ -24,6 +24,7 @@ export interface MatchResult {
   playerResults: {
     playerId: string
     playerName: string
+    avatar_index: number | null
     points: number
   }[]
   finalScore: number

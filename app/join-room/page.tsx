@@ -20,7 +20,7 @@ const LOCAL_STORAGE_KEY = 'uno_player_id'
 export default function JoinRoom() {
   const router = useRouter()
   const supabase = createClient()
-  const [playerName, setPlayerName] = useState("")
+  const [playerDisplayName, setPlayerDisplayName] = useState("")
   const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [roomId, setRoomId] = useState("")
@@ -44,18 +44,18 @@ export default function JoinRoom() {
     try {
       const { data, error, status } = await supabase
         .from('profiles')
-        .select('username, avatar_index')
+        .select('display_name, avatar_index')
         .eq('player_id', unoPlayerId)
         .single();
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error);
         router.push('/profile/setup');
-      } else if (!data || !data.username || data.avatar_index === null) {
-        console.error("Incomplete profile found (missing name or avatar). Redirecting to setup.");
+      } else if (!data || !data.display_name || data.avatar_index === null) {
+        console.error("Incomplete profile found (missing display name or avatar). Redirecting to setup.");
         router.push('/profile/setup');
       } else {
-        setPlayerName(data.username);
+        setPlayerDisplayName(data.display_name);
         setAvatarIndex(data.avatar_index);
       }
     } catch (err) {
@@ -95,8 +95,8 @@ export default function JoinRoom() {
       console.error("JoinRoom Error: uno_player_id not found in localStorage");
       hasError = true;
     }
-    if (!playerName.trim()) { 
-      setNameError("Player name missing. Please check profile.")
+    if (!playerDisplayName.trim()) {
+      setNameError("Player display name missing. Please check profile.")
       hasError = true
     }
     if (avatarIndex === null) {
@@ -117,7 +117,7 @@ export default function JoinRoom() {
     try {
       const joiningPlayerInput = {
          id: unoPlayerId!,
-         name: playerName,
+         name: playerDisplayName,
          avatar_index: avatarIndex!
       };
       
@@ -218,7 +218,7 @@ export default function JoinRoom() {
                      Playing as:
                    </Label>
                    <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
-                     {playerName}
+                     {playerDisplayName}
                    </p>
                  </div>
               </div>
@@ -246,7 +246,7 @@ export default function JoinRoom() {
             <Button 
               type="submit" 
               className={`w-full font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 ${isDefault ? 'bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white'}`}
-              disabled={isJoining || !playerName || (!isDefault && roomId.length !== 4)}
+              disabled={isJoining || !playerDisplayName || (!isDefault && roomId.length !== 4)}
             >
               {isJoining ? "Joining..." : (isDefault ? "Join Public Room" : "Join Room")}
               {!isJoining && (isDefault ? <Globe className="ml-2 h-4 w-4" /> : <ArrowRight className="ml-2 h-4 w-4" />)}

@@ -150,37 +150,62 @@ export async function createDefaultRoom(): Promise<void> {
   console.log("Created default public room")
 }
 
-// Reset a room to its initial waiting state
+// Reset a room to its initial waiting state, preserving players for a rematch
 export async function resetRoom(roomId: string): Promise<void> {
-  console.log(`Resetting room: ${roomId}`)
-  const initialState: Partial<GameState> = {
-    roomId,
+  console.log(`Initiating rematch reset for room: ${roomId}`)
+  
+  const currentGameState = await getGameState(roomId);
+
+  if (!currentGameState) {
+    console.warn(`Cannot reset: Room ${roomId} not found.`);
+    // Maybe throw an error if the room should definitely exist?
+    throw new Error(`Room ${roomId} not found, cannot start rematch.`);
+  }
+
+  // Prepare the new state based on the current one
+  const newState: GameState = {
+    ...currentGameState, // Keep roomId, matchHistory, etc.
     status: "waiting",
-    players: [],
-    currentPlayer: "",
+    players: currentGameState.players.map(player => ({
+      ...player, // Keep id, name, avatar_index, isHost
+      cards: [], // Reset cards
+      saidUno: false // Reset UNO status
+    })),
+    currentPlayer: "", // No current player in waiting room
     direction: 1,
     drawPile: [],
     drawPileCount: 0,
     discardPile: [],
-    currentColor: "red",
+    currentColor: "red", // Reset to a default color
     winner: null,
-    log: [],
-    matchHistory: [], // Optionally clear history or handle differently
-  }
+    drawCardEffect: undefined,
+    hasDrawnThisTurn: undefined,
+    log: [{
+      id: uuidv4(),
+      message: `Rematch initiated! Waiting for host to start...`,
+      timestamp: Date.now(),
+      eventType: 'system'
+    }], // Reset log for the new round
+    // isDrawing and isValidPlay are typically client-side/transient, not stored
+  };
 
-  const currentRoom = await getGameState(roomId)
-  if (currentRoom) {
-    // Preserve players if resetting a normal room, clear if it's DEFAULT
-    // Or always clear players? Let's clear for simplicity now.
-    // initialState.players = roomId === "DEFAULT" ? [] : currentRoom.players.map(p => ({ ...p, cards: [] }));
-    initialState.players = [] // Clear players on reset
-    initialState.matchHistory = currentRoom.matchHistory // Keep match history
+  // Ensure players array is not empty (shouldn't happen if currentGameState exists)
+  if (newState.players.length === 0) {
+      console.error(`Room ${roomId} was found but had no players during reset. Aborting reset.`);
+      throw new Error("Cannot reset room with no players.");
   }
   
-  await storeGameState(roomId, initialState) // Use storeGameState to overwrite
-  await pusherServer.trigger(`game-${roomId}`, "game-reset", { message: "Room has been reset." })
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(initialState as GameState)) // Send stripped initial state
-  console.log(`Room ${roomId} reset successfully.`)
+  await storeGameState(roomId, newState); // Use storeGameState to overwrite with the reset state
+  
+  // Trigger pusher events to notify clients
+  await pusherServer.trigger(`game-${roomId}`, "game-reset", { message: "Rematch starting! Players kept." });
+  
+  // Give a brief moment for clients to potentially process the reset event before the full update
+  await new Promise(resolve => setTimeout(resolve, 50)); 
+  
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(newState)); 
+  
+  console.log(`Room ${roomId} reset for rematch successfully. Status: ${newState.status}, Players: ${newState.players.length}`);
 }
 
 // Get game state for a room
@@ -202,4 +227,29 @@ export async function deleteRoom(roomId: string): Promise<void> {
     await dbDeleteRoom(roomId)
     await pusherServer.trigger(`lobby`, "room-deleted", { roomId })
     console.log(`Deleted room ${roomId}`)
+}
+
+// Clear only the match history for a specific room
+export async function clearMatchHistory(roomId: string): Promise<void> {
+  console.log(`Clearing match history for room: ${roomId}`)
+  const gameState = await getGameState(roomId);
+
+  if (!gameState) {
+    console.warn(`Cannot clear history: Room ${roomId} not found.`);
+    // Optionally throw an error or just return if room doesn't exist
+    // throw new Error(`Room ${roomId} not found`); 
+    return; 
+  }
+
+  // Clear the match history array
+  gameState.matchHistory = [];
+
+  // Save the updated state
+  await storeGameState(roomId, gameState); // Using storeGameState to overwrite
+
+  // Optionally trigger a specific event if clients need to know history cleared,
+  // but likely not necessary as it's an admin action.
+  // await pusherServer.trigger(`game-${roomId}`, "history-cleared", {}); 
+
+  console.log(`Match history cleared for room ${roomId}.`);
 } 

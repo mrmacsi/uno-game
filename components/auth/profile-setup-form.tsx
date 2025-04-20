@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 // No longer need User type from supabase-js
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AvatarSelector from '@/components/game/avatar-selector'
 import { AvatarDisplay } from '@/components/game/avatar-display'
 import { Button } from '@/components/ui/button'
@@ -34,15 +34,27 @@ const LOCAL_STORAGE_KEY = 'uno_player_id';
 // Define view modes
 type ViewMode = 'setup' | 'login' | 'loading';
 
+// Define type for upsert data
+interface ProfileUpsertData {
+  player_id: string;
+  display_name: string;
+  avatar_name: string;
+  avatar_index: number;
+  updated_at: Date;
+  username?: string; // Optional username, only set on initial creation
+}
+
 // Rename playerId prop to unoPlayerId
 export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { unoPlayerId: string }) {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams() // Get search params
   const [viewMode, setViewMode] = useState<ViewMode>('loading'); // Initial state
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false) // Separate state for saving action
   const [loggingIn, setLoggingIn] = useState(false); // Logging in state
-  const [username, setUsername] = useState<string>('')
+  const [displayName, setDisplayName] = useState<string>('')
+  const [username, setUsername] = useState<string>(''); // Add state for username (login)
   const [loginUsername, setLoginUsername] = useState<string>(''); // For login form
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatarState | null>(null)
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false); // Added for modal control
@@ -56,9 +68,9 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
     setAlertDialog({ isOpen: true, title, description });
   };
 
-  // Function to set username and potentially link avatar
-  const setUsernameAndLinkAvatar = useCallback((newName: string) => {
-    setUsername(newName);
+  // Function to set display name and potentially link avatar
+  const setDisplayNameAndLinkAvatar = useCallback((newName: string) => {
+    setDisplayName(newName);
     // Check if name matches an avatar.
     const avatarIndex = avatars.findIndex(avatarName => newName.endsWith(avatarName)); 
     // REMOVED '&& currentAvatar === null' check. Always link if name matches.
@@ -81,7 +93,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
       setLoading(true);
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`username, avatar_name, avatar_index`)
+        .select(`username, display_name, avatar_name, avatar_index`) // Fetch username too
         .eq('player_id', idToCheck)
         .single()
 
@@ -92,14 +104,18 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
         setViewMode('login');
       } else if (data) {
         // Profile data found (complete or incomplete)
-        setUsername(data.username || ''); // Load username or empty string
+        setUsername(data.username || ''); // Load username
+        setDisplayName(data.display_name || ''); // Load display_name or empty string
         setSelectedAvatar(data.avatar_name && data.avatar_index !== null ? { name: data.avatar_name, index: data.avatar_index } : null);
         setCurrentUnoPlayerId(idToCheck); // Store the valid ID
         setViewMode('setup'); // Go directly to setup/edit view
-        if (!data.username || data.avatar_name === null || data.avatar_index === null) {
-             // If incomplete, maybe generate part of the name if username is missing
-             if (!data.username) {
-                 setUsernameAndLinkAvatar(generateRandomName());
+        if (!data.username || !data.display_name || data.avatar_name === null || data.avatar_index === null) {
+             // If incomplete, maybe generate part of the name if display_name is missing
+             if (!data.display_name) {
+                 // Also set username if display name is being generated
+                 const generatedName = generateRandomName();
+                 setDisplayNameAndLinkAvatar(generatedName);
+                 setUsername(generatedName); // Set username initially too
              }
              setIsEditing(false); // It's setup, not editing
              toast.info("Please complete your profile.");
@@ -123,22 +139,26 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
     } finally {
       setLoading(false);
     }
-  }, [supabase, setUsernameAndLinkAvatar]);
+  }, [supabase, setDisplayNameAndLinkAvatar]);
 
   useEffect(() => {
+    const adminPlayerId = searchParams.get('playerId') // Check for playerId from query params
     const storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
-    getProfile(storedPlayerId || '');
-  }, [getProfile]);
+    // Prioritize adminPlayerId > storedPlayerId > propUnoPlayerId (which seems unused now)
+    const idToLoad = adminPlayerId || storedPlayerId || '';
+    getProfile(idToLoad);
+    // Remove dependency on propUnoPlayerId if it's no longer the primary source
+  }, [getProfile, searchParams]); // Add searchParams dependency
 
   const generateNewRandomName = () => {
     const newName = generateRandomName();
-    setUsernameAndLinkAvatar(newName); // Use helper for setup form
+    setDisplayNameAndLinkAvatar(newName); // Use helper for setup form
   };
 
   async function updateProfile() {
     console.log("updateProfile triggered"); // Add log
-    if (!username.trim() || !selectedAvatar || username.trim().length < 3) {
-         showAlert('Missing Information', 'Please ensure username is at least 3 characters and an avatar is selected.');
+    if (!displayName.trim() || !selectedAvatar || displayName.trim().length < 3) { // Check displayName
+         showAlert('Missing Information', 'Please ensure display name is at least 3 characters and an avatar is selected.');
          return;
     }
      // Use currentUnoPlayerId which might have been set by getProfile or login
@@ -149,28 +169,51 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
 
     try {
       setSaving(true)
-      const { data: existingUser, error: checkError } = await supabase
-          .from('profiles')
-          .select('player_id')
-          .eq('username', username.trim())
-          .neq('player_id', currentUnoPlayerId) // Check for other users with this name
-          .single();
-
-      if (checkError && checkError.code !== 'PGRST116') { throw checkError; }
-
-      if (existingUser) {
-          showAlert('Username Taken', 'This username is already taken. Please choose another one.');
-          setSaving(false);
-          return;
-      }
-
-      const { error } = await supabase.from('profiles').upsert({
-        player_id: currentUnoPlayerId, // Use the stored/loaded ID
-        username: username.trim(),
+      // Use the defined interface for stricter typing
+      const profileDataToUpsert: ProfileUpsertData = {
+        player_id: currentUnoPlayerId,
+        display_name: displayName.trim(),
         avatar_name: selectedAvatar.name,
         avatar_index: selectedAvatar.index,
         updated_at: new Date(),
-      })
+      };
+
+      // If creating a new profile (not editing an existing complete one)
+      if (!isEditing) {
+        // Set the login username to the display name initially
+        const loginUsernameToSave = username.trim();
+
+        // Check if this login username is already taken by another user
+        const { data: existingUser, error: checkError } = await supabase
+            .from('profiles')
+            .select('player_id')
+            .eq('username', loginUsernameToSave) // Check the USERNAME column
+            .neq('player_id', currentUnoPlayerId) // Exclude the current user (important for initial saves where ID exists but profile is incomplete)
+            .single();
+
+        // Handle potential errors during the check (ignore 'not found' error code)
+        if (checkError && checkError.code !== 'PGRST116') { 
+          console.error("Error checking username uniqueness:", checkError);
+          throw new Error('Could not verify username uniqueness.'); // Throw a generic error
+        }
+
+        // If the username is taken by someone else
+        if (existingUser) {
+            showAlert(
+                'Username Conflict', 
+                `The name "${loginUsernameToSave}" is already in use for login by another user. Please choose a different Display Name.`
+            );
+            setSaving(false);
+            return; // Stop the save process
+        }
+        
+        // If username is unique or available, add it to the data to be saved
+        profileDataToUpsert.username = loginUsernameToSave;
+      }
+      // Note: If isEditing is true, we DO NOT update the username column.
+
+      // Perform the upsert with the prepared data
+      const { error } = await supabase.from('profiles').upsert(profileDataToUpsert);
 
       if (error) throw error;
 
@@ -181,7 +224,12 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
       }
 
       toast.success('Profile saved successfully!')
-      router.push('/') // Redirect to main page after save
+      // Redirect logic: if editing (isEditing), go back to admin users page, otherwise go to home
+      if (isEditing) {
+          router.push('/admin/users'); // Redirect back to user list after edit
+      } else {
+          router.push('/') // Redirect to main page after initial save
+      }
     } catch (error) {
       console.error("Error saving profile:", error)
       // Use a type assertion or check the error structure
@@ -198,46 +246,33 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
 
   // Handler for the Login form's "Login" button
   const handleLogin = async () => {
-    console.log("handleLogin triggered"); // Add log
     if (!loginUsername.trim()) {
-        showAlert('Missing Username', 'Please enter your username.');
-        return;
+      showAlert('Username Required', 'Please enter a username to log in.');
+      return;
     }
     setLoggingIn(true);
     try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('player_id, username, avatar_name, avatar_index') // Select all fields
-            .eq('username', loginUsername.trim())
-            .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('player_id')
+        .eq('username', loginUsername.trim())
+        .single();
 
-        if (error && error.code !== 'PGRST116') { throw error; }
-
-        if (data && data.player_id) {
-            // Profile found
-            localStorage.setItem(LOCAL_STORAGE_KEY, data.player_id);
-            setCurrentUnoPlayerId(data.player_id); // Update state ID
-
-            if (!data.username || data.avatar_name === null || data.avatar_index === null) {
-                // Profile incomplete - go to setup view to complete
-                toast.info("Profile incomplete. Please finish setup.");
-                setUsername(data.username || '');
-                setSelectedAvatar(data.avatar_name && data.avatar_index !== null ? { name: data.avatar_name, index: data.avatar_index } : null);
-                setViewMode('setup');
-            } else {
-                // Profile complete - redirect directly to main page
-                toast.success(`Welcome back, ${data.username}!`);
-                router.push('/');
-            }
-        } else {
-            // Username not found
-            showAlert('Login Failed', 'Username not found. Please check the username or create a new profile.');
-        }
-    } catch (error) {
-        console.error("Login error:", error);
-        showAlert('Error', 'An error occurred during login. Please try again.');
+      if (error || !data) {
+        showAlert('Login Failed', 'Username not found. Please check the username or create a profile.');
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEY, data.player_id);
+        setCurrentUnoPlayerId(data.player_id);
+        // getProfile(data.player_id); // Load the profile data after login
+        toast.success("Login successful!");
+        // Redirect to home page after login
+        router.push('/'); // Go to home page after successful login
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      showAlert('Login Error', 'An unexpected error occurred during login.');
     } finally {
-        setLoggingIn(false);
+      setLoggingIn(false);
     }
   };
 
@@ -245,7 +280,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
     setSelectedAvatar(avatar);
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const newUsername = `${randomAdjective}${avatar.name}`;
-    setUsername(newUsername); // Update setup username
+    setDisplayName(newUsername); // Update setup display name
     setIsAvatarModalOpen(false);
   };
 
@@ -272,34 +307,57 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                 {isEditing ? 'Edit Your Profile' : 'Set Up Your Profile'}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                 {isEditing ? 'Update your username and avatar.' : 'Choose a username and avatar to get started.'}
+                 {isEditing ? 'Update your display name and avatar.' : 'Choose a username, display name, and avatar to get started.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 p-8">
-               {/* Username Input */}
+               {/* Username (Login) Input - Moved up */}
                <div className="space-y-2">
-                 <div className="flex justify-between items-center">
-                   <Label htmlFor="username" className="font-semibold text-gray-700 dark:text-gray-300">Username</Label>
-                   <Button type="button" variant="ghost" size="sm" onClick={generateNewRandomName} className="text-xs h-7 px-2 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-                     <Wand2 className="h-3.5 w-3.5" /> Random
-                   </Button>
-                 </div>
+                 <Label htmlFor="username" className="font-semibold text-gray-700 dark:text-gray-300">Username (for Login)</Label>
                  <Input 
                     id="username" 
                     type="text" 
                     value={username} 
                     onChange={(e) => setUsername(e.target.value)} 
+                    placeholder="Login username (cannot be changed later)" 
+                    required 
+                    minLength={3} 
+                    disabled={isEditing} // Disable if editing
+                    className="disabled:opacity-70 disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
+                    aria-describedby={isEditing ? "username-description" : undefined}
+                 />
+                 {isEditing && (
+                    <p id="username-description" className="text-xs text-gray-500 dark:text-gray-400">
+                        Username cannot be changed after initial setup.
+                    </p>
+                 )}
+               </div>
+
+               {/* Display Name Input - Moved down */}
+               <div className="space-y-2">
+                 <div className="flex justify-between items-center">
+                   <Label htmlFor="display-name" className="font-semibold text-gray-700 dark:text-gray-300">Display Name</Label>
+                   <Button type="button" variant="ghost" size="sm" onClick={generateNewRandomName} className="text-xs h-7 px-2 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                     <Wand2 className="h-3.5 w-3.5" /> Random
+                   </Button>
+                 </div>
+                 <Input 
+                    id="display-name" 
+                    type="text" 
+                    value={displayName} 
+                    onChange={(e) => setDisplayName(e.target.value)} 
                     onKeyDown={(e) => { 
-                      if (e.key === 'Enter' && !saving && username && selectedAvatar && username.trim().length >= 3) {
+                      if (e.key === 'Enter' && !saving && username && displayName && selectedAvatar && displayName.trim().length >= 3 && username.trim().length >=3) {
                         updateProfile();
                       }
                     }}
-                    placeholder="e.g., PlayerOne" 
+                    placeholder="e.g., MightyPigeon" 
                     required 
                     minLength={3} 
                     className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
                  />
                </div>
+
                {/* Avatar Selection - Center this whole block */}
                <div className="flex flex-col items-center space-y-3 sm:space-y-4">
                    <Label className="font-semibold text-gray-700 dark:text-gray-300 self-center">Avatar</Label> 
@@ -329,7 +387,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                </div>
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-4">
-              <Button onClick={updateProfile} disabled={saving || !username || !selectedAvatar || username.trim().length < 3} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed">
+              <Button onClick={updateProfile} disabled={saving || !username || !displayName || !selectedAvatar || username.trim().length < 3 || displayName.trim().length < 3} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed">
                 {/* Change button text dynamically based on editing state */}
                 {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : (isEditing ? 'Save Changes' : 'Save Profile & Enter')}
               </Button>
@@ -379,7 +437,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                     
                     // Generate random name AND link avatar using the helper function
                     const randomName = generateRandomName(); 
-                    setUsernameAndLinkAvatar(randomName); 
+                    setDisplayNameAndLinkAvatar(randomName); 
                     
                     // Switch view
                     setIsEditing(false); // Ensure we are in setup mode

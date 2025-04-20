@@ -258,16 +258,9 @@ export function calculatePoints(gameState: GameState): void {
 
   let roundScore = 0;
   gameState.players.forEach(player => {
+    // Calculate score based on *opponents'* hands
     if (player.id !== gameState.winner) {
-      player.cards.forEach(card => {
-        if (card.type === "number" && card.value !== undefined) {
-          roundScore += card.value;
-        } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
-          roundScore += 20;
-        } else if (card.type === "wild" || card.type === "wild4") {
-          roundScore += 50;
-        }
-      });
+      roundScore += calculateHandPoints(player.cards); // Use the helper function
     }
   });
 
@@ -280,10 +273,34 @@ export function calculatePoints(gameState: GameState): void {
     playerResults: gameState.players.map(player => ({
       playerId: player.id,
       playerName: player.name,
-      points: player.id === gameState.winner ? roundScore : 0 
+      avatar_index: player.avatar_index,
+      // Assign score correctly: Winner gets the total round score,
+      // losers get the points from their *own* remaining hand.
+      points: player.id === gameState.winner ? roundScore : calculateHandPoints(player.cards)
     })),
-    finalScore: roundScore
+    finalScore: roundScore // Overall score for the round remains the sum of losers' cards
   };
   gameState.matchHistory.push(matchResult);
-  console.log(`Round finished. Winner: ${gameState.winner}. Score: ${roundScore}`);
-} 
+  console.log(`Round finished. Winner: ${gameState.winner}. Score awarded: ${roundScore}`); // Log the score awarded
+}
+
+// --- Scoring Utilities (Moved from GameOver component) ---
+
+/**
+ * Calculates the point value of a single hand of cards.
+ * @param cards Array of cards in a player's hand.
+ * @returns Total point value of the hand.
+ */
+export const calculateHandPoints = (cards: Card[]): number => {
+  let points = 0;
+  cards.forEach(card => {
+    if (card.type === "number" && card.value !== undefined) {
+      points += card.value;
+    } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
+      points += 20;
+    } else if (card.type === "wild" || card.type === "wild4") { // Treat Wild Swap Hands (if any) same as Wild
+      points += 50;
+    }
+  });
+  return points;
+}; 

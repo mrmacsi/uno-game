@@ -11,22 +11,8 @@ import { Award, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
 import UnoCard from "../game/uno-card"
 import { AvatarDisplay } from "../game/avatar-display"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
-import type { Card as UnoCardType } from "@/lib/types"
 import { cn } from "@/lib/utils"
-
-const calculateHandPoints = (cards: UnoCardType[]): number => {
-  let points = 0;
-  cards.forEach(card => {
-    if (card.type === "number") {
-      points += card.value || 0;
-    } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
-      points += 20;
-    } else {
-      points += 50;
-    }
-  });
-  return points;
-};
+import { calculateHandPoints } from "@/lib/game-logic"
 
 export default function GameOver() {
   const { state, refreshGameState, currentPlayerId } = useGame()
@@ -325,14 +311,21 @@ export default function GameOver() {
                               <div className="space-y-1">
                                 {match.playerResults.map(player => (
                                   <div key={player.playerId} className="flex justify-between items-center text-sm px-1 py-1">
-                                    <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
-                                      {player.playerName}
-                                      {player.playerId === match.winner && (
-                                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                                          Winner
-                                        </span>
-                                      )}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <AvatarDisplay 
+                                        index={player.avatar_index ?? 0} 
+                                        size="xs"
+                                        className="flex-shrink-0"
+                                      />
+                                      <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
+                                        {player.playerName}
+                                        {player.playerId === match.winner && (
+                                          <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
+                                            Winner
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
                                     <span className={`font-medium ${player.playerId === match.winner ? "text-indigo-600" : "text-gray-700"}`}>
                                       {player.points} points
                                     </span>

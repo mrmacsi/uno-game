@@ -30,7 +30,7 @@ export default function ProfileSetupPage() {
        try {
          const { error, status } = await supabase
            .from('profiles')
-           .select('username, avatar_name')
+           .select('display_name, avatar_name')
            .eq('player_id', currentUnoPlayerId)
            .single();
 

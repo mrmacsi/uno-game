@@ -19,7 +19,7 @@ const LOCAL_STORAGE_KEY = 'uno_player_id'
 export default function CreateRoom() {
   const router = useRouter()
   const supabase = createClient()
-  const [playerName, setPlayerName] = useState("")
+  const [playerDisplayName, setPlayerDisplayName] = useState("")
   const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -36,9 +36,9 @@ export default function CreateRoom() {
        console.error("CreateRoom Error: uno_player_id not found in localStorage")
        return
     }
-    if (!playerName.trim()) {
-      setSubmitError("Cannot create room: Player name missing.")
-      console.error("CreateRoom Error: playerName state is empty")
+    if (!playerDisplayName.trim()) {
+      setSubmitError("Cannot create room: Player display name missing.")
+      console.error("CreateRoom Error: playerDisplayName state is empty")
       return
     }
      if (avatarIndex === null) {
@@ -46,8 +46,8 @@ export default function CreateRoom() {
       console.error("CreateRoom Error: avatarIndex state is null")
       return
     }
-    if (playerName.length > 15) {
-      setSubmitError("Name must be 15 characters or less")
+    if (playerDisplayName.length > 15) {
+      setSubmitError("Display Name must be 15 characters or less")
       return
     }
 
@@ -55,7 +55,7 @@ export default function CreateRoom() {
     try {
       const hostPlayerInput = {
          id: unoPlayerId,
-         name: playerName,
+         name: playerDisplayName,
          avatar_index: avatarIndex
       }
       
@@ -85,18 +85,18 @@ export default function CreateRoom() {
     try {
       const { data, error, status } = await supabase
         .from('profiles')
-        .select('username, avatar_index')
+        .select('display_name, avatar_index')
         .eq('player_id', unoPlayerId)
         .single()
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error)
         router.push('/profile/setup')
-      } else if (!data || !data.username || data.avatar_index === null) {
-        console.error("Incomplete profile found (missing name or avatar). Redirecting to setup.")
+      } else if (!data || !data.display_name || data.avatar_index === null) {
+        console.error("Incomplete profile found (missing display name or avatar). Redirecting to setup.")
         router.push('/profile/setup')
       } else {
-        setPlayerName(data.username)
+        setPlayerDisplayName(data.display_name)
         setAvatarIndex(data.avatar_index)
       }
     } catch (err) {
@@ -153,7 +153,7 @@ export default function CreateRoom() {
                     Playing as:
                   </Label>
                   <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
-                    {playerName} 
+                    {playerDisplayName} 
                   </p>
                 </div>
               </div>
@@ -166,7 +166,7 @@ export default function CreateRoom() {
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70"
-              disabled={isCreating || !playerName}
+              disabled={isCreating || !playerDisplayName}
             >
               {isCreating ? "Creating Room..." : "Create Room"}
               {!isCreating && <ArrowRight className="ml-2 h-4 w-4" />}

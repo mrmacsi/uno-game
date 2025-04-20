@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Database, Info, Trash2, List, RefreshCw, Loader2 } from "lucide-react"
+import { Database, Info, Trash2, List, RefreshCw, Loader2, Users, Eraser } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { getAllRooms, deleteRoom, resetRoom } from "@/lib/room-actions"
+import { getAllRooms, deleteRoom, resetRoom, clearMatchHistory } from "@/lib/room-actions"
 import { clearDb } from "@/lib/db-actions"
 import { useToast } from "@/components/ui/use-toast"
 import type { GameState } from "@/lib/types"
@@ -86,6 +86,24 @@ export default function AdminPage() {
     }
   };
 
+  // Handler for clearing history
+  const handleClearHistory = async (roomId: string) => {
+    if (!roomId) return;
+    setSelectedRoom(roomId);
+    setLoadingAction("clearHistory"); // New loading state identifier
+    try {
+      await clearMatchHistory(roomId);
+      toast({ title: "History Cleared", description: `Match history for room ${roomId} was cleared.` });
+      // No need to fetchRooms again, as the history isn't displayed here
+    } catch (error: unknown) { 
+      console.error("Failed to clear history:", error);
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear history.", variant: "destructive" });
+    } finally {
+      setLoadingAction(null);
+      setSelectedRoom(null);
+    }
+  };
+
   const performClearAllRooms = async () => {
     if (window.confirm("DANGER! Are you sure you want to delete ALL non-DEFAULT rooms? This is irreversible.")) {
       setLoadingAction("clearDb");
@@ -143,10 +161,16 @@ export default function AdminPage() {
              </Link>
           </div>
           
-          {/* Added Link/Button to Avatars Page */}
-          <div className="mb-4">
+          {/* Navigation Links */}
+          <div className="flex flex-wrap gap-4 mb-4 border-b pb-4 dark:border-gray-700">
              <Link href="/admin/avatars">
                <Button variant="outline">View Avatars</Button>
+             </Link>
+             <Link href="/admin/users"> 
+               <Button variant="outline" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>User Management</span>
+               </Button>
              </Link>
           </div>
 
@@ -234,9 +258,35 @@ export default function AdminPage() {
                             <TableCell>{room.players.length}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end items-center space-x-2">
-                                    {/* Reset Button */} 
+                                    {/* Reset Button */}
+                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
                                     <Button variant="outline" size="icon" onClick={() => handleResetRoom(room.roomId)} disabled={loadingAction === 'reset' && selectedRoom === room.roomId} title="Reset Room">{loadingAction === 'reset' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</Button>
-                                    {/* Delete Button */} 
+                                    </TooltipTrigger><TooltipContent><p>Reset Room (Clears Players)</p></TooltipContent></Tooltip></TooltipProvider>
+                                    
+                                    {/* Clear History Button */} 
+                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                                    <ConfirmationDialog
+                                        triggerButton={
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="flex items-center gap-1 text-orange-600 border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400 dark:border-orange-500/40 dark:hover:bg-orange-900/30"
+                                                disabled={loadingAction === 'clearHistory' && selectedRoom === room.roomId}
+                                                title="Clear Match History"
+                                            >
+                                                {loadingAction === 'clearHistory' && selectedRoom === room.roomId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
+                                            </Button>
+                                        }
+                                        title={`Clear History for Room ${room.roomId}?`}
+                                        description="Are you sure you want to clear the match history for this room? This cannot be undone."
+                                        confirmAction={() => handleClearHistory(room.roomId)}
+                                        confirmText="Yes, Clear History"
+                                        isDestructive={false} // It's not deleting the room itself
+                                    />
+                                    </TooltipTrigger><TooltipContent><p>Clear Match History Only</p></TooltipContent></Tooltip></TooltipProvider>
+
+                                    {/* Delete Button */}
+                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
                                     <ConfirmationDialog
                                         triggerButton={
                                             <Button 
@@ -254,6 +304,7 @@ export default function AdminPage() {
                                         confirmText="Yes, Delete"
                                         isDestructive={true}
                                     />
+                                    </TooltipTrigger><TooltipContent><p>Delete Room</p></TooltipContent></Tooltip></TooltipProvider>
                                 </div>
                             </TableCell>
                           </TableRow>
@@ -265,6 +316,19 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
              )}
+
+            {/* Add Link to Redis Viewer */}
+            <Link href="/admin/redis-viewer" className="block hover:shadow-lg transition-shadow rounded-lg">
+              <Card className="hover:border-red-500 dark:hover:border-red-400 transition-colors">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Database className="h-5 w-5" />
+                    <span>Redis Viewer</span>
+                  </CardTitle>
+                  <CardDescription>Inspect raw game state data stored in Redis.</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
           </div>
         </div>
       </motion.div>

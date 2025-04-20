@@ -14,7 +14,7 @@ import { AvatarDisplay } from "@/components/game/avatar-display";
 const LOCAL_STORAGE_KEY = 'uno_player_id'
 
 interface PlayerProfile {
-  username: string;
+  display_name: string;
   avatar_name: string;
   avatar_index: number;
   admin?: boolean;
@@ -39,7 +39,7 @@ export default function Home() {
       try {
         const { data, error, status } = await supabase
           .from('profiles')
-          .select('username, avatar_name, avatar_index, admin')
+          .select('display_name, avatar_name, avatar_index, admin')
           .eq('player_id', unoPlayerId)
           .single();
 
@@ -47,7 +47,7 @@ export default function Home() {
           console.error("Error fetching profile:", error);
           localStorage.removeItem(LOCAL_STORAGE_KEY);
           router.push('/profile/setup');
-        } else if (!data || !data.username || data.avatar_name === null || data.avatar_index === null) {
+        } else if (!data || !data.display_name || data.avatar_name === null || data.avatar_index === null) {
           console.log("Incomplete profile data, redirecting to setup.");
           router.push('/profile/setup');
         } else {
@@ -131,7 +131,7 @@ export default function Home() {
                 <AvatarDisplay index={profile.avatar_index} size="md" />
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-50 truncate">
-                    {profile.username}
+                    {profile.display_name}
                   </span>
                   <Link href="/profile/setup" passHref>
                     <Button 

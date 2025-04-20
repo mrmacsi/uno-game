@@ -20,6 +20,7 @@ export default function PlayerHand() {
   const prevCardsRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isScrollableWidth, setIsScrollableWidth] = useState(false)
+  const [initialScrollSet, setInitialScrollSet] = useState(false); // Track if initial scroll is done
 
   useEffect(() => {
     if (gameError) {
@@ -48,16 +49,36 @@ export default function PlayerHand() {
   const checkScrollability = useCallback(() => {
     const container = scrollContainerRef.current
     if (container) {
-      const scrollableWidth = container.scrollWidth - container.clientWidth
-      setIsScrollableWidth(scrollableWidth > 0)
+      const canScroll = container.scrollWidth > container.clientWidth;
+      setIsScrollableWidth(canScroll);
+
+      // Attempt to center scroll *after* checking scrollability and only once initially
+      if (canScroll && !initialScrollSet) {
+         requestAnimationFrame(() => { // Ensure layout is calculated
+           if (scrollContainerRef.current) { // Double check container exists in animation frame
+             const currentContainer = scrollContainerRef.current;
+             const middleScroll = (currentContainer.scrollWidth - currentContainer.clientWidth) / 2;
+             console.log("Attempting initial scroll to middle:", middleScroll);
+             currentContainer.scrollLeft = middleScroll; 
+             setInitialScrollSet(true); // Mark initial scroll as done
+           }
+         });
+      }
     } else {
       setIsScrollableWidth(false)
     }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Keep dependency array empty, disable rule as initialScrollSet check is internal
+
+  // Derive currentPlayer and cardCount just before the useEffect that needs cardCount
+  const currentPlayerForEffect = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
+  const cardCountForEffect = currentPlayerForEffect ? currentPlayerForEffect.cards.length : 0
 
   useEffect(() => {
-    checkScrollability()
-    const container = scrollContainerRef.current
+    checkScrollability();
+    // Reset initial scroll flag when card count or scale changes, allowing recentering
+    setInitialScrollSet(false); 
+    const container = scrollContainerRef.current;
     window.addEventListener('resize', checkScrollability)
     if (container) {
       container.addEventListener('scroll', checkScrollability)
@@ -73,7 +94,7 @@ export default function PlayerHand() {
       }
       observer.disconnect()
     }
-  }, [checkScrollability, state?.players, cardScale])
+  }, [checkScrollability, state?.players, cardScale, cardCountForEffect]); // Use derived cardCount
 
   const scrollLeft = useCallback(() => {
     if (scrollContainerRef.current) {
@@ -105,13 +126,11 @@ export default function PlayerHand() {
     }
   }, [scrollLeft, scrollRight])
 
+  // Use the main currentPlayer and cardCount for rendering logic later
   const currentPlayer = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
   const cardCount = currentPlayer ? currentPlayer.cards.length : 0
   const isMyTurn = currentPlayer ? state.currentPlayer === currentPlayerId : false
-  useEffect(() => {
-    const timer = setTimeout(() => checkScrollability(), 200)
-    return () => clearTimeout(timer)
-  }, [checkScrollability, cardCount])
+
   if (!currentPlayerId || !state || !state.players) return null
   if (!currentPlayer) return null
 
@@ -123,7 +142,12 @@ export default function PlayerHand() {
           ref={scrollContainerRef}
           className={`w-full h-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent px-3 ${isScrollableWidth ? 'overflow-x-auto' : 'overflow-x-hidden'} overflow-y-visible`}
           style={{ scrollbarWidth: 'thin' }}
-          onScroll={() => checkScrollability()}
+          onScroll={() => { 
+            // Optional: Update scrollability check on scroll, but might be intensive
+            // checkScrollability(); 
+            // We might want to prevent auto-centering once the user manually scrolls
+            // setInitialScrollSet(true); // Uncomment if manual scroll should stop auto-centering
+          }}
         >
           <div 
             className="flex justify-center items-center h-full min-w-max mx-auto"
@@ -133,7 +157,8 @@ export default function PlayerHand() {
               transform: `scale(${cardScale/100})`,
               transformOrigin: 'center bottom',
               width: 'max-content',
-              ...(isScrollableWidth ? { paddingLeft: '50%', paddingRight: '50%' } : {})
+              paddingLeft: '20px', 
+              paddingRight: '20px'
             }}
           >
             <div className="flex items-stretch h-full">
