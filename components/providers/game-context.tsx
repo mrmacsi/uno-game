@@ -901,6 +901,15 @@ export function GameProvider({
         const errorData = await response.json().catch(() => ({}))
         console.error("[GameProvider] Message API error:", response.status, errorData)
         throw new Error(errorData.error || `Failed to send message: ${response.status}`)
+      } else {
+        // Success! Trigger toast for the sender immediately.
+        console.log("[GameProvider] Message sent successfully via API. Triggering sender toast.");
+        toast({
+          title: `${player.name || 'You'} said:`,
+          description: message,
+          variant: "default",
+          duration: 3000 
+        });
       }
     } catch (err) {
       console.error("[GameProvider] Error sending message:", err)
