@@ -29,7 +29,7 @@ interface AlertDialogState {
 }
 
 // Define localStorage key here too for the logout function
-const LOCAL_STORAGE_KEY = 'uno_player_id';
+const LOCAL_STORAGE_KEY = 'playerId';
 
 // Define view modes
 type ViewMode = 'setup' | 'login' | 'loading';

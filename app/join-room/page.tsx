@@ -9,13 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { joinRoom } from "@/lib/room-actions"
-import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
+import { storePlayerIdInLocalStorage, PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 import { Home, KeyRound, ShieldAlert, ArrowRight, Globe, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
-
-const LOCAL_STORAGE_KEY = 'uno_player_id'
 
 export default function JoinRoom() {
   const router = useRouter()
@@ -33,9 +31,9 @@ export default function JoinRoom() {
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true);
     setAvatarIndex(null);
-    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const playerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
 
-    if (!unoPlayerId) {
+    if (!playerId) {
       console.error("No player ID found. Redirecting to setup.");
       router.push('/profile/setup');
       return; 
@@ -45,7 +43,7 @@ export default function JoinRoom() {
       const { data, error, status } = await supabase
         .from('profiles')
         .select('display_name, avatar_index')
-        .eq('player_id', unoPlayerId)
+        .eq('player_id', playerId)
         .single();
 
       if (error && status !== 406) {
@@ -86,13 +84,13 @@ export default function JoinRoom() {
     setRoomIdError("")
     setError("")
     
-    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const playerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
     
     let hasError = false
 
-    if (!unoPlayerId) {
+    if (!playerId) {
       setError("Cannot join room: Player ID missing.");
-      console.error("JoinRoom Error: uno_player_id not found in localStorage");
+      console.error("JoinRoom Error: playerId not found in localStorage");
       hasError = true;
     }
     if (!playerDisplayName.trim()) {
@@ -116,7 +114,7 @@ export default function JoinRoom() {
 
     try {
       const joiningPlayerInput = {
-         id: unoPlayerId!,
+         id: playerId!,
          name: playerDisplayName,
          avatar_index: avatarIndex!
       };

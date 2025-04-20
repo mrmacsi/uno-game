@@ -7,8 +7,7 @@ import { useRouter } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { Loader2, Home } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-
-const LOCAL_STORAGE_KEY = 'uno_player_id'
+import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 
 export default function ProfileSetupPage() {
   const supabase = createClient()
@@ -17,11 +16,11 @@ export default function ProfileSetupPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    let storedPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
 
     if (!storedPlayerId) {
       storedPlayerId = uuidv4();
-      localStorage.setItem(LOCAL_STORAGE_KEY, storedPlayerId);
+      localStorage.setItem(PLAYER_ID_LOCAL_STORAGE_KEY, storedPlayerId);
     }
     
     setUnoPlayerId(storedPlayerId);

@@ -10,8 +10,7 @@ import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { AvatarDisplay } from "@/components/game/avatar-display";
-
-const LOCAL_STORAGE_KEY = 'uno_player_id'
+import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 
 interface PlayerProfile {
   display_name: string;
@@ -27,7 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
-    const storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const storedPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
     if (!storedPlayerId) {
       console.log("No player ID found, redirecting to setup.");
       router.push('/profile/setup');
@@ -45,7 +44,7 @@ export default function Home() {
 
         if (error && status !== 406) {
           console.error("Error fetching profile:", error);
-          localStorage.removeItem(LOCAL_STORAGE_KEY);
+          localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
           router.push('/profile/setup');
         } else if (!data || !data.display_name || data.avatar_name === null || data.avatar_index === null) {
           console.log("Incomplete profile data, redirecting to setup.");
@@ -55,7 +54,7 @@ export default function Home() {
         }
       } catch (err) {
         console.error("Unexpected error during profile check:", err);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
         router.push('/profile/setup');
       } finally {
         setLoading(false);
@@ -67,7 +66,7 @@ export default function Home() {
   }, [router, supabase]);
 
   const handleLogout = () => {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
     setProfile(null); 
     router.push('/profile/setup');
   };

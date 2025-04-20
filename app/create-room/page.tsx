@@ -13,8 +13,7 @@ import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
-
-const LOCAL_STORAGE_KEY = 'uno_player_id'
+import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 
 export default function CreateRoom() {
   const router = useRouter()
@@ -29,7 +28,7 @@ export default function CreateRoom() {
     e.preventDefault()
     setSubmitError("")
     
-    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY)
+    const unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
 
     if (!unoPlayerId) {
        setSubmitError("Cannot create room: Player ID missing.")
@@ -74,7 +73,7 @@ export default function CreateRoom() {
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true)
     setAvatarIndex(null)
-    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY)
+    const unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
 
     if (!unoPlayerId) {
       console.error("No player ID found. Redirecting to setup.")

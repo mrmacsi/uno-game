@@ -103,6 +103,8 @@ export function addIsValidPlayFunction(gameState: GameState): GameState {
   return newState;
 }
 
+export const PLAYER_ID_LOCAL_STORAGE_KEY = "playerId"
+
 // ... existing code ...
 // Function removed as it's now handled in game-context.tsx
 // export function addIsValidPlayFunction(gameState: GameState): GameState { ... } 

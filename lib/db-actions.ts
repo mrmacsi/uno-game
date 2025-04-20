@@ -76,9 +76,17 @@ export async function clearDb(): Promise<string[]> {
     if (keysToDelete.length > 0) {
         await redis.del(keysToDelete);
         console.log(`Cleared ${keysToDelete.length} rooms from DB.`);
-        return keysToDelete;
     } else {
         console.log("No rooms to clear from DB (excluding DEFAULT).");
-        return [];
     }
+    // Also clear DEFAULT room players, matchHistory, and log
+    const defaultRoomRaw = await redis.get(`${ROOM_PREFIX}DEFAULT`);
+    if (defaultRoomRaw) {
+        const defaultRoom = JSON.parse(defaultRoomRaw);
+        defaultRoom.players = [];
+        defaultRoom.matchHistory = [];
+        defaultRoom.log = [];
+        await redis.set(`${ROOM_PREFIX}DEFAULT`, JSON.stringify(defaultRoom));
+    }
+    return keysToDelete;
 } 

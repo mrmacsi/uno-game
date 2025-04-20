@@ -153,30 +153,49 @@ export async function createDefaultRoom(): Promise<void> {
 // Reset a room to its initial waiting state, preserving players for a rematch
 export async function resetRoom(roomId: string): Promise<void> {
   console.log(`Initiating rematch reset for room: ${roomId}`)
-  
   const currentGameState = await getGameState(roomId);
-
   if (!currentGameState) {
     console.warn(`Cannot reset: Room ${roomId} not found.`);
-    // Maybe throw an error if the room should definitely exist?
     throw new Error(`Room ${roomId} not found, cannot start rematch.`);
   }
-
-  // Prepare the new state based on the current one
+  if (roomId === "DEFAULT") {
+    const newState: GameState = {
+      ...currentGameState,
+      status: "waiting",
+      players: [],
+      currentPlayer: "",
+      direction: 1,
+      drawPile: [],
+      drawPileCount: 0,
+      discardPile: [],
+      currentColor: "red",
+      winner: null,
+      drawCardEffect: undefined,
+      hasDrawnThisTurn: undefined,
+      log: [],
+      matchHistory: [],
+    };
+    await storeGameState(roomId, newState);
+    await pusherServer.trigger(`game-${roomId}`, "game-reset", { message: "Room fully reset and emptied." });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(newState));
+    console.log(`Room ${roomId} fully reset and emptied.`);
+    return;
+  }
   const newState: GameState = {
-    ...currentGameState, // Keep roomId, matchHistory, etc.
+    ...currentGameState,
     status: "waiting",
     players: currentGameState.players.map(player => ({
-      ...player, // Keep id, name, avatar_index, isHost
-      cards: [], // Reset cards
-      saidUno: false // Reset UNO status
+      ...player,
+      cards: [],
+      saidUno: false
     })),
-    currentPlayer: "", // No current player in waiting room
+    currentPlayer: "",
     direction: 1,
     drawPile: [],
     drawPileCount: 0,
     discardPile: [],
-    currentColor: "red", // Reset to a default color
+    currentColor: "red",
     winner: null,
     drawCardEffect: undefined,
     hasDrawnThisTurn: undefined,
@@ -185,26 +204,16 @@ export async function resetRoom(roomId: string): Promise<void> {
       message: `Rematch initiated! Waiting for host to start...`,
       timestamp: Date.now(),
       eventType: 'system'
-    }], // Reset log for the new round
-    // isDrawing and isValidPlay are typically client-side/transient, not stored
+    }],
   };
-
-  // Ensure players array is not empty (shouldn't happen if currentGameState exists)
   if (newState.players.length === 0) {
-      console.error(`Room ${roomId} was found but had no players during reset. Aborting reset.`);
-      throw new Error("Cannot reset room with no players.");
+    console.error(`Room ${roomId} was found but had no players during reset. Aborting reset.`);
+    throw new Error("Cannot reset room with no players.");
   }
-  
-  await storeGameState(roomId, newState); // Use storeGameState to overwrite with the reset state
-  
-  // Trigger pusher events to notify clients
+  await storeGameState(roomId, newState);
   await pusherServer.trigger(`game-${roomId}`, "game-reset", { message: "Rematch starting! Players kept." });
-  
-  // Give a brief moment for clients to potentially process the reset event before the full update
-  await new Promise(resolve => setTimeout(resolve, 50)); 
-  
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(newState)); 
-  
+  await new Promise(resolve => setTimeout(resolve, 50));
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(newState));
   console.log(`Room ${roomId} reset for rematch successfully. Status: ${newState.status}, Players: ${newState.players.length}`);
 }
 
