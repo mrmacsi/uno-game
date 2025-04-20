@@ -17,7 +17,7 @@ export default function GameLog({ logs }: GameLogProps) {
     <ScrollArea className="h-[300px] w-full p-4 bg-black/20 rounded-md border border-white/10">
       <div className="space-y-2">
         {logs.map((log) => {
-          const { id, message, player, card, color } = log;
+          const { id, message, player, cardType, cardColor } = log;
           const safeMessage = typeof message === 'string' ? message : '';
           const isUnoDeclaration = safeMessage.startsWith("UNO!");
           const isPenalty = safeMessage.includes("penalty");
@@ -35,8 +35,8 @@ export default function GameLog({ logs }: GameLogProps) {
           else if (isPlay) colorClass = "text-green-300";
 
           let display = safeMessage;
-          if (player || card || color) {
-            display = `${player ? player + ' ' : ''}${card ? card + ' ' : ''}${color ? color + ' ' : ''}- ${safeMessage}`.trim();
+          if (player || cardType || cardColor) {
+            display = `${player ? player + ' ' : ''}${cardType ? cardType + ' ' : ''}${cardColor ? cardColor + ' ' : ''}- ${safeMessage}`.trim();
           }
 
           return (

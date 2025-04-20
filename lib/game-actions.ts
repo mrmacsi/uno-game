@@ -166,11 +166,13 @@ export async function startGame(roomId: string, playerId: string): Promise<GameS
   
   gameState.log.push({
     id: uuidv4(),
-    message: `Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.value}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
+    message: `Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
     timestamp: Date.now(),
     player: player.name,
-    card: firstCard.value ? String(firstCard.value) : undefined,
-    color: firstCard.color
+    eventType: 'system',
+    cardType: firstCard.type,
+    cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
+    cardColor: firstCard.color
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
@@ -246,8 +248,10 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       message: `${player.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
       timestamp: Date.now(),
       player: player.name,
-      card: cardToPlay.type === "wild" ? undefined : String(cardToPlay.value),
-      color: chosenColor
+      eventType: 'play',
+      cardType: cardToPlay.type,
+      cardValue: undefined,
+      cardColor: chosenColor
     });
   }
   

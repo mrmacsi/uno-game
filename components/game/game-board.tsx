@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState } from "react"
 import { useGame } from "../providers/game-context"
 import PlayerHand from "./player-hand"
 import DrawPile from "./draw-pile"
@@ -12,9 +12,6 @@ import PlayerInfo from "../room/player-info"
 import { Button } from "@/components/ui/button"
 import { Home, Maximize, Minimize } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import type { Card } from "@/lib/types"
-import type { LogEntry } from "@/lib/types"
 
 export default function GameBoard() {
   const {
@@ -26,8 +23,6 @@ export default function GameBoard() {
   } = useGame()
   const router = useRouter()
   const [fullscreen, setFullscreen] = useState(false)
-  const { toast } = useToast()
-  const previousDiscardPileRef = useRef<Card[]>([])
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
