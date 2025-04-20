@@ -51,7 +51,7 @@ export default function ProfileSetupPage() {
        console.error("Player ID could not be established for profile check.");
     }
     
-  }, []);
+  }, [router, supabase]);
 
   if (loading || !unoPlayerId) {
     return (

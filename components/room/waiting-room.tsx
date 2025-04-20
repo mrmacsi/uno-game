@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
 import ResetRoomButton from "./reset-room-button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Player } from "@/lib/types"
@@ -24,7 +23,6 @@ export default function WaitingRoom() {
   const [isStarting, setIsStarting] = useState(false)
   const { toast } = useToast()
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [playerJoined, setPlayerJoined] = useState(false)
   
   // Find current player in players array
   const currentPlayer = state.players.find(player => player.id === currentPlayerId)
@@ -37,7 +35,6 @@ export default function WaitingRoom() {
   useEffect(() => {
     const timer = setTimeout(() => {
       refreshGameState()
-      setPlayerJoined(true)
     }, 1000)
     
     return () => clearTimeout(timer)

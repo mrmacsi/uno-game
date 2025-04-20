@@ -64,7 +64,7 @@ export default function Home() {
 
     checkProfile(storedPlayerId);
 
-  }, [router]);
+  }, [router, supabase]);
 
   const handleLogout = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);

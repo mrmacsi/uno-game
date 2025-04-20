@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Loader2, Edit, User, Wand2, LogOut, CheckCircle, LogIn } from 'lucide-react'
+import { Loader2, Edit, User, Wand2, LogIn } from 'lucide-react'
 import { toast } from "sonner"
 // Import the name generator
 import { generateRandomName, adjectives } from "@/lib/name-generator"
@@ -182,9 +182,11 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
 
       toast.success('Profile saved successfully!')
       router.push('/') // Redirect to main page after save
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving profile:", error)
-      if (error.message && error.message.includes('profiles_username_key')) {
+      // Use a type assertion or check the error structure
+      const errorMessage = (error instanceof Error) ? error.message : String(error);
+      if (errorMessage.includes('profiles_username_key')) {
            showAlert('Username Taken', 'This username is already taken.')
       } else {
            showAlert('Error', 'An unexpected error occurred while saving your profile.')

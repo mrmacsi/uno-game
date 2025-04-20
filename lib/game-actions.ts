@@ -73,9 +73,9 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
   }
 }
 
-export async function createGame(hostId: string, hostName: string): Promise<GameState> {
+export async function createGame(hostId: string, hostName: string, hostAvatarIndex: number): Promise<GameState> {
   const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const initialPlayer: Player = { id: hostId, name: hostName, cards: [], isHost: true };
+  const initialPlayer: Player = { id: hostId, name: hostName, avatar_index: hostAvatarIndex, cards: [], isHost: true };
   const initialState: GameState = {
     roomId,
     status: "waiting",
@@ -98,7 +98,7 @@ export async function createGame(hostId: string, hostName: string): Promise<Game
   return initialState;
 }
 
-export async function addPlayer(roomId: string, playerId: string, playerName: string): Promise<GameState> {
+export async function addPlayer(roomId: string, playerId: string, playerName: string, avatarIndex: number): Promise<GameState> {
   const gameState = await fetchAndValidateGameState(roomId);
   if (gameState.status !== "waiting") {
     throw new Error("Cannot join game that has already started");
@@ -111,7 +111,7 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
     return gameState;
   }
 
-  const newPlayer: Player = { id: playerId, name: playerName, cards: [], isHost: false };
+  const newPlayer: Player = { id: playerId, name: playerName, avatar_index: avatarIndex, cards: [], isHost: false };
   gameState.players.push(newPlayer);
   gameState.log.push({
     id: uuidv4(),
