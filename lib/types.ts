@@ -62,6 +62,7 @@ export interface GameState {
   drawPileCount?: number
   isDrawing?: boolean
   isValidPlay?: (card: Card) => boolean
+  gameStartTime?: number
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

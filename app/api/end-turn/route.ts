@@ -18,6 +18,7 @@ async function validateRequestBody(request: NextRequest): Promise<{ roomId?: str
   }
 }
 
+// This route is used by the client to pass the turn
 export async function POST(request: NextRequest) {
   const validation = await validateRequestBody(request);
   if (validation.error) {

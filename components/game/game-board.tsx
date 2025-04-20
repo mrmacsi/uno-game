@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useGame } from "../providers/game-context"
 import PlayerHand from "./player-hand"
 import DrawPile from "./draw-pile"
@@ -9,8 +9,9 @@ import GameControls from "./game-controls"
 import GameOver from "../layout/game-over"
 import ColorSelector from "./color-selector"
 import PlayerInfo from "../room/player-info"
+import InGameMessages from "./in-game-messages"
 import { Button } from "@/components/ui/button"
-import { Home, Maximize, Minimize } from "lucide-react"
+import { Clock, Home, Maximize, Minimize } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function GameBoard() {
@@ -20,13 +21,26 @@ export default function GameBoard() {
     isColorSelectionOpen,
     closeColorSelector,
     currentPlayerId,
+    getGameDuration
   } = useGame()
   const router = useRouter()
   const [fullscreen, setFullscreen] = useState(false)
+  const [gameTime, setGameTime] = useState("00:00")
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
   const isMyTurn = state.currentPlayer === currentPlayerId
+
+  // Update game timer every second
+  useEffect(() => {
+    if (state.status !== "playing") return
+    
+    const interval = setInterval(() => {
+      setGameTime(getGameDuration())
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [state.status, getGameDuration])
 
   if (state.status === "finished") {
     return <GameOver />
@@ -58,8 +72,11 @@ export default function GameBoard() {
       
       {/* Top navbar - simplified for mobile */}
       <div className="flex items-center justify-between p-2 sm:p-3 bg-black/40 backdrop-blur-md z-20 border-b border-white/10 shadow-md">
-        {/* Remove left-side buttons */}
-        <div className="w-8"> {/* Placeholder for balance */} </div>
+        {/* Game timer */}
+        <div className="flex items-center gap-1.5 text-white/80 text-sm"> 
+          <Clock className="h-3.5 w-3.5" />
+          <span className="font-mono">{gameTime}</span>
+        </div>
         
         <div className="font-bold text-white text-base sm:text-lg bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">UNO Game</div>
         
@@ -84,6 +101,9 @@ export default function GameBoard() {
         </div>
       </div>
       
+      {/* Quick chat messages */}
+      <InGameMessages />
+      
       {/* Players section - always visible */}
       {/* Main container: flex column, takes remaining height */}
       <div className="flex-1 flex flex-col relative" style={{ overflow: 'visible' }}>
@@ -97,7 +117,8 @@ export default function GameBoard() {
               <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 pointer-events-auto w-44 sm:w-56">
                 <PlayerInfo 
                   player={otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]} 
-                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]).id === state.currentPlayer} 
+                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]).id === state.currentPlayer}
+                  showRingButton={state.status === "playing"} 
                 />
               </div>
             )}
@@ -107,7 +128,8 @@ export default function GameBoard() {
               <div className="absolute top-1/2 -translate-y-1/2 left-2 sm:left-4 pointer-events-auto w-32 sm:w-40">
                 <PlayerInfo 
                   player={otherPlayers[0]} 
-                  isCurrentTurn={otherPlayers[0].id === state.currentPlayer} 
+                  isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
+                  showRingButton={state.status === "playing"} 
                 />
               </div>
             )}
@@ -118,7 +140,8 @@ export default function GameBoard() {
                 <PlayerInfo 
                    // If 2 players, right is index 1. If 3 players, right is index 2.
                   player={otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]} 
-                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer} 
+                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer}
+                  showRingButton={state.status === "playing"} 
                 />
               </div>
             )}

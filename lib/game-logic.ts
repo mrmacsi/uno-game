@@ -125,7 +125,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
     player: playerWhoPlayed.name,
     cardType: card.type,
     cardColor: card.color,
-    cardValue: card.type === "number" ? card.value : undefined // Add value if it's a number card
+    cardValue: card.type === "number" ? card.value : undefined, // Add value if it's a number card
+    avatarIndex: playerWhoPlayed.avatar_index
   });
 
   switch (card.type) {
@@ -137,7 +138,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
         timestamp: Date.now(),
         player: gameState.players[nextPlayerIndex].name,
         cardType: card.type,
-        cardColor: card.color
+        cardColor: card.color,
+        avatarIndex: gameState.players[nextPlayerIndex].avatar_index
       })
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); // Skip the next player
       break;
@@ -152,7 +154,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
            timestamp: Date.now(),
            player: gameState.players[nextPlayerIndex].name,
            cardType: card.type,
-           cardColor: card.color
+           cardColor: card.color,
+           avatarIndex: gameState.players[nextPlayerIndex].avatar_index
          })
          nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); 
        } else {
@@ -163,7 +166,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
             timestamp: Date.now(),
             player: playerWhoPlayed.name, // Player who played the reverse
             cardType: card.type,
-            cardColor: card.color
+            cardColor: card.color,
+            avatarIndex: playerWhoPlayed.avatar_index
           })
           nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
        }
@@ -196,7 +200,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
           eventType: 'uno',
           message: `UNO! ${playerWhoPlayed.name} has one card left!`,
           timestamp: Date.now(),
-          player: playerWhoPlayed.name
+          player: playerWhoPlayed.name,
+          avatarIndex: playerWhoPlayed.avatar_index
         });
     } else {
         console.log(`${playerWhoPlayed.name} reached 1 card but forgot to declare UNO!`);
@@ -206,7 +211,8 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
           eventType: 'uno_fail',
           message: `${playerWhoPlayed.name} forgot to declare UNO! (Has 1 card left)`,
           timestamp: Date.now(),
-          player: playerWhoPlayed.name
+          player: playerWhoPlayed.name,
+          avatarIndex: playerWhoPlayed.avatar_index
         });
     }
   }

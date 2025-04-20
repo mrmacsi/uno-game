@@ -11,6 +11,7 @@ import type { Channel } from "pusher-js"
 import Pusher from 'pusher-js'
 import { checkPlayValidity as checkPlayValidityLogic } from '@/lib/game-logic'
 import { toast } from "@/hooks/use-toast"
+import { v4 as uuidv4 } from 'uuid'
 
 type GameContextType = {
   state: GameState
@@ -36,6 +37,10 @@ type GameContextType = {
   cardScale: number
   increaseCardSize: () => void
   decreaseCardSize: () => void
+  sendGameMessage: (message: string) => Promise<void>
+  ringOpponent: (playerId: string) => Promise<void>
+  gameStartTime: number | null
+  getGameDuration: () => string
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -58,6 +63,16 @@ function formatCardDescription(logEntry: LogEntry): string {
   }
   const typeName = logEntry.cardType.charAt(0).toUpperCase() + logEntry.cardType.slice(1).replace('4', ' 4');
   return `${color}${typeName}`;
+}
+
+// Add a type for the ring notification data
+interface RingNotificationData {
+  from: {
+    id: string;
+    name: string;
+    avatarIndex: number;
+  };
+  timestamp: number;
 }
 
 export function GameProvider({
@@ -88,6 +103,42 @@ export function GameProvider({
   
   const [isResetting, setIsResetting] = useState(false)
   
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null)
+  
+  // Pre-load notification sound
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
+
+  // Initialize notification sound on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Create audio element once and reuse it
+        const audio = new Audio()
+        audio.src = "/sounds/notification.wav"
+        audio.preload = "auto"
+        audio.volume = 0.8
+        
+        // Store in ref for later use
+        notificationSoundRef.current = audio
+        
+        // Load the audio immediately
+        audio.load()
+        
+        console.log("[GameProvider] Preloaded notification sound")
+        
+        // Clean up on unmount
+        return () => {
+          if (notificationSoundRef.current) {
+            notificationSoundRef.current.src = ""
+            notificationSoundRef.current = null
+          }
+        }
+      } catch (err) {
+        console.error("[GameProvider] Error preloading sound:", err)
+      }
+    }
+  }, [])
+  
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
       dispatch({ type: "UPDATE_GAME_STATE", payload: newGameState })
@@ -113,9 +164,12 @@ export function GameProvider({
     newEntries.forEach(newestEntry => {
       // Check if this specific entry ID has already been processed (handle potential duplicates)
       if (prevLog.some(entry => entry.id === newestEntry.id)) {
+        console.log(`[GameProvider Toast] Skipping already processed log entry: ${newestEntry.id}`);
         return; // Skip already processed entry
       }
       
+      console.log(`[GameProvider Toast] Processing new log entry:`, newestEntry);
+
       let toastTitle = "Game Update";
       let toastDescription = newestEntry.message;
       let toastVariant: "default" | "destructive" = "default";
@@ -163,12 +217,20 @@ export function GameProvider({
           toastDescription = `${newestEntry.player || 'Someone'} left the room.`;
           duration = 1500;
           break;
-        case 'system': // General system messages
+        case 'system': // Explicitly handle system messages
+          console.log("[GameProvider Toast] Matched 'system' event type.");
+          toastTitle = `${newestEntry.player || 'System'} Message`; // Maybe give it a specific title
+          // Use default description (the message itself)
+          toastVariant = "default"; // Ensure it's default
+          duration = 3000; // Slightly longer?
+          break;
         default:
+          console.log(`[GameProvider Toast] Matched '${newestEntry.eventType || 'default'}' event type.`);
           // Use default title and message
           break;
       }
       
+      console.log(`[GameProvider Toast] Calling toast() with:`, { title: toastTitle, description: toastDescription, variant: toastVariant, duration });
       toast({
         title: toastTitle,
         description: toastDescription,
@@ -243,13 +305,14 @@ export function GameProvider({
   useEffect(() => {
     let channel: Channel | null = null
     let pusher: Pusher | null = null
+    let playerChannel: Channel | null = null
     
     const setupPusher = () => {
       if (!roomId) {
         console.warn("[GameProvider] No room ID provided, can't subscribe to Pusher")
         return
       }
-      
+
       try {
         if (pusherClient) {
           console.log(`[GameProvider] Using existing Pusher client to subscribe to game-${roomId}`)
@@ -295,19 +358,129 @@ export function GameProvider({
           })
         })
         
+        // Subscribe to player-specific events if we have a player ID
+        if (currentPlayerId) {
+          console.log(`[GameProvider] Attempting private subscription for player ID: ${currentPlayerId}`);
+          const channelName = `private-player-${currentPlayerId}`;
+          console.log(`[GameProvider] Subscribing to private channel: ${channelName}`)
+          
+          if (pusherClient) {
+            playerChannel = pusherClient.subscribe(channelName)
+          } else if (pusher) {
+            playerChannel = pusher.subscribe(channelName)
+          }
+          
+          if (playerChannel) {
+            console.log(`[GameProvider] playerChannel object obtained for ${channelName}`);
+            // Debug binding to check if channel is connected properly
+            playerChannel.bind("pusher:subscription_succeeded", () => {
+              console.log(`[GameProvider] Successfully subscribed to private channel for player ${currentPlayerId}`)
+            })
+            
+            playerChannel.bind("pusher:subscription_error", (error: any) => {
+              console.error(`[GameProvider] Failed to subscribe to private channel:`, error)
+            })
+            
+            playerChannel.bind("player-ringed", (data: RingNotificationData) => {
+              console.log("[GameProvider] Received ring notification from:", data.from.name)
+              
+              // Show a prominent toast notification
+              toast({
+                title: "Ring! Ring!",
+                description: `${data.from.name} is trying to get your attention!`,
+                variant: "default",
+                duration: 5000,
+              })
+              
+              // Play sound using the pre-loaded audio element
+              const playSound = () => {
+                if (notificationSoundRef.current) {
+                  // Reset the audio to the beginning
+                  notificationSoundRef.current.currentTime = 0
+                  
+                  const playPromise = notificationSoundRef.current.play()
+                  
+                  if (playPromise !== undefined) {
+                    playPromise
+                      .then(() => {
+                        console.log("[GameProvider] Notification sound played successfully")
+                      })
+                      .catch(err => {
+                        console.error("[GameProvider] Audio play error:", err)
+                        
+                        // On error, try the user interaction approach
+                        const handlePlayOnInteraction = () => {
+                          if (notificationSoundRef.current) {
+                            notificationSoundRef.current.play()
+                              .then(() => {
+                                // Clean up only on success
+                                document.removeEventListener("click", handlePlayOnInteraction)
+                                document.removeEventListener("keydown", handlePlayOnInteraction)
+                                document.removeEventListener("touchstart", handlePlayOnInteraction)
+                              })
+                              .catch(innerErr => {
+                                console.error("[GameProvider] Retry play failed:", innerErr)
+                              })
+                          }
+                        }
+                        
+                        // Add user interaction listeners
+                        document.addEventListener("click", handlePlayOnInteraction, { once: false })
+                        document.addEventListener("keydown", handlePlayOnInteraction, { once: false })
+                        document.addEventListener("touchstart", handlePlayOnInteraction, { once: false })
+                        
+                        // Cleanup after 15 seconds if still not played
+                        setTimeout(() => {
+                          document.removeEventListener("click", handlePlayOnInteraction)
+                          document.removeEventListener("keydown", handlePlayOnInteraction)
+                          document.removeEventListener("touchstart", handlePlayOnInteraction)
+                        }, 15000)
+                      })
+                  }
+                } else {
+                  console.error("[GameProvider] No audio element available for notification")
+                  
+                  // Fallback to creating a new audio element if ref is somehow null
+                  try {
+                    const fallbackAudio = new Audio("/sounds/notification.wav")
+                    fallbackAudio.volume = 0.8
+                    fallbackAudio.play().catch(err => console.error("[GameProvider] Fallback audio play failed:", err))
+                  } catch (err) {
+                    console.error("[GameProvider] Could not create fallback audio:", err)
+                  }
+                }
+              }
+              
+              // Try to play sound immediately
+              playSound()
+            })
+          }
+        }
+        
         console.log(`[GameProvider] Successfully subscribed to game-${roomId}`)
       } catch (error) {
         console.error("[GameProvider] Error setting up Pusher:", error)
         setError("Failed to connect to game server. Please refresh the page.")
       }
     }
-    
+
     setupPusher()
     
     return () => {
       if (channel) {
         console.log(`[GameProvider] Cleaning up Pusher subscription for game-${roomId}`)
         channel.unbind_all()
+      }
+      
+      if (playerChannel) {
+        console.log(`[GameProvider] Cleaning up private player channel subscription`)
+        playerChannel.unbind_all()
+        
+        if (pusherClient && currentPlayerId) {
+          pusherClient.unsubscribe(`private-player-${currentPlayerId}`)
+        } else if (pusher && currentPlayerId) {
+          pusher.unsubscribe(`private-player-${currentPlayerId}`)
+        }
       }
       
       if (pusherClient && roomId) {
@@ -336,6 +509,29 @@ export function GameProvider({
     
     return () => clearTimeout(refreshTimeout)
   }, [state.status, refreshGameState, state.discardPile.length, state.currentColor])
+
+  useEffect(() => {
+    // Use game start time from game state instead of local state
+    if (state.status === "playing" && state.gameStartTime) {
+      console.log("[GameProvider] Setting game start time from state:", state.gameStartTime)
+      setGameStartTime(state.gameStartTime)
+    }
+  }, [state.status, state.gameStartTime])
+  
+  // Format the game duration as mm:ss
+  const getGameDuration = (): string => {
+    // Use gameStartTime from state if available, fall back to local state
+    const startTime = state.gameStartTime || gameStartTime
+    
+    if (!startTime) return "00:00"
+    
+    const durationMs = Date.now() - startTime
+    const totalSeconds = Math.floor(durationMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+  }
 
   const hasPlayableCard = (): boolean => {
     if (!currentPlayerId || currentPlayerId !== state.currentPlayer) return false
@@ -603,8 +799,8 @@ export function GameProvider({
   }
   
   const handleStartGame = async () => {
-    if (!currentPlayerId) {
-      console.error("[GameProvider] Cannot start game: No player ID")
+    if (!roomId || !currentPlayerId) {
+      console.error("[GameProvider] Cannot start game: Missing Room/Player ID")
       return
     }
     
@@ -622,7 +818,10 @@ export function GameProvider({
     
     try {
       setIsLoading(true)
-      await startGameAction(roomId, currentPlayerId!)
+      // Set game start time on the server when starting the game
+      const currentTime = Date.now()
+      setGameStartTime(currentTime)
+      await startGameAction(roomId, currentPlayerId!, currentTime)
       // State update will be handled by Pusher
       setIsLoading(false)
     } catch (error) {
@@ -670,6 +869,88 @@ export function GameProvider({
     setCardScale(prev => Math.max(prev - 10, 70)) // Decrease by 10%, min 70%
   }
 
+  const handleSendGameMessage = async (message: string): Promise<void> => {
+    if (!roomId || !currentPlayerId) return
+    
+    try {
+      const player = state.players.find(p => p.id === currentPlayerId)
+      if (!player) return
+      
+      const newLogEntry: LogEntry = {
+        id: uuidv4(),
+        message: message,
+        timestamp: Date.now(),
+        player: player.name,
+        avatarIndex: player.avatar_index,
+        eventType: 'system'
+      }
+      
+      // Send to server with better error handling
+      const response = await fetch(`/api/game/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId,
+          playerId: currentPlayerId,
+          message
+        }),
+      })
+      
+      // Handle both network errors and API errors
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("[GameProvider] Message API error:", response.status, errorData)
+        throw new Error(errorData.error || `Failed to send message: ${response.status}`)
+      }
+    } catch (err) {
+      console.error("[GameProvider] Error sending message:", err)
+      
+      // Show a clear error to the user
+      toast({
+        title: "Message Failed",
+        description: err instanceof Error ? err.message : "Could not send message, please try again",
+        variant: "destructive",
+      })
+    }
+  }
+  
+  const handleRingOpponent = async (opponentId: string): Promise<void> => {
+    if (!roomId || !currentPlayerId) return
+    
+    try {
+      const player = state.players.find(p => p.id === currentPlayerId)
+      if (!player) return
+      
+      // Send notification through server
+      const response = await fetch(`/api/game/ring`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId,
+          fromPlayerId: currentPlayerId, 
+          toPlayerId: opponentId
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error("Failed to ring opponent")
+      }
+      
+      toast({
+        title: "Ring Sent",
+        description: "Notification sent to player",
+        duration: 1500,
+      })
+    } catch (err) {
+      console.error("[GameProvider] Error ringing opponent:", err)
+      toast({
+        title: "Ring Failed",
+        description: "Could not send notification",
+        variant: "destructive",
+      })
+    }
+  }
+
   const contextValue: GameContextType = {
     state,
     playCard: handlePlayCard,
@@ -702,6 +983,10 @@ export function GameProvider({
     cardScale,
     increaseCardSize,
     decreaseCardSize,
+    sendGameMessage: handleSendGameMessage,
+    ringOpponent: handleRingOpponent,
+    gameStartTime,
+    getGameDuration
   }
 
   return (

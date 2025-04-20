@@ -1,14 +1,27 @@
 import type { Player } from "@/lib/types"
-import { Clock, Crown } from "lucide-react"
+import { Bell, Clock, Crown } from "lucide-react"
 import { AvatarDisplay } from "../game/avatar-display"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useGame } from "../providers/game-context"
 
 interface PlayerInfoProps {
   player: Player
   isCurrentTurn: boolean
+  showRingButton?: boolean
 }
 
-export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
+export default function PlayerInfo({ player, isCurrentTurn, showRingButton = false }: PlayerInfoProps) {
+  const { state, ringOpponent, currentPlayerId } = useGame()
+  
+  const isCurrentPlayer = player.id === currentPlayerId
+  const isMyTurn = state.currentPlayer === currentPlayerId
+  
+  const handleRing = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    ringOpponent(player.id)
+  }
+  
   return (
     <div 
       className={cn(
@@ -57,13 +70,29 @@ export default function PlayerInfo({ player, isCurrentTurn }: PlayerInfoProps) {
           </div>
         </div>
         
-        {/* Turn Indicator (if applicable) */}
-        {isCurrentTurn && (
-          <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold flex-shrink-0 shadow-sm whitespace-nowrap">
-            <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-            <span>Turn</span>
-          </div>
-        )}
+        {/* Action buttons or turn indicator */}
+        <div className="flex items-center gap-1">
+          {/* Show ring button only if: showRingButton is true, it's not the current player's own info card, AND it's not the current player's turn */}
+          {showRingButton && !isCurrentPlayer && !isMyTurn && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-5 h-5 p-0.5 text-white/70 hover:text-amber-400 hover:bg-white/10 rounded-full flex-shrink-0"
+              onClick={handleRing}
+              title="Ring player"
+            >
+              <Bell className="w-3 h-3" />
+            </Button>
+          )}
+          
+          {/* Turn Indicator (if applicable) */}
+          {isCurrentTurn && (
+            <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold flex-shrink-0 shadow-sm whitespace-nowrap">
+              <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+              <span>Turn</span>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Card count visualization - very thin */}

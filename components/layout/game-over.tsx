@@ -33,7 +33,7 @@ export default function GameOver() {
         storePlayerIdInLocalStorage(currentPlayerId)
       }
       await refreshGameState()
-      router.replace(`/room/${state.roomId}`)
+      router.replace(`/join-room?roomId=${state.roomId}`)
     } catch {
     } finally {
       setIsRematchLoading(false)

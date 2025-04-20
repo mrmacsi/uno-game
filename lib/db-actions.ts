@@ -20,8 +20,17 @@ export async function updateGameState(roomId: string, gameState: GameState): Pro
 export async function getGameState(roomId: string): Promise<GameState | null> {
   const data = await redis.get(`${ROOM_PREFIX}${roomId}`)
   if (!data) return null
-  // Assuming initializeGameState correctly adds methods/processes the parsed state
-  return initializeGameState(JSON.parse(data))
+  
+  let parsedData;
+  try {
+    parsedData = JSON.parse(data);
+  } catch (error) {
+    console.error(`[getGameState] Failed to parse JSON for room ${roomId}:`, error, data);
+    return null; // Return null if parsing fails
+  }
+
+  // Pass the parsed data to initializeGameState which should handle potential missing fields like gameStartTime
+  return initializeGameState(parsedData);
 }
 
 // Get all room keys (Export this)

@@ -167,7 +167,7 @@ export default function WaitingRoom() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 text-white p-4 sm:p-6">
+    <div className="flex flex-col min-h-screen max-h-screen overflow-auto bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 text-white p-4 sm:p-6">
       <Card className="w-full max-w-md mx-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 shadow-xl rounded-2xl flex flex-col flex-grow overflow-hidden">
         <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700/50">
           <div className="absolute top-4 right-4 flex gap-1 sm:gap-2">
@@ -209,7 +209,7 @@ export default function WaitingRoom() {
           </div>
         </CardHeader>
         
-        <CardContent className="p-6 text-gray-900 dark:text-gray-100 flex-grow flex flex-col">
+        <CardContent className="p-6 text-gray-900 dark:text-gray-100 flex-grow flex flex-col overflow-auto">
           <div className="space-y-6 flex-grow flex flex-col">
             {/* Room code */}
             <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">

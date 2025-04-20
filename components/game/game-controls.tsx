@@ -57,7 +57,7 @@ export default function GameControls() {
   }[state.currentColor] || "from-gray-600 to-gray-700 text-white";
 
   return (
-    <div className="flex flex-row items-center justify-between gap-2 sm:gap-2 w-full">
+    <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 w-full">
       {/* Moved Left Scroll Button to the start */}
       <TooltipProvider delayDuration={100}>
         <Tooltip>
@@ -78,7 +78,7 @@ export default function GameControls() {
       </TooltipProvider>
 
       {/* Original Left Section: Rules Icon (Mobile Only) & Size Controls */}
-      <div className="flex items-center gap-1.5 sm:gap-2 ml-1 flex-shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 ml-1 flex-shrink-0">
         {isMobile && (
           <Drawer>
             <DrawerTrigger asChild>
@@ -218,28 +218,41 @@ export default function GameControls() {
         </DrawerContent>
       </Drawer>
 
-      {/* Right Section: Direction, Color, Actions */}
-      <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
-         {/* Direction Indicator */}
-         <span 
-           className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'} order-first`} 
-           title={state.direction === 1 ? "Clockwise" : "Counter-Clockwise"}
-         >
-          {state.direction === 1 ? '➡️' : '⬅️'}
-        </span>
-         {/* Color Indicator */}
-         <span 
-           className={`inline-block px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r ${colorStyles} shadow-md order-1 sm:order-none`} 
-           title={`Current color: ${state.currentColor}`}
-          >
-          {state.currentColor.toUpperCase()}
-        </span>
+      {/* Mobile optimized action buttons */}
+      <div className="flex flex-wrap justify-end items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
+        {/* Direction and Color indicators in one element on mobile */}
+        {isMobile ? (
+          <div className="flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r from-gray-700 to-gray-800 text-white">
+            <span className="mr-1">{state.direction === 1 ? '➡️' : '⬅️'}</span>
+            <span className={`inline-block px-1.5 py-0.5 rounded-full bg-gradient-to-r ${colorStyles}`}>
+              {state.currentColor.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* Direction Indicator */}
+            <span 
+              className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'}`} 
+              title={state.direction === 1 ? "Clockwise" : "Counter-Clockwise"}
+            >
+              {state.direction === 1 ? '➡️' : '⬅️'}
+            </span>
+            {/* Color Indicator */}
+            <span 
+              className={`inline-block px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r ${colorStyles} shadow-md`} 
+              title={`Current color: ${state.currentColor}`}
+            >
+              {state.currentColor.toUpperCase()}
+            </span>
+          </>
+        )}
 
+        {/* UNO button - made more compact on mobile */}
         {canSayUno && (
           <Button 
             onClick={declareUno}
             size="sm"
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs order-2 sm:order-none animate-pulse"
+            className={`bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse ${isMobile ? 'w-[50px]' : ''}`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
             UNO!
@@ -250,35 +263,42 @@ export default function GameControls() {
           <Button 
             disabled
             size="sm"
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs order-2 sm:order-none"
+            className={`bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 h-7 text-[10px] sm:text-xs opacity-70 ${isMobile ? 'w-[50px]' : ''}`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
-            UNO Declared!
+            UNO!
           </Button>
         )}
         
-        {/* Combined Draw/Pass Buttons */}
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => {
-            if (canDraw) drawCard()
-            else if (canEndTurn) passTurn()
-          }}
-          className={`
-            h-7 px-2 text-[10px] sm:text-xs rounded-full shadow-md flex items-center justify-center transition-all duration-200 order-3 sm:order-none
-            ${isMyTurn && (canDraw || canEndTurn) ? 'bg-blue-600 text-white' : 'bg-gray-700/50 text-white/50 cursor-not-allowed'}
-            ${noPlayableCards ? 'animate-pulse' : ''} 
-          `} 
-          disabled={!isMyTurn || (!canDraw && !canEndTurn)}
-          style={{ minWidth: 65 }} 
-          title={canDraw ? "Draw a Card" : (canEndTurn ? "End Turn" : "Not your turn or action available")}
-        >
-          {canDraw ? "Draw" : "End"}
-           {canEndTurn && <ArrowDown className="h-3 w-3 ml-0.5 sm:ml-1" />}
-        </Button>
+        {/* Draw button */}
+        {canDraw && (
+          <Button
+            onClick={drawCard}
+            size="sm"
+            variant={noPlayableCards ? "default" : "outline"}
+            className={`px-2 py-1 h-7 text-[10px] sm:text-xs ${
+              noPlayableCards 
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold animate-pulse shadow" 
+                : "border-white/20 text-white hover:bg-white/10"
+            } ${isMobile && noPlayableCards ? 'w-[54px]' : ''}`}
+          >
+            Draw
+          </Button>
+        )}
+          
+        {/* Pass turn button */}
+        {canEndTurn && (
+          <Button
+            onClick={() => passTurn()}
+            size="sm"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse"
+          >
+            <ArrowDown className="h-3 w-3 mr-0.5 sm:mr-1" />
+            {isMobile ? 'End' : 'End Turn'}
+          </Button>
+        )}
       </div>
-
+      
       {/* Moved Right Scroll Button to the end */}
       <TooltipProvider delayDuration={100}>
         <Tooltip>

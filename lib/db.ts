@@ -7,10 +7,18 @@ redis.connect()
 export { redis } // Export the client instance
 
 // Initialize database
-export const initializeGameState = (gameState: GameState) => {
-  // The isValidPlay logic should live on the client-side (e.g., in GameProvider or useGame hook)
-  // Do not attach functions to the state object that gets serialized from the server.
-  return gameState
+export const initializeGameState = (gameState: Partial<GameState>): GameState => {
+  // Merge with default values to ensure all properties exist, especially gameStartTime
+  const defaults: Partial<GameState> = {
+    gameStartTime: undefined,
+    log: [],
+    players: [],
+    discardPile: [],
+    status: 'waiting',
+    // Add other necessary defaults here if needed
+  };
+
+  return { ...defaults, ...gameState } as GameState;
 }
 
 // Database operations
