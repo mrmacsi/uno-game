@@ -11,7 +11,6 @@ import type { Channel } from "pusher-js"
 import Pusher from 'pusher-js'
 import { checkPlayValidity as checkPlayValidityLogic } from '@/lib/game-logic'
 import { toast } from "@/hooks/use-toast"
-import { v4 as uuidv4 } from 'uuid'
 
 type GameContextType = {
   state: GameState
@@ -393,7 +392,7 @@ export function GameProvider({
               console.log(`[GameProvider] Successfully subscribed to private channel for player ${currentPlayerId}`)
             })
             
-            playerChannel.bind("pusher:subscription_error", (error: any) => {
+            playerChannel.bind("pusher:subscription_error", (error: unknown) => {
               console.error(`[GameProvider] Failed to subscribe to private channel:`, error)
             })
             
@@ -876,15 +875,6 @@ export function GameProvider({
     try {
       const player = state.players.find(p => p.id === currentPlayerId)
       if (!player) return
-      
-      const newLogEntry: LogEntry = {
-        id: uuidv4(),
-        message: message,
-        timestamp: Date.now(),
-        player: player.name,
-        avatarIndex: player.avatar_index,
-        eventType: 'system'
-      }
       
       // Send to server with better error handling
       const response = await fetch(`/api/game/message`, {
