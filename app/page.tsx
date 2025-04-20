@@ -1,16 +1,93 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
-import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, User } from "lucide-react"
+import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, User, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from 'uuid'
+import { getAvatarStyle, imageUrl, baseImageWidth, baseImageHeight, rows, columns } from "@/lib/avatar-config";
+
+const LOCAL_STORAGE_KEY = 'uno_player_id'
+
+interface PlayerProfile {
+  username: string;
+  avatar_name: string;
+  avatar_index: number;
+}
 
 export default function Home() {
+  const supabase = createClient()
+  const router = useRouter()
+  const [profile, setProfile] = useState<PlayerProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    let storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!storedPlayerId) {
+      storedPlayerId = uuidv4();
+      localStorage.setItem(LOCAL_STORAGE_KEY, storedPlayerId);
+    }
+
+    const checkProfile = async (id: string) => {
+      setLoading(true);
+      try {
+        const { data, error, status } = await supabase
+          .from('profiles')
+          .select('username, avatar_name, avatar_index')
+          .eq('player_id', id)
+          .single();
+
+        if (error && status !== 406) {
+          console.error("Error fetching profile:", error);
+          router.push('/profile/setup');
+        } else if (!data || !data.username || data.avatar_name === null || data.avatar_index === null) {
+          router.push('/profile/setup');
+        } else {
+          setProfile(data as PlayerProfile);
+        }
+      } catch (err) {
+        console.error("Unexpected error during profile check:", err);
+        router.push('/profile/setup');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (storedPlayerId) {
+      checkProfile(storedPlayerId);
+    } else {
+      setLoading(false);
+      console.error("Player ID could not be established.");
+      router.push('/profile/setup');
+    }
+  }, [supabase, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 dark:from-red-900 dark:via-orange-800 dark:to-yellow-700 p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+        <p className="mt-4 text-white text-lg">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return null;
+  }
+
   // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
+
+  // Calculate avatar size for display
+  const baseAvatarDisplayWidth = baseImageWidth / columns;
+  const baseAvatarDisplayHeight = baseImageHeight / rows;
+  // Determine the size of the square container for the avatar image
+  const avatarDisplaySize = Math.min(baseAvatarDisplayWidth, baseAvatarDisplayHeight) * 0.5; // Make it smaller for footer
 
   // Animation variants
   const containerVariants = {
@@ -132,7 +209,31 @@ export default function Home() {
           </div>
           
           <div className="px-4 sm:px-8 py-4 sm:py-5 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 w-full mt-auto border-t border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">
-            <p>Built with ❤️ in London • {new Date().getFullYear()}</p>
+             <div className="flex items-center justify-center gap-2">
+                {/* Avatar Display Container - Apply styles directly */}
+                <div
+                    className="relative overflow-hidden rounded-full shadow-sm bg-gray-200 dark:bg-gray-700 flex-shrink-0"
+                    style={{
+                       width: `${avatarDisplaySize}px`, 
+                       height: `${avatarDisplaySize}px`, 
+                       ...getAvatarStyle(profile.avatar_index)
+                    }}
+                  >
+                  </div>
+               {/* Username Display */}
+               <User className="h-4 w-4 hidden sm:inline-block" />
+               <span>Welcome, {profile.username}!</span> 
+               <Link href="/profile/setup" passHref>
+                 <Button 
+                   variant="link"
+                   size="sm"
+                   className="h-auto p-0"
+                 >
+                   (Edit Profile)
+                 </Button>
+               </Link>
+             </div>
+             <p className="mt-1">Built with ❤️ in London • {new Date().getFullYear()}</p>
           </div>
         </div>
       </motion.div>

@@ -4,34 +4,32 @@ import React, { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-
-const avatars = [
-  "Panda", "Tiger", "Eagle", "Wolf", "Lion", "Bear",
-  "Shark", "Fox", "Rhino", "Sloth", "Kooula", "Dragon",
-  "Deer", "Rabbit", "Falcon", "Dragon", "Knight", "Phoenix",
-  "Player", "Gamer", "Hero", "Ranger", "Wärior", "Hunter",
-]
-
-const baseImageWidth = 952
-const baseImageHeight = 800
-const rows = 4
-const columns = 6
-const imageUrl = "https://nfjcunaepkauiowy.public.blob.vercel-storage.com/new-avatars-ZR3xelohwqTPDzmioWp6t5FDVFyXwy.png"
+import { 
+    avatars, 
+    baseImageWidth, 
+    baseImageHeight, 
+    rows, 
+    columns, 
+    imageUrl 
+} from "@/lib/avatar-config"; // Import shared constants
 
 interface SelectedAvatarState { name: string; index: number }
+interface AvatarSelectorProps {
+  onSelect?: (avatar: SelectedAvatarState) => void;
+}
 
 // Animation variants (can potentially be removed if not used elsewhere in the simplified component)
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
-}
+// const containerVariants = {
+//   hidden: { opacity: 0 },
+//   visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+// }
 
-const itemVariants = {
-  hidden: { y: 10, opacity: 0 },
-  visible: { y: 0, opacity: 1 }
-}
+// const itemVariants = {
+//   hidden: { y: 10, opacity: 0 },
+//   visible: { y: 0, opacity: 1 }
+// }
 
-export default function AvatarSelector() {
+export default function AvatarSelector({ onSelect }: AvatarSelectorProps) {
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatarState | null>(null)
   const [showGridOverlay, setShowGridOverlay] = useState(true)
   const [showImage, setShowImage] = useState(true)
@@ -40,7 +38,7 @@ export default function AvatarSelector() {
 
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         setContainerSize({ 
           width: entry.contentRect.width, 
           height: entry.contentRect.height 
@@ -130,7 +128,11 @@ export default function AvatarSelector() {
                       }}
                       onClick={() => {
                         const name = avatars[index] ?? `Avatar ${index + 1}`
-                        setSelectedAvatar({ name, index })
+                        const newSelection = { name, index };
+                        setSelectedAvatar(newSelection)
+                        if (onSelect) {
+                          onSelect(newSelection)
+                        }
                       }}
                     />
                   )

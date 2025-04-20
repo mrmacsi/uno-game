@@ -143,6 +143,13 @@ export default function AdminPage() {
              </Link>
           </div>
           
+          {/* Added Link/Button to Avatars Page */}
+          <div className="mb-4">
+             <Link href="/admin/avatars">
+               <Button variant="outline">View Avatars</Button>
+             </Link>
+          </div>
+
           <div className="space-y-6">
             {/* Redis Controls Section */}
             <div className="border dark:border-gray-700 rounded-lg p-4">
