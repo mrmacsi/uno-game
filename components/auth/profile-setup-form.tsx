@@ -28,8 +28,8 @@ interface AlertDialogState {
   description: string;
 }
 
-// Accept playerId instead of user object
-export default function ProfileSetupForm({ playerId }: { playerId: string }) {
+// Rename playerId prop to unoPlayerId
+export default function ProfileSetupForm({ unoPlayerId }: { unoPlayerId: string }) {
   const supabase = createClient()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -60,14 +60,14 @@ export default function ProfileSetupForm({ playerId }: { playerId: string }) {
   }, []); // Still no dependencies needed
 
   const getProfile = useCallback(async () => {
-    if (!playerId) return;
+    if (!unoPlayerId) return;
 
     try {
       setLoading(true)
       const { data, error, status } = await supabase
         .from('profiles')
         .select(`username, avatar_name, avatar_index`)
-        .eq('player_id', playerId)
+        .eq('player_id', unoPlayerId)
         .single()
 
       let initialAvatar: SelectedAvatarState | null = null;
@@ -111,16 +111,16 @@ export default function ProfileSetupForm({ playerId }: { playerId: string }) {
       setInitialCheckDone(true);
     }
   // Depend on the helper function now
-  }, [playerId, supabase, setUsernameAndLinkAvatar]); 
+  }, [unoPlayerId, supabase, setUsernameAndLinkAvatar]); 
 
   useEffect(() => {
-    if (playerId) {
+    if (unoPlayerId) {
       getProfile();
     } else {
       setLoading(false);
       setInitialCheckDone(true);
     }
-  }, [playerId, getProfile]);
+  }, [unoPlayerId, getProfile]);
 
   const generateNewRandomName = () => {
     const newName = generateRandomName();
@@ -137,7 +137,7 @@ export default function ProfileSetupForm({ playerId }: { playerId: string }) {
        showAlert('Invalid Username', 'Username must be at least 3 characters long.') // Use AlertDialog
        return
     }
-    if (!playerId) {
+    if (!unoPlayerId) {
       showAlert('Error', 'Player ID is missing. Cannot save profile.') // Use AlertDialog
       return
     }
@@ -145,7 +145,7 @@ export default function ProfileSetupForm({ playerId }: { playerId: string }) {
     try {
       setSaving(true) // Use saving state
       const { error } = await supabase.from('profiles').upsert({
-        player_id: playerId, 
+        player_id: unoPlayerId, 
         username: username.trim(), // Trim username
         avatar_name: selectedAvatar.name,
         avatar_index: selectedAvatar.index,

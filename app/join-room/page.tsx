@@ -13,6 +13,7 @@ import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { Home, User, KeyRound, ShieldAlert, ArrowRight, Globe, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
+import { AvatarDisplay } from "@/components/game/avatar-display"
 
 const LOCAL_STORAGE_KEY = 'uno_player_id'
 
@@ -20,6 +21,7 @@ export default function JoinRoom() {
   const router = useRouter()
   const supabase = createClient()
   const [playerName, setPlayerName] = useState("")
+  const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [roomId, setRoomId] = useState("")
   const [isJoining, setIsJoining] = useState(false)
@@ -30,9 +32,10 @@ export default function JoinRoom() {
 
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true);
-    const playerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    setAvatarIndex(null);
+    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
 
-    if (!playerId) {
+    if (!unoPlayerId) {
       console.error("No player ID found. Redirecting to setup.");
       router.push('/profile/setup');
       return; 
@@ -41,18 +44,19 @@ export default function JoinRoom() {
     try {
       const { data, error, status } = await supabase
         .from('profiles')
-        .select('username')
-        .eq('player_id', playerId)
+        .select('username, avatar_index')
+        .eq('player_id', unoPlayerId)
         .single();
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error);
         router.push('/profile/setup');
-      } else if (!data || !data.username) {
-        console.error("Incomplete profile found. Redirecting to setup.");
+      } else if (!data || !data.username || data.avatar_index === null) {
+        console.error("Incomplete profile found (missing name or avatar). Redirecting to setup.");
         router.push('/profile/setup');
       } else {
         setPlayerName(data.username);
+        setAvatarIndex(data.avatar_index);
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err);
@@ -82,14 +86,22 @@ export default function JoinRoom() {
     setRoomIdError("")
     setError("")
     
-    let hasError = false
+    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
     
+    let hasError = false
+
+    if (!unoPlayerId) {
+      setError("Cannot join room: Player ID missing.");
+      console.error("JoinRoom Error: uno_player_id not found in localStorage");
+      hasError = true;
+    }
     if (!playerName.trim()) { 
-      setNameError("Player name missing. Please set up your profile first.")
+      setNameError("Player name missing. Please check profile.")
       hasError = true
-    } else if (playerName.length > 25) {
-      setNameError("Name must be 25 characters or less")
-      hasError = true
+    }
+    if (avatarIndex === null) {
+      setNameError("Player avatar missing. Please check profile.");
+      hasError = true;
     }
     
     const finalRoomId = isDefault ? "DEFAULT" : roomId.trim().toUpperCase();
@@ -103,9 +115,15 @@ export default function JoinRoom() {
     setIsJoining(true)
 
     try {
-      const playerId = await joinRoom(finalRoomId, playerName)
+      const joiningPlayerInput = {
+         id: unoPlayerId!,
+         name: playerName,
+         avatar_index: avatarIndex!
+      };
       
-      storePlayerIdInLocalStorage(playerId)
+      const serverAssignedPlayerId = await joinRoom(finalRoomId, joiningPlayerInput)
+      
+      storePlayerIdInLocalStorage(serverAssignedPlayerId)
       
       router.push(`/room/${finalRoomId}`)
     } catch (error: unknown) {
@@ -189,18 +207,24 @@ export default function JoinRoom() {
                 </div>
               )}
 
-              <div className="space-y-1">
-                 <Label className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-                   <User className="h-4 w-4" />
-                   <span>Playing as:</span>
-                 </Label>
-                 <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 pl-5 truncate">
-                   {playerName}
-                 </p>
-                 {nameError && (
-                   <p className="text-red-500 text-xs mt-1 ml-1 pl-5">{nameError}</p>
-                 )}
+              <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                {avatarIndex !== null ? (
+                   <AvatarDisplay index={avatarIndex} size="sm" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
+                )}
+                 <div className="flex-grow min-w-0">
+                   <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
+                     Playing as:
+                   </Label>
+                   <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
+                     {playerName}
+                   </p>
+                 </div>
               </div>
+              {nameError && (
+                 <p className="text-red-500 text-xs mt-1 ml-1">{nameError}</p>
+              )}
 
               <AnimatePresence>
                 {error && (

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import Image from "next/image"
 import { 
     avatars, 
     baseImageWidth, 
@@ -100,11 +101,15 @@ export default function AvatarSelector({ onSelect }: AvatarSelectorProps) {
             className="relative w-full aspect-[952/800] border border-gray-300 dark:border-gray-600 mb-6 shadow-inner overflow-hidden"
           >
             {showImage && (
-              <img 
+              <Image 
                 src={imageUrl} 
                 alt="Avatar Sprite Sheet" 
-                className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
-                style={{ objectPosition: 'top left' }}
+                layout="fill" 
+                objectFit="cover"
+                objectPosition="top left"
+                className="pointer-events-none"
+                priority
+                unoptimized
               />
             )}
             {showGridOverlay && containerSize.width > 0 && (
@@ -153,17 +158,22 @@ export default function AvatarSelector({ onSelect }: AvatarSelectorProps) {
                 className="relative overflow-hidden rounded-full shadow-md bg-gray-100 dark:bg-gray-800"
                 style={{ width: `${getPreviewCoordinates(selectedAvatar.index).size}px`, height: `${getPreviewCoordinates(selectedAvatar.index).size}px` }}
               >
-                <img
+                <Image
                   src={imageUrl}
                   alt={selectedAvatar.name}
+                  width={baseImageWidth}
+                  height={baseImageHeight}
                   className="absolute top-0 left-0 max-w-none"
                   style={{
-                    width: `${baseImageWidth}px`,
-                    height: `${baseImageHeight}px`,
                     objectFit: "none",
                     objectPosition: `-${getPreviewCoordinates(selectedAvatar.index).offsetX}px -${getPreviewCoordinates(selectedAvatar.index).offsetY}px`,
-                    imageRendering: "pixelated"
+                    imageRendering: "pixelated",
+                    top: `-${getPreviewCoordinates(selectedAvatar.index).offsetY}px`, 
+                    left: `-${getPreviewCoordinates(selectedAvatar.index).offsetX}px`,
+                    width: `${baseImageWidth}px`,
+                    height: `${baseImageHeight}px`,
                   }}
+                  unoptimized
                 />
               </div>
             </motion.div>

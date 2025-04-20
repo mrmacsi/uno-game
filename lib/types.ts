@@ -13,6 +13,7 @@ export interface Player {
   name: string
   cards: Card[]
   isHost: boolean
+  avatar_index: number
   saidUno?: boolean
   points?: number
 }

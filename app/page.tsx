@@ -34,13 +34,13 @@ export default function Home() {
       return;
     }
 
-    const checkProfile = async (id: string) => {
+    const checkProfile = async (unoPlayerId: string) => {
       setLoading(true);
       try {
         const { data, error, status } = await supabase
           .from('profiles')
           .select('username, avatar_name, avatar_index, admin')
-          .eq('player_id', id)
+          .eq('player_id', unoPlayerId)
           .single();
 
         if (error && status !== 406) {
@@ -64,7 +64,7 @@ export default function Home() {
 
     checkProfile(storedPlayerId);
 
-  }, [supabase, router]);
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);

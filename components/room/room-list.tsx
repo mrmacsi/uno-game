@@ -4,10 +4,14 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GameState } from "@/lib/types"
+import { GameState, Player } from "@/lib/types"
+import { AvatarDisplay } from "@/components/game/avatar-display"
 import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+
+// Define max players to display avatars for
+const MAX_AVATARS_DISPLAY = 3;
 
 export default function RoomList() {
   const [rooms, setRooms] = useState<GameState[]>([])
@@ -223,6 +227,9 @@ export default function RoomList() {
           const action = actions[room.roomId] || { loading: false, message: null }
           const statusStyle = getStatusStyle(room.status)
           const isDefault = room.roomId === "DEFAULT"
+          // Calculate players to show and remainder
+          const playersToShow = room.players.slice(0, MAX_AVATARS_DISPLAY);
+          const remainingPlayers = room.players.length - playersToShow.length;
           
           return (
             <Card 
@@ -250,21 +257,34 @@ export default function RoomList() {
                   </span>
                 </div>
               </CardHeader>
-              <CardContent className="p-5 pt-2">
-                <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <span>{room.players.length} / 4 Players</span>
+              <CardContent className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex-grow">
+                  <h4 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+                     <Users className="h-3.5 w-3.5"/> 
+                     Players ({room.players.length}/4)
+                  </h4>
+                  <div className="flex items-center -space-x-2 min-h-[24px]">
+                    {playersToShow.length > 0 ? (
+                      playersToShow.map((player: Player) => (
+                        <AvatarDisplay 
+                          key={player.id}
+                          index={typeof player.avatar_index === 'number' ? player.avatar_index : 0}
+                          size="xs"
+                          className="border-2 border-white dark:border-gray-800 shadow-sm"
+                        />
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic pl-1">Empty</p>
+                    )}
+                    {remainingPlayers > 0 && (
+                      <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-600 dark:text-gray-300 border-2 border-white dark:border-gray-800 shadow-sm z-10">
+                        +{remainingPlayers}
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {action.message && (
-                  <p className={`text-xs mb-2 ${action.message.startsWith("Error") ? 'text-red-500' : 'text-green-600'}`}>
-                    {action.message}
-                  </p>
-                )}
-                
-                <div className="flex justify-end gap-2 mt-3">
+
+                <div className="flex items-center gap-2 flex-shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700/50 w-full sm:w-auto justify-end">
                   {!isDefault && (
                     <ConfirmationDialog
                       triggerButton={

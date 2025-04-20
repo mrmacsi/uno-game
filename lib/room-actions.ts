@@ -16,43 +16,54 @@ function generateRoomCode(): string {
   return code
 }
 
-// Create a new game room
-export async function createRoom(playerName: string): Promise<{ roomId: string; playerId: string }> {
+// Create a new game room - Accepts host player object
+export async function createRoom(hostPlayerInput: { id: string; name: string; avatar_index: number }): Promise<{ roomId: string; playerId: string }> {
+  console.log("[createRoom] Received input:", hostPlayerInput);
   const roomId = generateRoomCode()
-  const playerId = uuidv4()
 
-  const player: Player = {
-    id: playerId,
-    name: playerName,
+  // Create Player object directly from input
+  const hostPlayer: Player = {
+    id: hostPlayerInput.id,
+    name: hostPlayerInput.name, 
     cards: [],
     isHost: true,
+    avatar_index: hostPlayerInput.avatar_index, 
   }
+  console.log("[createRoom] Created hostPlayer object:", hostPlayer);
 
   const gameState: Partial<GameState> = {
     roomId,
     status: "waiting",
-    players: [player],
+    players: [hostPlayer],
     currentPlayer: "",
     direction: 1,
     drawPileCount: 0,
     discardPile: [],
-    currentColor: "red", // Default color
+    currentColor: "red",
     winner: null,
-    log: [], // Initialize log array
+    log: [{ 
+      id: uuidv4(),
+      message: `Room ${roomId} created by ${hostPlayer.name}`,
+      timestamp: Date.now(),
+      player: hostPlayer.name,
+      eventType: 'system'
+    }], 
   }
 
   await storeGameState(roomId, gameState)
-  console.log(`Created room ${roomId} with player ${playerName}, player ID: ${playerId}`)
-  return { roomId, playerId }
+  console.log(`[createRoom] Stored initial GameState for room ${roomId}`);
+  return { roomId, playerId: hostPlayer.id } 
 }
 
-// Join an existing game room
-export async function joinRoom(roomId: string, playerName: string): Promise<string> {
+// Join an existing game room - Accepts joining player object
+export async function joinRoom(roomId: string, joiningPlayerInput: { id: string; name: string; avatar_index: number }): Promise<string> {
+  console.log(`[joinRoom] Received input for room ${roomId}:`, joiningPlayerInput);
   if (roomId === "DEFAULT") {
-    const defaultRoomExists = await getGameState("DEFAULT")
-    if (!defaultRoomExists) {
-      await createDefaultRoom()
-    }
+     // ... (handle default room creation/reset) ...
+     const defaultRoomExists = await getGameState("DEFAULT")
+     if (!defaultRoomExists) {
+       await createDefaultRoom()
+     }
   }
 
   let gameState = await getGameState(roomId)
@@ -61,32 +72,56 @@ export async function joinRoom(roomId: string, playerName: string): Promise<stri
   }
 
   if (roomId === "DEFAULT" && gameState.status !== "waiting") {
-    await resetRoom(roomId) // Reset the default room if game was ongoing
-    const refreshedState = await getGameState(roomId)
-    if (!refreshedState) {
-      throw new Error("Failed to reset default room")
-    }
-    gameState = refreshedState
+     // ... (reset default room if needed) ...
+     await resetRoom(roomId) 
+     gameState = (await getGameState(roomId))!; // Re-fetch state after reset
+     if (!gameState) throw new Error("Failed to reset/fetch default room");
   } else if (gameState.status !== "waiting") {
     throw new Error("Game has already started")
+  }
+
+  // Check if player already exists by ID
+  if (gameState.players.some(p => p.id === joiningPlayerInput.id)) {
+    console.warn(`[joinRoom] Player ${joiningPlayerInput.id} already in room ${roomId}.`);
+    return joiningPlayerInput.id; 
   }
 
   if (gameState.players.length >= 4) {
     throw new Error("Room is full")
   }
 
-  const playerId = uuidv4()
+  // Create the Player object directly from input
   const player: Player = {
-    id: playerId,
-    name: playerName,
+    id: joiningPlayerInput.id,
+    name: joiningPlayerInput.name,
     cards: [],
-    isHost: gameState.players.length === 0,
+    isHost: gameState.players.length === 0, 
+    avatar_index: joiningPlayerInput.avatar_index,
   }
+  console.log("[joinRoom] Created joining player object:", player);
 
   gameState.players.push(player)
+  gameState.log.push({ 
+      id: uuidv4(),
+      message: `${player.name} joined the room.`,
+      timestamp: Date.now(),
+      player: player.name,
+      eventType: 'join'
+  });
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
+
   await updateGameState(roomId, gameState)
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", stripFunctionsFromGameState(gameState))
-  return playerId
+  console.log(`[joinRoom] Updated GameState in DB for room ${roomId}.`);
+
+  // Log the state *before* stripping and triggering Pusher
+  console.log("[joinRoom] GameState BEFORE stripping:", JSON.stringify(gameState, null, 2));
+  
+  const strippedState = stripFunctionsFromGameState(gameState);
+  console.log("[joinRoom] GameState AFTER stripping (for Pusher):", JSON.stringify(strippedState, null, 2));
+  
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  console.log(`[joinRoom] Triggered Pusher update for room ${roomId}.`);
+  return player.id
 }
 
 // Create a default public room if it doesn't exist

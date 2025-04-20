@@ -12,6 +12,7 @@ import { Home, User, ArrowRight, Loader2 } from "lucide-react"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
+import { AvatarDisplay } from "@/components/game/avatar-display"
 
 const LOCAL_STORAGE_KEY = 'uno_player_id'
 
@@ -19,6 +20,7 @@ export default function CreateRoom() {
   const router = useRouter()
   const supabase = createClient()
   const [playerName, setPlayerName] = useState("")
+  const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [submitError, setSubmitError] = useState("")
@@ -27,21 +29,39 @@ export default function CreateRoom() {
     e.preventDefault()
     setSubmitError("")
     
+    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY)
+
+    if (!unoPlayerId) {
+       setSubmitError("Cannot create room: Player ID missing.")
+       console.error("CreateRoom Error: uno_player_id not found in localStorage")
+       return
+    }
+    if (!playerName.trim()) {
+      setSubmitError("Cannot create room: Player name missing.")
+      console.error("CreateRoom Error: playerName state is empty")
+      return
+    }
+     if (avatarIndex === null) {
+      setSubmitError("Cannot create room: Player avatar missing.")
+      console.error("CreateRoom Error: avatarIndex state is null")
+      return
+    }
     if (playerName.length > 15) {
       setSubmitError("Name must be 15 characters or less")
       return
     }
 
-    if (!playerName.trim()) {
-      setSubmitError("Player name missing. Please setup profile.")
-      return
-    }
-
     setIsCreating(true)
     try {
-      const { roomId, playerId } = await createRoom(playerName)
+      const hostPlayerInput = {
+         id: unoPlayerId,
+         name: playerName,
+         avatar_index: avatarIndex
+      }
       
-      storePlayerIdInLocalStorage(playerId)
+      const { roomId, playerId: returnedPlayerId } = await createRoom(hostPlayerInput)
+      
+      storePlayerIdInLocalStorage(returnedPlayerId)
       
       router.push(`/room/${roomId}`)
     } catch (error) {
@@ -52,42 +72,44 @@ export default function CreateRoom() {
   }
 
   const fetchProfile = useCallback(async () => {
-    setLoadingProfile(true);
-    const playerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    setLoadingProfile(true)
+    setAvatarIndex(null)
+    const unoPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY)
 
-    if (!playerId) {
-      console.error("No player ID found. Redirecting to setup.");
-      router.push('/profile/setup');
-      return;
+    if (!unoPlayerId) {
+      console.error("No player ID found. Redirecting to setup.")
+      router.push('/profile/setup')
+      return
     }
 
     try {
       const { data, error, status } = await supabase
         .from('profiles')
-        .select('username')
-        .eq('player_id', playerId)
-        .single();
+        .select('username, avatar_index')
+        .eq('player_id', unoPlayerId)
+        .single()
 
       if (error && status !== 406) {
-        console.error("Error fetching profile:", error);
-        router.push('/profile/setup');
-      } else if (!data || !data.username) {
-        console.error("Incomplete profile found. Redirecting to setup.");
-        router.push('/profile/setup');
+        console.error("Error fetching profile:", error)
+        router.push('/profile/setup')
+      } else if (!data || !data.username || data.avatar_index === null) {
+        console.error("Incomplete profile found (missing name or avatar). Redirecting to setup.")
+        router.push('/profile/setup')
       } else {
-        setPlayerName(data.username);
+        setPlayerName(data.username)
+        setAvatarIndex(data.avatar_index)
       }
     } catch (err) {
-      console.error("Unexpected error fetching profile:", err);
-      router.push('/profile/setup');
+      console.error("Unexpected error fetching profile:", err)
+      router.push('/profile/setup')
     } finally {
-      setLoadingProfile(false);
+      setLoadingProfile(false)
     }
-  }, [supabase, router]);
+  }, [supabase, router])
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    fetchProfile()
+  }, [fetchProfile])
 
   if (loadingProfile) {
     return (
@@ -95,7 +117,7 @@ export default function CreateRoom() {
         <Loader2 className="h-12 w-12 animate-spin text-white" />
         <p className="mt-4 text-white text-lg">Loading Profile...</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -120,18 +142,24 @@ export default function CreateRoom() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  <User className="h-4 w-4" />
-                  <span>Playing as:</span>
-                </Label>
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 pl-5 truncate">
-                  {playerName} 
-                </p>
-                {submitError && (
-                  <p className="text-red-500 text-xs mt-1 ml-1 pl-5">{submitError}</p>
+              <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                {avatarIndex !== null ? (
+                   <AvatarDisplay index={avatarIndex} size="sm" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                 )}
+                <div className="flex-grow min-w-0">
+                  <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
+                    Playing as:
+                  </Label>
+                  <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
+                    {playerName} 
+                  </p>
+                </div>
               </div>
+              {submitError && (
+                 <p className="text-red-500 text-xs mt-2 ml-1">{submitError}</p>
+              )}
             </motion.div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-800">
