@@ -287,25 +287,27 @@ export default function AdminPage() {
                                     </TooltipTrigger><TooltipContent><p>Clear Match History Only</p></TooltipContent></Tooltip></TooltipProvider>
 
                                     {/* Delete Button */}
-                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                                    <ConfirmationDialog
-                                        triggerButton={
-                                            <Button 
-                                                variant="outline" 
-                                                size="icon" 
-                                                className="flex items-center gap-1 text-red-500 border-red-500/50 hover:bg-red-500/10 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 dark:border-red-500/40 dark:hover:bg-red-900/30" 
-                                                title="Delete Room"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        }
-                                        title={`Delete Room ${room.roomId}?`}
-                                        description="Are you sure you want to delete this room? This action is irreversible."
-                                        confirmAction={() => performDeleteRoom(room.roomId)}
-                                        confirmText="Yes, Delete"
-                                        isDestructive={true}
-                                    />
-                                    </TooltipTrigger><TooltipContent><p>Delete Room</p></TooltipContent></Tooltip></TooltipProvider>
+                                    {room.roomId !== "DEFAULT" && (
+                                      <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                                      <ConfirmationDialog
+                                          triggerButton={
+                                              <Button 
+                                                  variant="outline" 
+                                                  size="icon" 
+                                                  className="flex items-center gap-1 text-red-500 border-red-500/50 hover:bg-red-500/10 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 dark:border-red-500/40 dark:hover:bg-red-900/30" 
+                                                  title="Delete Room"
+                                              >
+                                                  <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                          }
+                                          title={`Delete Room ${room.roomId}?`}
+                                          description="Are you sure you want to delete this room? This action is irreversible."
+                                          confirmAction={() => performDeleteRoom(room.roomId)}
+                                          confirmText="Yes, Delete"
+                                          isDestructive={true}
+                                      />
+                                      </TooltipTrigger><TooltipContent><p>Delete Room</p></TooltipContent></Tooltip></TooltipProvider>
+                                    )}
                                 </div>
                             </TableCell>
                           </TableRow>
