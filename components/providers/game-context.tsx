@@ -139,6 +139,21 @@ export function GameProvider({
     }
   }, [])
   
+  // Format the game duration as mm:ss
+  const getGameDuration = useCallback((): string => {
+    // Use gameStartTime from state if available, fall back to local state
+    const startTime = state.gameStartTime || gameStartTime
+    
+    if (!startTime) return "00:00"
+    
+    const durationMs = Date.now() - startTime
+    const totalSeconds = Math.floor(durationMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+  }, [state.gameStartTime, gameStartTime])
+
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
       dispatch({ type: "UPDATE_GAME_STATE", payload: newGameState })
@@ -204,7 +219,8 @@ export function GameProvider({
           break;
         case 'win':
           toastTitle = `Game Over!`;
-          toastDescription = `${newestEntry.player || 'Winner'} has won the game!`;
+          const gameDuration = getGameDuration();
+          toastDescription = `${newestEntry.player || 'Winner'} has won the game in ${gameDuration}!`;
           duration = 5000;
           break;
         case 'join':
@@ -241,7 +257,7 @@ export function GameProvider({
     
     // Update the ref with the full current log
     previousLogRef.current = currentLog
-  }, [state.log])
+  }, [state.log, getGameDuration])
 
   useEffect(() => {
     console.log("[GameProvider] Initial player ID:", currentPlayerId)
@@ -518,21 +534,6 @@ export function GameProvider({
     }
   }, [state.status, state.gameStartTime])
   
-  // Format the game duration as mm:ss
-  const getGameDuration = (): string => {
-    // Use gameStartTime from state if available, fall back to local state
-    const startTime = state.gameStartTime || gameStartTime
-    
-    if (!startTime) return "00:00"
-    
-    const durationMs = Date.now() - startTime
-    const totalSeconds = Math.floor(durationMs / 1000)
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
-    
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-  }
-
   const hasPlayableCard = (): boolean => {
     if (!currentPlayerId || currentPlayerId !== state.currentPlayer) return false
     
