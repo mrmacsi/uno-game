@@ -5,7 +5,7 @@ import React from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
-import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings } from "lucide-react"
+import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, User } from "lucide-react"
 import { motion } from "framer-motion"
 
 export default function Home() {
