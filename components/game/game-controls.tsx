@@ -275,7 +275,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           <Button 
             onClick={declareUno}
             size="sm"
-            className={`bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse ${isMobile ? 'w-[50px]' : ''}`}
+            className={`bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse min-w-[70px] ${isMobile ? 'w-[65px]' : ''}`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
             UNO!
@@ -286,7 +286,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           <Button 
             disabled
             size="sm"
-            className={`bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 h-7 text-[10px] sm:text-xs opacity-70 ${isMobile ? 'w-[50px]' : ''}`}
+            className={`bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 h-7 text-[10px] sm:text-xs opacity-70 min-w-[70px] ${isMobile ? 'w-[65px]' : ''}`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
             UNO!
@@ -299,11 +299,11 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             onClick={drawCard}
             size="sm"
             variant={noPlayableCards ? "default" : "outline"}
-            className={`px-2 py-1 h-7 text-[10px] sm:text-xs ${
+            className={`px-2 py-1 h-7 text-[10px] sm:text-xs min-w-[70px] ${
               noPlayableCards 
                 ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold animate-pulse shadow" 
                 : "border-white/20 text-white hover:bg-white/10"
-            } ${isMobile && noPlayableCards ? 'w-[54px]' : ''}`}
+            } ${isMobile && noPlayableCards ? 'w-[65px]' : ''}`}
           >
             Draw
           </Button>

@@ -12,7 +12,8 @@ interface GameLogProps {
 }
 
 // Card mini display component for logs
-const CardMiniDisplay = ({ color, type, value }: { color: CardColor; type: string; value?: number }) => {
+// Export the component for reuse
+export const CardMiniDisplay = ({ color, type, value }: { color: CardColor; type: string; value?: number }) => {
   const getColorClass = (color: CardColor): string => {
     switch (color) {
       case "red": return "bg-red-600 text-white";

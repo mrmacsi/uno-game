@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useReducer, useState, type
 import { useRouter } from 'next/navigation'
 import pusherClient from "@/lib/pusher-client"
 import type { GameState, GameAction, Card, CardColor, LogEntry } from "@/lib/types"
-import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction } from "@/lib/game-actions"
+import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction, rematchGame } from "@/lib/game-actions"
 import { getRoom, resetRoom } from "@/lib/room-actions"
 import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
 import type { Channel } from "pusher-js"
@@ -31,6 +31,7 @@ type GameContextType = {
   error: string | null
   startGame: () => Promise<void>
   resetGame: () => Promise<void>
+  rematch: () => Promise<void>
   leaveRoom: () => void
   promptColorSelection: (cardId: string) => void
   cardScale: number
@@ -856,6 +857,37 @@ export function GameProvider({
     }
   }
 
+  const handleRematch = async (): Promise<void> => {
+    if (!roomId || !currentPlayerId) {
+        setError("Missing Room/Player ID for rematch.");
+        return;
+    }
+
+    // Optional: Check if the current player is the host
+    const player = state.players.find(p => p.id === currentPlayerId);
+    if (!player?.isHost) {
+        toast({ title: "Rematch Failed", description: "Only the host can start a rematch.", variant: "destructive" });
+        setError("Only the host can start a rematch.");
+        return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    console.log(`[GameProvider] Attempting rematch for room: ${roomId} by host: ${currentPlayerId}`);
+    try {
+        await rematchGame(roomId, currentPlayerId);
+        console.log(`[GameProvider] Rematch action called successfully for room: ${roomId}`);
+        toast({ description: "Starting Rematch!", duration: 2000 });
+        // State updates will come via Pusher
+    } catch (err) {
+        console.error("[GameProvider] Failed to initiate rematch:", err);
+        setError(err instanceof Error ? err.message : "Failed to start rematch");
+        toast({ title: "Error", description: "Could not start rematch.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const handleLeaveRoom = (): void => {
     console.log("[GameProvider] Leaving room, navigating to home.")
     router.push("/")
@@ -970,6 +1002,7 @@ export function GameProvider({
     error,
     startGame: handleStartGame,
     resetGame: handleResetGame,
+    rematch: handleRematch,
     leaveRoom: handleLeaveRoom,
     promptColorSelection: (cardId: string) => {
       if (!state || state.currentPlayer !== currentPlayerId) {

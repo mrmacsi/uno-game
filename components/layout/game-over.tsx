@@ -7,37 +7,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Award, Clock, Home, RotateCw, Trophy, Users } from "lucide-react"
+import { Award, Clock, Home, RotateCw, Trophy, Users, ListVideo, Layers } from "lucide-react"
 import UnoCard from "../game/uno-card"
 import { AvatarDisplay } from "../game/avatar-display"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { cn } from "@/lib/utils"
 import { calculateHandPoints } from "@/lib/game-logic"
+import { CardMiniDisplay } from "../game/game-log"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function GameOver() {
-  const { state, refreshGameState, currentPlayerId } = useGame()
+  const { state, currentPlayerId, rematch, leaveRoom } = useGame()
   const router = useRouter()
   const [isRematchLoading, setIsRematchLoading] = useState(false)
   const winner = state.players.find((p) => p.id === state.winner)
   const handleRematch = async () => {
+    setIsRematchLoading(true)
     try {
-      setIsRematchLoading(true)
-      await fetch('/api/reset-room', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ roomId: state.roomId })
-      })
-      if (currentPlayerId) {
-        storePlayerIdInLocalStorage(currentPlayerId)
-      }
-      await refreshGameState()
-      router.replace(`/join-room?roomId=${state.roomId}`)
-    } catch {
+      await rematch()
+    } catch (error) {
+      console.error("Rematch failed:", error)
     } finally {
       setIsRematchLoading(false)
     }
+  }
+  const handleGoHome = () => {
+    leaveRoom()
   }
   const cardPointsGuide = [
     { type: "Number cards 0-9", value: "Face value (0-9 points)" },
@@ -83,24 +78,30 @@ export default function GameOver() {
             </div>
           </CardHeader>
           <Tabs defaultValue="standings" className="w-full">
-            <TabsList className="flex w-full max-w-xl mx-auto overflow-x-auto no-scrollbar gap-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg p-1 mt-6 border border-gray-200 transition-all duration-300">
+            <TabsList className="flex flex-wrap justify-center w-full gap-1 sm:gap-2 bg-gray-100/80 backdrop-blur-sm rounded-lg shadow-inner p-1 mt-4 border border-gray-200/80 transition-all duration-300 mx-auto max-w-max">
               <TabsTrigger 
                 value="standings" 
-                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
+                className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
               >
                 Standings
               </TabsTrigger>
               <TabsTrigger 
                 value="points" 
-                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
+                className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
               >
                 Points
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="flex-1 min-w-[120px] rounded-full px-5 py-2 text-base font-semibold transition-all duration-200 bg-transparent text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=active]:z-10 cursor-pointer"
+                className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
               >
                 History
+              </TabsTrigger>
+              <TabsTrigger 
+                value="discardPile" 
+                className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
+              >
+                Discard Pile
               </TabsTrigger>
             </TabsList>
             <TabsContent value="standings" className="p-4">
@@ -344,18 +345,109 @@ export default function GameOver() {
                 )}
               </div>
             </TabsContent>
+            <TabsContent value="discardPile" className="px-4 py-3">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
+                  <Layers className="w-5 h-5 text-blue-500" /> 
+                  <span>Discard Pile (Last to First)</span>
+                </h3>
+                <ScrollArea className="h-[400px] w-full pr-3">
+                  {state.discardPile && state.discardPile.length > 0 ? (
+                    <div className="space-y-2">
+                      {[...state.discardPile]
+                        .reverse()
+                        .map((card, index) => {
+                          // Try to find matching log entry for this card
+                          const playLogEntry = state.log.find(
+                            log => log.eventType === 'play' && 
+                                  log.cardType === card.type && 
+                                  log.cardColor === card.color && 
+                                  (card.type !== 'number' || log.cardValue === card.value)
+                          );
+                          
+                          return (
+                            <div
+                              key={`${card.id}-${index}`}
+                              className="flex items-center gap-3 p-2 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors animate-fade-in-up"
+                              style={{animationDelay: `${index * 30}ms`, animationFillMode: 'forwards'}}
+                            >
+                              {/* Card with same scaling as Points tab */}
+                              <div
+                                style={{
+                                  transform: 'scale(0.45)',
+                                  transformOrigin: 'top left',
+                                  width: '48px',
+                                  height: '86px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <UnoCard card={card} disabled />
+                              </div>
+                              
+                              {/* Card info */}
+                              <div className="flex-grow">
+                                <div className="text-sm font-medium text-gray-800">
+                                  {card.color !== 'black' ? card.color.charAt(0).toUpperCase() + card.color.slice(1) : 'Wild'} 
+                                  {card.type === 'number' ? ` ${card.value}` : 
+                                   card.type === 'wild4' ? ' +4' :
+                                   card.type === 'draw2' ? ' +2' :
+                                   card.type === 'skip' ? ' Skip' :
+                                   card.type === 'reverse' ? ' Reverse' : 
+                                   ' ' + card.type.charAt(0).toUpperCase() + card.type.slice(1)}
+                                </div>
+                                
+                                {/* Player info if available */}
+                                {playLogEntry && (
+                                  <div className="flex items-center mt-1">
+                                    {playLogEntry.avatarIndex !== undefined && (
+                                      <AvatarDisplay 
+                                        index={playLogEntry.avatarIndex} 
+                                        size="xs" 
+                                        className="mr-1 flex-shrink-0" 
+                                      />
+                                    )}
+                                    <span className="text-xs text-gray-600">
+                                      Played by {playLogEntry.player || 'Unknown'}
+                                      {playLogEntry.timestamp && (
+                                        <span className="text-gray-400 ml-1">
+                                          {new Date(playLogEntry.timestamp).toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                          })}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                     <div className="text-center py-6 text-gray-500">
+                        <p>The discard pile is empty.</p>
+                     </div>
+                  )}
+                </ScrollArea>
+              </div>
+            </TabsContent>
           </Tabs>
           <CardFooter className="flex justify-between p-4 bg-gray-50 border-t border-gray-100">
-            <Link href="/">
-              <Button variant="outline" className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1">
-                <Home className="w-4 h-4" />
-                <span>Home</span>
-              </Button>
-            </Link>
             <Button 
-              onClick={handleRematch} 
-              disabled={isRematchLoading}
-              className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center gap-1 shadow-md hover:shadow-lg transition-all duration-200"
+              onClick={handleGoHome}
+              variant="outline" 
+              className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1"
+            >
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </Button>
+            <Button 
+              onClick={handleRematch}
+              disabled={isRematchLoading || !state.players.find(p => p.id === currentPlayerId)?.isHost}
+              className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center gap-1 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              title={!state.players.find(p => p.id === currentPlayerId)?.isHost ? "Only the host can start a rematch" : ""}
             >
               {isRematchLoading ? (
                 <>

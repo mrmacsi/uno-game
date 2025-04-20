@@ -119,7 +119,8 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
     message: `${playerName} joined the room.`,
     timestamp: Date.now(),
     player: playerName,
-    avatarIndex: avatarIndex
+    avatarIndex: avatarIndex,
+    eventType: 'join'
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
@@ -420,17 +421,19 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
   }
   
   player.saidUno = true;
+  // Add log entry for UNO declaration
   gameState.log.push({
     id: uuidv4(),
     message: `${player.name} declared UNO!`,
     timestamp: Date.now(),
     player: player.name,
-    avatarIndex: player.avatar_index
+    avatarIndex: player.avatar_index,
+    eventType: 'uno' // Add eventType for client-side handling
   });
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   console.log(`Player ${playerId} declared UNO.`);
 
-  await updateGameState(roomId, gameState); // Use updateGameState
+  await updateGameState(roomId, gameState); 
   await broadcastUpdate(roomId, gameState);
   
   return gameState;
@@ -484,6 +487,76 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   }
   if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   
+  await updateGameState(roomId, gameState);
+  await broadcastUpdate(roomId, gameState);
+
+  return gameState;
+}
+
+export async function rematchGame(roomId: string, playerId: string): Promise<GameState> {
+  console.log(`Rematch initiated by ${playerId} for room ${roomId}`);
+  const gameState = await fetchAndValidateGameState(roomId, playerId);
+  const initiatorPlayer = gameState.players.find((p: Player) => p.id === playerId);
+
+  if (!initiatorPlayer || !initiatorPlayer.isHost) {
+    throw new Error("Only the host can initiate a rematch");
+  }
+  if (gameState.status !== "finished") {
+    throw new Error("Can only rematch a finished game");
+  }
+  if (gameState.players.length < 2) {
+    throw new Error("Need at least 2 players for a rematch");
+  }
+
+  // Reset player hands and saidUno status
+  gameState.players.forEach((p: Player) => {
+    p.cards = [];
+    p.saidUno = false;
+  });
+
+  // Deal new cards
+  const { drawPile, hands } = dealCards(gameState.players.length);
+  gameState.players.forEach((player: Player, index: number) => {
+    player.cards = hands[index];
+  });
+
+  // Find a valid starting card
+  const firstCardIndex = drawPile.findIndex((card: Card) => card.type === "number");
+  if (firstCardIndex === -1) {
+    // Should be rare, but handle shuffling and trying again if no number card found initially
+    console.warn("No number card found in initial deal for rematch, reshuffling...");
+    // A more robust solution might involve a full deck reset and reshuffle here
+    // For simplicity, we'll assume dealCards provides a playable deck
+    throw new Error("Deck error during rematch: No initial number card found");
+  }
+  const firstCard = drawPile.splice(firstCardIndex, 1)[0];
+  
+  // Reset game state variables
+  gameState.discardPile = [firstCard];
+  gameState.drawPile = drawPile;
+  gameState.drawPileCount = drawPile.length;
+  gameState.currentColor = firstCard.color;
+  gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id; // Random start player
+  gameState.status = "playing";
+  gameState.gameStartTime = Date.now(); // New start time
+  gameState.winner = null;
+  gameState.direction = 1; // Reset direction
+  gameState.hasDrawnThisTurn = false;
+
+  // Clear previous log and add rematch entry
+  gameState.log = [{
+    id: uuidv4(),
+    message: `Rematch started by ${initiatorPlayer.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
+    timestamp: Date.now(),
+    player: initiatorPlayer.name,
+    avatarIndex: initiatorPlayer.avatar_index,
+    eventType: 'system',
+    cardType: firstCard.type,
+    cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
+    cardColor: firstCard.color
+  }];
+
+  console.log(`Rematch successful for room ${roomId}. Current player: ${gameState.currentPlayer}`);
   await updateGameState(roomId, gameState);
   await broadcastUpdate(roomId, gameState);
 
