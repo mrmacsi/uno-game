@@ -300,33 +300,31 @@ export default function WaitingRoom() {
         </CardContent>
         
         <CardFooter className="p-6 border-t border-gray-200 dark:border-gray-700/50 flex flex-col gap-3">
-          {/* Start Game Button - Adjusted Disabled Styling */}
-          <Button
-            className={`w-full shadow-md py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out 
-              ${canStartGame
-                ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:shadow-lg"
-                : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70"} 
-            `}
-            disabled={!canStartGame || isStarting || state.status !== "waiting"}
-            onClick={handleStartGame}
-          >
-            {isStarting ? ( 
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...</> 
-            ) : ( 
-              <><Play className="mr-2 h-4 w-4 fill-current" /> Start Game</> 
+          <div className="flex flex-col gap-3 w-full">
+            <Button
+              className={`w-full shadow-md py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out 
+                ${canStartGame
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:shadow-lg"
+                  : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70"} 
+              `}
+              disabled={!canStartGame || isStarting || state.status !== "waiting"}
+              onClick={handleStartGame}
+            >
+              {isStarting ? ( 
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...</> 
+              ) : ( 
+                <><Play className="mr-2 h-4 w-4 fill-current" /> Start Game</> 
+              )}
+            </Button>
+            {isHost && (
+              <div className="w-full">
+                <ResetRoomButton 
+                  roomId={state.roomId} 
+                  className="w-full text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" 
+                />
+              </div>
             )}
-          </Button>
-          
-          {/* Host-only Reset Button */} 
-          {isHost && (
-            <ResetRoomButton 
-              roomId={state.roomId} 
-              // Use secondary/ghost style for reset
-              className="w-full text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" 
-            />
-          )}
-          
-          {/* Helper Text */} 
+          </div>
           <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-1">
             {!isHost 
               ? "Only the host can start the game."

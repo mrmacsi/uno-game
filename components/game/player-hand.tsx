@@ -21,6 +21,7 @@ export default function PlayerHand() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isScrollableWidth, setIsScrollableWidth] = useState(false)
   const [initialScrollSet, setInitialScrollSet] = useState(false); // Track if initial scroll is done
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
 
   useEffect(() => {
     if (gameError) {
@@ -51,24 +52,20 @@ export default function PlayerHand() {
     if (container) {
       const canScroll = container.scrollWidth > container.clientWidth;
       setIsScrollableWidth(canScroll);
-
-      // Attempt to center scroll *after* checking scrollability and only once initially
-      if (canScroll && !initialScrollSet) {
-         requestAnimationFrame(() => { // Ensure layout is calculated
-           if (scrollContainerRef.current) { // Double check container exists in animation frame
-             const currentContainer = scrollContainerRef.current;
-             const middleScroll = (currentContainer.scrollWidth - currentContainer.clientWidth) / 2;
-             console.log("Attempting initial scroll to middle:", middleScroll);
-             currentContainer.scrollLeft = middleScroll; 
-             setInitialScrollSet(true); // Mark initial scroll as done
-           }
-         });
+      if (canScroll && !initialScrollSet && !userHasScrolled) {
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            const currentContainer = scrollContainerRef.current;
+            const middleScroll = (currentContainer.scrollWidth - currentContainer.clientWidth) / 2;
+            currentContainer.scrollLeft = middleScroll;
+            setInitialScrollSet(true);
+          }
+        });
       }
     } else {
       setIsScrollableWidth(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Keep dependency array empty, disable rule as initialScrollSet check is internal
+  }, [initialScrollSet, userHasScrolled]);
 
   // Derive currentPlayer and cardCount just before the useEffect that needs cardCount
   const currentPlayerForEffect = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
@@ -76,12 +73,13 @@ export default function PlayerHand() {
 
   useEffect(() => {
     checkScrollability();
-    // Reset initial scroll flag when card count or scale changes, allowing recentering
-    setInitialScrollSet(false); 
+    setInitialScrollSet(false);
+    setUserHasScrolled(false);
     const container = scrollContainerRef.current;
     window.addEventListener('resize', checkScrollability)
     if (container) {
       container.addEventListener('scroll', checkScrollability)
+      container.addEventListener('scroll', () => setUserHasScrolled(true))
     }
     const observer = new MutationObserver(checkScrollability)
     if (container) {
@@ -91,6 +89,7 @@ export default function PlayerHand() {
       window.removeEventListener('resize', checkScrollability)
       if (container) {
         container.removeEventListener('scroll', checkScrollability)
+        container.removeEventListener('scroll', () => setUserHasScrolled(true))
       }
       observer.disconnect()
     }
