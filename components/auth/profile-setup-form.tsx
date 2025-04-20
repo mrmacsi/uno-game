@@ -47,6 +47,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatarState | null>(null)
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false); // Added for modal control
   const [alertDialog, setAlertDialog] = useState<AlertDialogState>({ isOpen: false, title: '', description: '' }); // Added for alert dialog
+  const [isEditing, setIsEditing] = useState(false); // State to track if editing a complete profile
   // Store the player ID being worked on (could be from prop or login)
   const [currentUnoPlayerId, setCurrentUnoPlayerId] = useState<string>(propUnoPlayerId || '');
 
@@ -100,7 +101,11 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
              if (!data.username) {
                  setUsernameAndLinkAvatar(generateRandomName());
              }
+             setIsEditing(false); // It's setup, not editing
              toast.info("Please complete your profile.");
+        } else {
+             // Profile is complete, so we are editing
+             setIsEditing(true);
         }
       } else {
          // No profile data found for this ID
@@ -260,12 +265,12 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
         {viewMode === 'setup' && (
           <>
             <CardHeader className="text-center pt-8 pb-4">
-              {/* Change title dynamically based on whether we are editing */}
+              {/* Change title dynamically based on editing state */}
               <CardTitle className="text-3xl font-bold tracking-tight">
-                {currentUnoPlayerId ? 'Edit Your Profile' : 'Set Up Your Profile'}
+                {isEditing ? 'Edit Your Profile' : 'Set Up Your Profile'}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                 {currentUnoPlayerId ? 'Update your username and avatar.' : 'Choose a username and avatar to get started.'}
+                 {isEditing ? 'Update your username and avatar.' : 'Choose a username and avatar to get started.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 p-8">
@@ -277,7 +282,21 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                      <Wand2 className="h-3.5 w-3.5" /> Random
                    </Button>
                  </div>
-                 <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g., PlayerOne" required minLength={3} className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" />
+                 <Input 
+                    id="username" 
+                    type="text" 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                    onKeyDown={(e) => { 
+                      if (e.key === 'Enter' && !saving && username && selectedAvatar && username.trim().length >= 3) {
+                        updateProfile();
+                      }
+                    }}
+                    placeholder="e.g., PlayerOne" 
+                    required 
+                    minLength={3} 
+                    className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
+                 />
                </div>
                {/* Avatar Selection - Center this whole block */}
                <div className="flex flex-col items-center space-y-3 sm:space-y-4">
@@ -309,11 +328,11 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-4">
               <Button onClick={updateProfile} disabled={saving || !username || !selectedAvatar || username.trim().length < 3} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed">
-                {/* Change button text dynamically */}
-                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : (currentUnoPlayerId ? 'Save Changes' : 'Save Profile & Enter')}
+                {/* Change button text dynamically based on editing state */}
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : (isEditing ? 'Save Changes' : 'Save Profile & Enter')}
               </Button>
-              {/* Only show toggle to Login if we are NOT editing (i.e., no currentUnoPlayerId) */}
-              {!currentUnoPlayerId && (
+              {/* Only show toggle to Login if we are in setup mode (not editing) */}
+              {!isEditing && (
                   <Button variant="link" onClick={() => setViewMode('login')} className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-0 h-auto">
                      Already have an account? Login
                   </Button>
@@ -333,7 +352,16 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
             <CardContent className="space-y-6 p-8">
                <div className="space-y-2">
                  <Label htmlFor="login-username" className="font-semibold text-gray-700 dark:text-gray-300">Username</Label>
-                 <Input id="login-username" type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} placeholder="Your exact username" required className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" />
+                 <Input 
+                    id="login-username" 
+                    type="text" 
+                    value={loginUsername} 
+                    onChange={(e) => setLoginUsername(e.target.value)} 
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
+                    placeholder="Your exact username" 
+                    required 
+                    className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
+                 />
                </div>
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-4">
@@ -352,6 +380,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                     setUsernameAndLinkAvatar(randomName); 
                     
                     // Switch view
+                    setIsEditing(false); // Ensure we are in setup mode
                     setViewMode('setup');
                  }} 
                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-0 h-auto"
