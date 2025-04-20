@@ -17,6 +17,17 @@ export default function SafeHydration({ children }: SafeHydrationProps) {
       console.log('iOS device detected, applying workarounds')
       applyIOSWorkarounds()
     }
+    
+    const savedTheme = localStorage.getItem('uno-theme-preference')
+    if (savedTheme) {
+      document.documentElement.classList.remove('light', 'dark')
+      if (savedTheme !== 'system') {
+        document.documentElement.classList.add(savedTheme)
+      } else {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.classList.add(systemTheme)
+      }
+    }
   }, [])
 
   return mounted ? <>{children}</> : null

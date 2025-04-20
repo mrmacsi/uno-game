@@ -47,10 +47,12 @@ export default function RootLayout({
         fontSans.variable
       )} suppressHydrationWarning={true}>
         <ThemeProvider 
-          attribute="class" 
-          defaultTheme="system" 
-          enableSystem 
-          disableTransitionOnChange
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+          storageKey="uno-theme-preference"
+          forcedTheme={undefined}
         >
           <SafeHydration>
             <div className="relative flex min-h-screen flex-col">
