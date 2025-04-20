@@ -1,5 +1,5 @@
-// Arrays of adjectives and nouns for generating random names
-const adjectives = [
+// Export the adjectives array for use elsewhere
+export const adjectives = [
   "Happy", "Grumpy", "Sleepy", "Sneezy", "Dopey", "Bashful", "Doc",
   "Swift", "Clever", "Brave", "Mighty", "Nimble", "Wise", "Sneaky",
   "Jolly", "Lucky", "Fancy", "Dizzy", "Jumpy", "Silly", "Wild",
