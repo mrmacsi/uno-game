@@ -27,7 +27,7 @@ export default function ProfileSetupPage() {
     
     const checkProfile = async (id: string) => {
        try {
-         const { data: profile, error, status } = await supabase
+         const { error, status } = await supabase
            .from('profiles')
            .select('username, avatar_name')
            .eq('player_id', id)
@@ -35,9 +35,6 @@ export default function ProfileSetupPage() {
 
          if (error && status !== 406) {
            console.error("Error checking profile:", error);
-         } else if (profile && profile.username && profile.avatar_name) {
-           router.push('/');
-           return;
          }
        } catch (err) {
          console.error("Unexpected error during profile check:", err)
@@ -48,6 +45,9 @@ export default function ProfileSetupPage() {
     
     if(storedPlayerId) {
        checkProfile(storedPlayerId);
+    } else {
+       setLoading(false);
+       console.error("Player ID could not be established for profile check.");
     }
     
   }, [supabase, router]);

@@ -7,20 +7,16 @@ const adjectives = [
   "Shiny", "Gentle", "Bold", "Fierce", "Lazy", "Crazy", "Funky"
 ];
 
-const nouns = [
-  "Panda", "Tiger", "Eagle", "Dolphin", "Wolf", "Lion", "Bear",
-  "Hawk", "Shark", "Fox", "Owl", "Rhino", "Sloth", "Koala",
-  "Penguin", "Moose", "Deer", "Rabbit", "Falcon", "Dragon", "Phoenix",
-  "Knight", "Wizard", "Ninja", "Ranger", "Pirate", "Warrior", "Hunter",
-  "Player", "Gamer", "Hero", "Champion", "Captain", "Chief", "Boss"
-];
+// Import the avatars array to use as nouns
+import { avatars } from "@/lib/avatar-config";
 
 /**
- * Generates a random player name from combinations of adjectives and nouns
+ * Generates a random player name from combinations of adjectives and avatar names
  */
 export function generateRandomName(): string {
   const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  // Use the imported avatars array
+  const randomNoun = avatars[Math.floor(Math.random() * avatars.length)];
   return `${randomAdjective}${randomNoun}`;
 }
 
@@ -28,9 +24,10 @@ export function generateRandomName(): string {
  * Checks if a name is a default generated name by checking its format
  */
 export function isDefaultName(name: string): boolean {
-  // Check if the name follows our adjective + noun pattern
+  // Check if the name follows our adjective + avatar name pattern
   for (const adj of adjectives) {
-    for (const noun of nouns) {
+    // Use the imported avatars array
+    for (const noun of avatars) { 
       if (name === `${adj}${noun}`) {
         return true;
       }

@@ -5,153 +5,283 @@ import { createClient } from '@/lib/supabase/client'
 // No longer need User type from supabase-js
 import { useRouter } from 'next/navigation'
 import AvatarSelector from '@/components/game/avatar-selector'
+import { AvatarDisplay } from '@/components/game/avatar-display'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Loader2, Edit, User, Wand2 } from 'lucide-react'
+import { toast } from "sonner"
+// Import the name generator
+import { generateRandomName } from "@/lib/name-generator"
+// Import avatars list for linking
+import { avatars } from "@/lib/avatar-config"; 
 
 interface SelectedAvatarState { name: string; index: number }
+
+// Define state for alert dialog
+interface AlertDialogState {
+  isOpen: boolean;
+  title: string;
+  description: string;
+}
 
 // Accept playerId instead of user object
 export default function ProfileSetupForm({ playerId }: { playerId: string }) {
   const supabase = createClient()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false) // Separate state for saving action
   const [username, setUsername] = useState<string>('')
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatarState | null>(null)
-  const [initialCheckDone, setInitialCheckDone] = useState(false); // Track if initial load is done
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false); // Added for modal control
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>({ isOpen: false, title: '', description: '' }); // Added for alert dialog
+
+  // Function to show alert dialog
+  const showAlert = (title: string, description: string) => {
+    setAlertDialog({ isOpen: true, title, description });
+  };
+
+  // Function to set username and potentially link avatar
+  const setUsernameAndLinkAvatar = useCallback((newName: string) => {
+    setUsername(newName);
+    // Check if name matches an avatar.
+    const avatarIndex = avatars.findIndex(avatarName => newName.endsWith(avatarName)); 
+    // REMOVED '&& currentAvatar === null' check. Always link if name matches.
+    if (avatarIndex !== -1) { 
+      const matchedAvatarName = newName.substring(newName.length - avatars[avatarIndex].length);
+      // Directly set the avatar based on the new name match
+      setSelectedAvatar({ name: matchedAvatarName, index: avatarIndex });
+    }
+    // If the new name doesn't match any avatar, the current avatar selection remains unchanged unless manually changed.
+  }, []); // Still no dependencies needed
 
   const getProfile = useCallback(async () => {
-    if (!playerId) return; // Don't fetch if playerId isn't available yet
+    if (!playerId) return;
 
     try {
       setLoading(true)
       const { data, error, status } = await supabase
         .from('profiles')
         .select(`username, avatar_name, avatar_index`)
-        .eq('player_id', playerId) // Use player_id
+        .eq('player_id', playerId)
         .single()
 
-      // Error 406 means no row found, which is expected for new players
+      let initialAvatar: SelectedAvatarState | null = null;
       if (error && status !== 406) {
-        console.error('Error loading profile:', error)
-        alert('Error loading profile data!')
-        return
+        console.error('Error loading profile:', error);
+        showAlert('Error', 'Failed to load profile data. Please try refreshing the page.');
+        return;
       }
 
       if (data) {
-        setUsername(data.username || '')
         if (data.avatar_name && data.avatar_index !== null) {
-           setSelectedAvatar({ name: data.avatar_name, index: data.avatar_index })
-           // If profile already exists and is complete, redirect away
-           // Do this check on the page level instead, to avoid layout shifts here
-           // if (data.username) {
-           //    router.push('/') 
-           // }
+           initialAvatar = { name: data.avatar_name, index: data.avatar_index };
+           setSelectedAvatar(initialAvatar); // Set avatar if loaded
         }
+        
+        if (data.username) {
+            setUsername(data.username) // Set existing username
+            // If username exists but avatar doesn't, check if username links to an avatar
+            if (!initialAvatar) {
+                const avatarIndex = avatars.findIndex(avatarName => data.username.endsWith(avatarName));
+                if (avatarIndex !== -1) {
+                    const matchedAvatarName = data.username.substring(data.username.length - avatars[avatarIndex].length);
+                    setSelectedAvatar({ name: matchedAvatarName, index: avatarIndex });
+                }
+            }
+        } else {
+            // No username exists, generate one and link avatar
+            const newName = generateRandomName();
+            setUsernameAndLinkAvatar(newName); 
+        }
+      } else {
+        // No profile data at all, generate name and link avatar
+        const newName = generateRandomName();
+        setUsernameAndLinkAvatar(newName);
       }
-    } catch (error) { // Catch any other unexpected errors
-      console.error("Unexpected error loading profile:", error)
-      alert('Error loading profile data!')
+    } catch (error) { 
+      console.error("Unexpected error loading profile:", error);
+      showAlert('Error', 'An unexpected error occurred while loading your profile.');
     } finally {
-      setLoading(false)
-      setInitialCheckDone(true) // Mark initial load attempt as done
+      setLoading(false);
+      setInitialCheckDone(true);
     }
-  }, [playerId, supabase]) // Removed router from dependencies
+  // Depend on the helper function now
+  }, [playerId, supabase, setUsernameAndLinkAvatar]); 
 
   useEffect(() => {
-    getProfile()
-  }, [playerId, getProfile]) // Depend on playerId
+    if (playerId) {
+      getProfile();
+    } else {
+      setLoading(false);
+      setInitialCheckDone(true);
+    }
+  }, [playerId, getProfile]);
+
+  const generateNewRandomName = () => {
+    const newName = generateRandomName();
+    // Call helper function without passing avatar state
+    setUsernameAndLinkAvatar(newName);
+  };
 
   async function updateProfile() {
-    if (!username || !selectedAvatar) {
-      alert('Please enter a username and select an avatar.')
+    if (!username.trim() || !selectedAvatar) {
+      showAlert('Missing Information', 'Please enter a username (at least 3 characters) and select an avatar.') // Use AlertDialog
       return
     }
+    if (username.trim().length < 3) {
+       showAlert('Invalid Username', 'Username must be at least 3 characters long.') // Use AlertDialog
+       return
+    }
     if (!playerId) {
-      alert('Player ID is missing. Cannot save profile.')
+      showAlert('Error', 'Player ID is missing. Cannot save profile.') // Use AlertDialog
       return
     }
 
     try {
-      setLoading(true)
+      setSaving(true) // Use saving state
       const { error } = await supabase.from('profiles').upsert({
-        player_id: playerId, // Use player_id
-        username: username,
+        player_id: playerId, 
+        username: username.trim(), // Trim username
         avatar_name: selectedAvatar.name,
         avatar_index: selectedAvatar.index,
-        // updated_at is handled by the database trigger now
       })
 
       if (error) {
-         // Handle potential duplicate username error
-         if (error.message && error.message.includes('duplicate key value violates unique constraint \"profiles_username_key\"')) {
-           alert('Username already taken. Please choose another one.')
+         if (error.message && error.message.includes('profiles_username_key')) {
+           showAlert('Username Taken', 'This username is already taken. Please choose another one.') // Use AlertDialog
          } else {
-           throw error // Re-throw other errors
+           console.error('Error saving profile:', error);
+           showAlert('Error', 'Failed to save profile. Please try again.'); // Use AlertDialog
          }
       } else {
-        alert('Profile saved successfully!')
-        router.push('/') // Redirect to home after profile setup
+        toast.success('Profile saved successfully!') // Use toast for success
+        router.push('/') 
       }
-    } catch (error) { // Specify error type
-      alert('Error saving the profile!')
+    } catch (error) { 
       console.error("Caught error object:", error)
+      showAlert('Error', 'An unexpected error occurred while saving your profile.') // Use AlertDialog
       if (error instanceof Error) {
          console.error("Error details:", error.message ?? "Message property not found on error object");
       } else {
          console.error("An unknown error occurred:", error);
       }
     } finally {
-      setLoading(false)
+      setSaving(false) // Use saving state
     }
   }
 
   const handleAvatarSelect = (avatar: SelectedAvatarState) => {
     setSelectedAvatar(avatar)
+    setIsAvatarModalOpen(false) // Close modal on selection
   }
 
-  // Show loading indicator until the initial profile check is complete
-  if (!initialCheckDone) {
+  if (!initialCheckDone || loading) { // Show loader if still loading or initial check not done
      return (
-       <div className="flex justify-center items-center p-10">
-         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+       <div className="flex justify-center items-center p-10 min-h-[300px]"> 
+         <Loader2 className="h-12 w-12 animate-spin text-blue-600 dark:text-blue-400" />
        </div>
      )
   }
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader>
-        <CardTitle>Set Up Your Profile</CardTitle>
-        <CardDescription>Choose a username and an avatar to represent you in the game.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input 
-            id="username" 
-            type="text" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)} 
-            placeholder="Enter your username (min 3 chars)" 
-            required 
-            minLength={3} 
-          />
-        </div>
-        <div>
-           <Label>Select Avatar</Label>
-           {/* Pass existing selection to AvatarSelector if available */}
-           {/* Need to modify AvatarSelector to accept initial selection */}
-           <AvatarSelector onSelect={handleAvatarSelect} />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={updateProfile} disabled={loading || !username || !selectedAvatar} className="w-full">
-          {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Profile'}
-        </Button>
-      </CardFooter>
-    </Card>
+    <>
+      <Card className="w-full max-w-md bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 shadow-xl rounded-2xl overflow-hidden">
+        <CardHeader className="text-center pt-8 pb-4">
+          <CardTitle className="text-3xl font-bold tracking-tight">Set Up Your Profile</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Choose a username and avatar to get started.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8 p-8">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="username" className="font-semibold text-gray-700 dark:text-gray-300">Username</Label>
+              <Button 
+                type="button" 
+                variant="ghost"
+                size="sm"
+                onClick={generateNewRandomName}
+                className="text-xs h-7 px-2 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Random
+              </Button>
+            </div>
+            <Input 
+              id="username" 
+              type="text" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
+              placeholder="e.g., PlayerOne" 
+              required 
+              minLength={3} 
+              className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md"
+            />
+          </div>
+          
+          <div className="space-y-4">
+             <Label className="font-semibold text-gray-700 dark:text-gray-300">Avatar</Label>
+             <div className="flex items-center gap-5">
+                {selectedAvatar ? (
+                  <AvatarDisplay index={selectedAvatar.index} size="lg" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600">
+                    <User className="h-8 w-8" />
+                  </div>
+                )}
+                <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="dark:border-gray-600 dark:hover:bg-gray-800 transition duration-150 ease-in-out rounded-md">
+                       <Edit className="mr-2 h-4 w-4" />
+                       {selectedAvatar ? 'Change Avatar' : 'Select Avatar'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px] bg-white dark:bg-gray-950 rounded-lg p-6">
+                    <DialogHeader className="sr-only"> 
+                      <DialogTitle>Select Your Avatar</DialogTitle>
+                    </DialogHeader>
+                    <AvatarSelector onSelect={handleAvatarSelect} /> 
+                    <DialogFooter className="mt-4">
+                       <DialogClose asChild>
+                         <Button type="button" variant="secondary" className="rounded-md">
+                           Cancel
+                         </Button>
+                       </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+             </div>
+             {!selectedAvatar && <p className="text-sm text-red-600 dark:text-red-400 pt-1">Please select an avatar.</p>}
+          </div>
+        </CardContent>
+        <CardFooter className="p-6 pt-0">
+          <Button 
+            onClick={updateProfile} 
+            disabled={saving || !username || !selectedAvatar || username.trim().length < 3} 
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Profile & Enter'}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Alert Dialog Component */}
+      <AlertDialog open={alertDialog.isOpen} onOpenChange={(isOpen) => setAlertDialog(prev => ({ ...prev, isOpen }))}>
+        <AlertDialogContent className="rounded-lg bg-white dark:bg-gray-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))} className="rounded-md">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 } 

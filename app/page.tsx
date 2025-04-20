@@ -5,11 +5,10 @@ import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
-import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, User, Loader2 } from "lucide-react"
+import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, Loader2, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from 'uuid'
 import { AvatarDisplay } from "@/components/game/avatar-display";
 
 const LOCAL_STORAGE_KEY = 'uno_player_id'
@@ -18,6 +17,7 @@ interface PlayerProfile {
   username: string;
   avatar_name: string;
   avatar_index: number;
+  admin?: boolean;
 }
 
 export default function Home() {
@@ -27,10 +27,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
-    let storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const storedPlayerId = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!storedPlayerId) {
-      storedPlayerId = uuidv4();
-      localStorage.setItem(LOCAL_STORAGE_KEY, storedPlayerId);
+      console.log("No player ID found, redirecting to setup.");
+      router.push('/profile/setup');
+      return;
     }
 
     const checkProfile = async (id: string) => {
@@ -38,34 +39,38 @@ export default function Home() {
       try {
         const { data, error, status } = await supabase
           .from('profiles')
-          .select('username, avatar_name, avatar_index')
+          .select('username, avatar_name, avatar_index, admin')
           .eq('player_id', id)
           .single();
 
         if (error && status !== 406) {
           console.error("Error fetching profile:", error);
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
           router.push('/profile/setup');
         } else if (!data || !data.username || data.avatar_name === null || data.avatar_index === null) {
+          console.log("Incomplete profile data, redirecting to setup.");
           router.push('/profile/setup');
         } else {
           setProfile(data as PlayerProfile);
         }
       } catch (err) {
         console.error("Unexpected error during profile check:", err);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         router.push('/profile/setup');
       } finally {
         setLoading(false);
       }
     };
 
-    if (storedPlayerId) {
-      checkProfile(storedPlayerId);
-    } else {
-      setLoading(false);
-      console.error("Player ID could not be established.");
-      router.push('/profile/setup');
-    }
+    checkProfile(storedPlayerId);
+
   }, [supabase, router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setProfile(null); 
+    router.push('/profile/setup');
+  };
 
   if (loading) {
     return (
@@ -77,13 +82,16 @@ export default function Home() {
   }
 
   if (!profile) {
-    return null;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 dark:from-red-900 dark:via-orange-800 dark:to-yellow-700 p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+        <p className="mt-4 text-white text-lg">Redirecting...</p> 
+      </div>
+    );
   }
 
-  // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -117,31 +125,57 @@ export default function Home() {
         transition={{ duration: 0.5 }}
       >
         <div className="backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[600px] border border-white/20 dark:border-gray-800/50">
-          <div className="px-4 pt-8 pb-4 sm:px-12 sm:pt-12 sm:pb-6">
-            <div className="flex items-center justify-between gap-2 mb-6 sm:mb-8">
-              <ThemeToggle />
-              <Link href="/admin" passHref>
-                <Button variant="ghost" size="icon" title="Admin Panel">
-                  <Settings className="h-5 w-5" />
+          <div className="px-4 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-6 border-b border-white/10 dark:border-gray-800/40">
+            <div className="flex items-center justify-between gap-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-3 flex-shrink min-w-0">
+                <AvatarDisplay index={profile.avatar_index} size="md" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                    {profile.username}
+                  </span>
+                  <Link href="/profile/setup" passHref>
+                    <Button 
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 self-start"
+                    >
+                      Edit Profile
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                <ThemeToggle />
+                {profile.admin === true && (
+                  <Link href="/admin" passHref>
+                    <Button variant="ghost" size="icon" title="Admin Panel">
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="ghost" size="icon" title="Logout" onClick={handleLogout}>
+                  <LogOut className="h-5 w-5" />
                 </Button>
-              </Link>
+              </div>
             </div>
             
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              className="text-center sm:text-left"
             >
-              <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600 dark:from-red-500 dark:to-orange-400">UNO</h1>
-              <p className="mt-2 sm:mt-3 text-gray-600 dark:text-gray-300 text-base sm:text-lg">
+              <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600 dark:from-red-500 dark:to-orange-400">UNO</h1>
+              <p className="mt-1 sm:mt-2 text-gray-600 dark:text-gray-300 text-sm sm:text-base">
                 Play the classic card game online with friends
               </p>
             </motion.div>
           </div>
           
-          <div className="flex-grow px-4 sm:px-12 pb-6 sm:pb-10">
+          <div className="flex-grow px-4 sm:px-12 py-6 sm:py-10">
             <motion.div 
-              className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-8"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -202,23 +236,7 @@ export default function Home() {
             </motion.div>
           </div>
           
-          <div className="px-4 sm:px-8 py-4 sm:py-5 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 w-full mt-auto border-t border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">
-             <div className="flex items-center justify-center gap-2">
-                {/* Use AvatarDisplay component - Change size to 'md' */}
-                <AvatarDisplay index={profile.avatar_index} size="md" />
-               {/* Username Display */}
-               <User className="h-4 w-4 hidden sm:inline-block" />
-               <span>Welcome, {profile.username}!</span> 
-               <Link href="/profile/setup" passHref>
-                 <Button 
-                   variant="link"
-                   size="sm"
-                   className="h-auto p-0"
-                 >
-                   (Edit Profile)
-                 </Button>
-               </Link>
-             </div>
+          <div className="px-4 sm:px-8 py-3 sm:py-4 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 w-full mt-auto border-t border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">
              <p className="mt-1">Built with ❤️ in London • {new Date().getFullYear()}</p>
           </div>
         </div>
