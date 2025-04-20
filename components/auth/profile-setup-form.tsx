@@ -131,6 +131,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
   };
 
   async function updateProfile() {
+    console.log("updateProfile triggered"); // Add log
     if (!username.trim() || !selectedAvatar || username.trim().length < 3) {
          showAlert('Missing Information', 'Please ensure username is at least 3 characters and an avatar is selected.');
          return;
@@ -190,6 +191,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
 
   // Handler for the Login form's "Login" button
   const handleLogin = async () => {
+    console.log("handleLogin triggered"); // Add log
     if (!loginUsername.trim()) {
         showAlert('Missing Username', 'Please enter your username.');
         return;
