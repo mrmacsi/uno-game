@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Database, KeyRound, List, History, ArrowLeft } from 'lucide-react'
 import { toast } from "sonner"
 import Link from 'next/link'
-import type { MatchResult } from '@/lib/types'
-import { AvatarDisplay } from '@/components/game/avatar-display' // Import AvatarDisplay
+import type { MatchResult, GameState } from '@/lib/types'
+import { AvatarDisplay } from '@/components/game/avatar-display'
 
 const ROOM_PREFIX = "room:" // Define prefix locally if needed for display
 
@@ -19,6 +19,7 @@ export default function RedisViewerPage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [keyValue, setKeyValue] = useState<string | null>(null)
   const [matchHistory, setMatchHistory] = useState<MatchResult[] | null>(null)
+  const [parsedGameState, setParsedGameState] = useState<Partial<GameState> | null>(null)
   const [loadingKeys, setLoadingKeys] = useState(true)
   const [loadingValue, setLoadingValue] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,25 +47,28 @@ export default function RedisViewerPage() {
     setSelectedKey(key)
     setKeyValue(null) // Clear previous value
     setMatchHistory(null)
+    setParsedGameState(null) // Clear previous parsed state
     setLoadingValue(true)
     setError(null)
     try {
       const value = await getRedisValue(key)
       setKeyValue(value)
       if (value) {
-        // Attempt to parse and extract history
+        // Attempt to parse and extract history and full state
         try {
-          const parsedState = JSON.parse(value);
-          setMatchHistory(parsedState.matchHistory || null);
+          const parsedState: Partial<GameState> = JSON.parse(value);
+          setParsedGameState(parsedState); // Store the full parsed state
+          setMatchHistory(parsedState.matchHistory || null); // Extract history as before
         } catch (parseError) {
            console.error(`Error parsing JSON for key ${key}:`, parseError);
-           setMatchHistory(null); // Set history to null if parsing fails
-           // Optionally set a specific error message for parsing failure
-           // setError(`Failed to parse JSON data for key ${key}.`);
-           // toast.error(`Invalid JSON data for key ${key}.`);
+           setMatchHistory(null); 
+           setParsedGameState(null); // Ensure parsed state is null on error
+           setError(`Failed to parse JSON data for key ${key}.`);
+           toast.error(`Invalid JSON data for key ${key}.`);
         }
       } else {
          setMatchHistory(null)
+         setParsedGameState(null)
       }
     } catch (err) {
       console.error(`Failed to fetch value for key ${key}:`, err)
@@ -224,6 +228,21 @@ export default function RedisViewerPage() {
                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-4">No match history found in this game state.</p>
                      )}
                   </div>
+                  
+                  {/* Display Full Parsed Game State */} 
+                  {parsedGameState && (
+                     <div>
+                       <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1 text-sm flex items-center gap-1.5">
+                         <Database className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
+                         <span>Full Game State Object:</span>
+                       </h4>
+                       <ScrollArea className="h-60 border rounded-md dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                         <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-all">
+                            {JSON.stringify(parsedGameState, null, 2)}
+                         </pre>
+                       </ScrollArea>
+                     </div>
+                  )}
                 </div>
               )}
             </CardContent>

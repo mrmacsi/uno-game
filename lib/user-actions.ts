@@ -34,22 +34,33 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
 export async function deleteUser(userId: string): Promise<void> {
   if (!userId) {
+    console.error("[deleteUser] Error: Attempted to delete user with null/empty ID.")
     throw new Error('User ID is required for deletion.');
   }
+  console.log(`[deleteUser] Attempting to delete user with ID: ${userId}`); // Log entry and ID
 
   const supabase = createClient();
-  const { error } = await supabase
-    .from('profiles')
-    .delete()
-    .eq('player_id', userId);
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('player_id', userId);
 
-  if (error) {
-    console.error('Error deleting user:', error);
-    // Check for specific errors if needed, e.g., foreign key constraints
-    throw new Error('Could not delete user.');
+    if (error) {
+      console.error(`[deleteUser] Supabase error deleting user ${userId}:`, error); // Log Supabase error object
+      // Throw a more specific error if possible, otherwise a generic one
+      throw new Error(`Supabase error: ${error.message || 'Could not delete user.'}`); 
+    }
+
+    console.log(`[deleteUser] User ${userId} deleted successfully from Supabase.`);
+    // Revalidate the path to update the user list UI
+    revalidatePath('/admin/users');
+    console.log("[deleteUser] Revalidated path /admin/users.");
+
+  } catch (err) {
+     // Catch errors thrown within the try block (including the re-throw from supabase error)
+     console.error(`[deleteUser] Caught error during deletion process for user ${userId}:`, err);
+     // Re-throw the error so the client-side handler knows it failed
+     throw err; 
   }
-
-  console.log(`User ${userId} deleted successfully.`);
-  // Revalidate the path to update the user list UI
-  revalidatePath('/admin/users');
 } 

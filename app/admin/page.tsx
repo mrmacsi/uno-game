@@ -105,11 +105,12 @@ export default function AdminPage() {
   };
 
   const performClearAllRooms = async () => {
-    if (window.confirm("DANGER! Are you sure you want to delete ALL non-DEFAULT rooms? This is irreversible.")) {
+    // Remove the window.confirm check - rely on ConfirmationDialog
+    // if (window.confirm("DANGER! Are you sure you want to delete ALL non-DEFAULT rooms? This is irreversible.")) {
       setLoadingAction("clearDb");
       try {
         await clearDb();
-        toast({ title: "Database Cleared", description: `All rooms cleared.` });
+        toast({ title: "Database Cleared", description: `All non-DEFAULT rooms cleared.` }); // Clarified message
         fetchRooms(); // Refresh list
       } catch (error: unknown) { // Specify type for error
         console.error("Failed to clear DB:", error);
@@ -117,7 +118,7 @@ export default function AdminPage() {
       } finally {
         setLoadingAction(null);
       }
-    }
+    // }
   };
 
   // ... fetchRedisInfo function ...
