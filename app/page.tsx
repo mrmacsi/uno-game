@@ -10,7 +10,7 @@ import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from 'uuid'
-import { getAvatarStyle, imageUrl, baseImageWidth, baseImageHeight, rows, columns } from "@/lib/avatar-config";
+import { AvatarDisplay } from "@/components/game/avatar-display";
 
 const LOCAL_STORAGE_KEY = 'uno_player_id'
 
@@ -82,12 +82,6 @@ export default function Home() {
 
   // Default room ID that's always available
   const defaultRoomId = "DEFAULT"
-
-  // Calculate avatar size for display
-  const baseAvatarDisplayWidth = baseImageWidth / columns;
-  const baseAvatarDisplayHeight = baseImageHeight / rows;
-  // Determine the size of the square container for the avatar image
-  const avatarDisplaySize = Math.min(baseAvatarDisplayWidth, baseAvatarDisplayHeight) * 0.5; // Make it smaller for footer
 
   // Animation variants
   const containerVariants = {
@@ -210,16 +204,8 @@ export default function Home() {
           
           <div className="px-4 sm:px-8 py-4 sm:py-5 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 w-full mt-auto border-t border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30">
              <div className="flex items-center justify-center gap-2">
-                {/* Avatar Display Container - Apply styles directly */}
-                <div
-                    className="relative overflow-hidden rounded-full shadow-sm bg-gray-200 dark:bg-gray-700 flex-shrink-0"
-                    style={{
-                       width: `${avatarDisplaySize}px`, 
-                       height: `${avatarDisplaySize}px`, 
-                       ...getAvatarStyle(profile.avatar_index)
-                    }}
-                  >
-                  </div>
+                {/* Use AvatarDisplay component - Change size to 'md' */}
+                <AvatarDisplay index={profile.avatar_index} size="md" />
                {/* Username Display */}
                <User className="h-4 w-4 hidden sm:inline-block" />
                <span>Welcome, {profile.username}!</span> 
