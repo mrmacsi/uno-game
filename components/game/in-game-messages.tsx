@@ -1,10 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { toast } from "@/hooks/use-toast"
 import { useGame } from "../providers/game-context"
-import { MessageSquare, X } from "lucide-react"
+import { X } from "lucide-react"
 
 const PRESET_MESSAGES = [
   "Good game!",
