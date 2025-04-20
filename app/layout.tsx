@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "../styles/globals.css"
 import "@/styles/animations.css"
-import { ThemeProvider } from "@/components/providers/theme-provider"
+import { ThemeProvider } from "next-themes"
 import SafeHydration from "@/components/layout/safe-hydration"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
@@ -46,7 +46,12 @@ export default function RootLayout({
         "min-h-screen bg-background font-sans antialiased",
         fontSans.variable
       )} suppressHydrationWarning={true}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="system" 
+          enableSystem 
+          disableTransitionOnChange
+        >
           <SafeHydration>
             <div className="relative flex min-h-screen flex-col">
               {children}
