@@ -6,6 +6,7 @@ import "@/styles/animations.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import SafeHydration from "@/components/layout/safe-hydration"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/toaster"
 
 // Better font loading with display swap
 const fontSans = Inter({ 
@@ -50,6 +51,7 @@ export default function RootLayout({
             <div className="relative flex min-h-screen flex-col">
               {children}
             </div>
+            <Toaster />
           </SafeHydration>
         </ThemeProvider>
       </body>

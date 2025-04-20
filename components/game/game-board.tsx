@@ -26,6 +26,7 @@ export default function GameBoard() {
   const router = useRouter()
   const [fullscreen, setFullscreen] = useState(false)
   const [gameTime, setGameTime] = useState("00:00")
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false)
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
@@ -65,7 +66,7 @@ export default function GameBoard() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative" style={{ overflow: 'visible' }}>
+    <div className="flex flex-col h-screen bg-gradient-to-b from-green-900 to-emerald-950 relative overflow-hidden">
       {/* Enhanced Background pattern */}
       <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-5 pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.5)_100%)]"></div>
@@ -100,9 +101,6 @@ export default function GameBoard() {
           </Button>
         </div>
       </div>
-      
-      {/* Quick chat messages */}
-      <InGameMessages />
       
       {/* Players section - always visible */}
       {/* Main container: flex column, takes remaining height */}
@@ -192,7 +190,7 @@ export default function GameBoard() {
         
         {/* Game controls container */}
         <div className="w-full px-2 py-1 bg-black/30 backdrop-blur-sm border-t border-white/10 shadow-md z-30">
-          <GameControls />
+          <GameControls onToggleMessages={() => setIsMessagesOpen(!isMessagesOpen)} />
         </div>
         
         {/* Player hand - gets full focus with more space */}
@@ -200,6 +198,13 @@ export default function GameBoard() {
           <PlayerHand />
         </div>
       </div>
+      
+      {/* Messages Side Panel (Conditionally Rendered) */}
+      {isMessagesOpen && (
+        <div className="absolute inset-y-0 left-0 w-56 sm:w-64 bg-black/70 backdrop-blur-lg border-r border-white/10 shadow-2xl z-40 animate-in slide-in-from-left duration-300 p-4 flex flex-col">
+          <InGameMessages onClose={() => setIsMessagesOpen(false)} />
+        </div>
+      )}
       
       {/* Color selector dialog for wild cards */}
       <ColorSelector 

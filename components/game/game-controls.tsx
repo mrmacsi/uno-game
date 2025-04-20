@@ -3,7 +3,7 @@
 import React from "react"
 import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
-import { ArrowDown, Hand, HelpCircle, History, Info, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowDown, Hand, HelpCircle, History, Info, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react"
 import { 
   Tooltip,
   TooltipContent,
@@ -23,7 +23,11 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile"
 import GameLog from "./game-log"
 
-export default function GameControls() {
+interface GameControlsProps {
+  onToggleMessages: () => void;
+}
+
+export default function GameControls({ onToggleMessages }: GameControlsProps) {
   const {
     state,
     currentPlayerId,
@@ -58,6 +62,25 @@ export default function GameControls() {
 
   return (
     <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 w-full">
+      {/* Quick Messages Toggle Button (New) */}
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
+              onClick={onToggleMessages}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+            <p>Quick Messages</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       {/* Moved Left Scroll Button to the start */}
       <TooltipProvider delayDuration={100}>
         <Tooltip>

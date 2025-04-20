@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LogEntry, CardColor } from "@/lib/types";
 import { AvatarDisplay } from "./avatar-display";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface GameLogProps {
   logs: LogEntry[];
@@ -64,6 +65,23 @@ export default function GameLog({ logs }: GameLogProps) {
     return <p className="text-center text-sm text-white/60 py-4">No game events yet.</p>;
   }
 
+  const handleMessageClick = async (messageText: string) => {
+    if (!navigator.clipboard) {
+      console.error("Clipboard API not available");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(messageText);
+      toast({ 
+        title: "Copied!", 
+        description: "Message copied to clipboard.",
+        duration: 2000
+      });
+    } catch (err) {
+      console.error("Failed to copy message: ", err);
+    }
+  };
+
   // Reverse logs to show newest first
   const reversedLogs = [...logs].reverse();
 
@@ -94,11 +112,19 @@ export default function GameLog({ logs }: GameLogProps) {
             
           const formattedTime = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
 
+          // Construct the full text to copy
+          const fullMessageText = `${player ? player + ": " : ""}${safeMessage}${formattedTime ? ` (${formattedTime})` : ""}`;
+
           return (
-            <div key={id} className={cn(
-              "flex items-start gap-2 text-xs", 
-              colorClass
-            )}>
+            <div 
+              key={id} 
+              className={cn(
+                "flex items-start gap-2 text-xs cursor-pointer hover:bg-white/5 p-1 rounded transition-colors",
+                colorClass
+              )}
+              onClick={() => handleMessageClick(fullMessageText)}
+              title="Click to copy message"
+            >
               {avatarIndex !== undefined ? (
                  <AvatarDisplay index={avatarIndex} size="xs" className="mt-0.5 flex-shrink-0" />
               ) : (
