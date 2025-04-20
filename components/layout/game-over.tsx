@@ -4,21 +4,16 @@ import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
-import { Award, Clock, Home, RotateCw, Trophy, Users, ListVideo, Layers } from "lucide-react"
+import { Award, Clock, Home, RotateCw, Trophy, Users, Layers } from "lucide-react"
 import UnoCard from "../game/uno-card"
 import { AvatarDisplay } from "../game/avatar-display"
-import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
-import { cn } from "@/lib/utils"
 import { calculateHandPoints } from "@/lib/game-logic"
-import { CardMiniDisplay } from "../game/game-log"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 export default function GameOver() {
   const { state, currentPlayerId, rematch, leaveRoom } = useGame()
-  const router = useRouter()
   const [isRematchLoading, setIsRematchLoading] = useState(false)
   const winner = state.players.find((p) => p.id === state.winner)
   const handleRematch = async () => {

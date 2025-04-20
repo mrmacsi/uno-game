@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -57,119 +56,127 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center p-6 md:p-12 bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-4xl"> {/* Increased max-width */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
-          <div className="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-                <Users className="h-6 w-6 text-gray-700 dark:text-gray-200" />
-                <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">User Management</h1>
-            </div>
-            <Link href="/admin">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Admin
-              </Button>
-            </Link>
+    <main className="min-h-screen flex flex-col items-center p-4 sm:p-6 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-400 dark:from-red-800 dark:via-orange-700 dark:to-yellow-600">
+      <div className="w-full max-w-4xl my-4 sm:my-6">
+        <div className="backdrop-blur-lg bg-white/80 dark:bg-gray-950/80 rounded-xl sm:rounded-2xl shadow-lg overflow-hidden flex flex-col border border-white/20 dark:border-gray-800/60">
+          <div className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 border-b border-white/15 dark:border-gray-800/50">
+             <div className="flex justify-between items-center mb-6">
+               <div className="flex items-center gap-3">
+                 <Users className="h-6 w-6 text-blue-500 dark:text-blue-400" />
+                 <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">User Management</h1>
+               </div>
+               <Link href="/admin">
+                 <Button variant="outline" size="sm" className="flex items-center gap-2 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium">
+                   <ArrowLeft className="h-4 w-4" />
+                   Back to Admin
+                 </Button>
+               </Link>
+             </div>
           </div>
+          
+          <div className="p-4 sm:p-6">
+            <Tabs defaultValue="list" className="w-full">
+              <div className="mb-4 border-b border-white/15 dark:border-gray-800/50">
+                <TabsList className="flex space-x-1 bg-transparent p-0">
+                  <TabsTrigger
+                    value="list"
+                    className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors data-[state=active]:bg-white/70 data-[state=active]:text-blue-600 data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-white/20 dark:data-[state=active]:bg-gray-900/70 dark:data-[state=active]:text-blue-400 dark:data-[state=active]:border-gray-700/80 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 data-[state=inactive]:border-transparent data-[state=inactive]:hover:bg-white/30 dark:data-[state=inactive]:hover:bg-gray-800/50`}
+                  >
+                    User List
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="list">User List</TabsTrigger>
-              {/* Add other tabs here if needed later, e.g., Add User */}
-              {/* <TabsTrigger value="add">Add User</TabsTrigger> */}
-            </TabsList>
-
-            <TabsContent value="list">
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Users ({users.length})</CardTitle>
-                  {/* Add refresh button? */}
-                </CardHeader>
-                <CardContent>
-                  {loading && users.length === 0 ? (
-                    <div className="flex justify-center items-center h-40">
-                      <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                    </div>
-                  ) : users.length === 0 && !loading ? (
-                     <div className="text-center text-gray-500 dark:text-gray-400 py-10">
-                        No users found.
-                     </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Display Name</TableHead>
-                          <TableHead>Username (Login)</TableHead>
-                          <TableHead>Player ID</TableHead>
-                          <TableHead>Admin</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => {
-                          const isDeleting = loadingAction === `delete-${user.player_id}`;
-                          return (
-                            <TableRow key={user.player_id}>
-                              <TableCell className="font-medium">{user.display_name || '-'}</TableCell>
-                              <TableCell className="font-mono text-xs text-gray-600 dark:text-gray-400">{user.username}</TableCell>
-                              <TableCell className="font-mono text-xs">{user.player_id}</TableCell>
-                              <TableCell>{user.admin ? 'Yes' : 'No'}</TableCell>
-                              <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end items-center space-x-2">
-                                  <TooltipProvider delayDuration={100}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                         {/* Link Edit button to profile setup page */}
-                                         <Link href={`/profile/setup?playerId=${user.player_id}`} passHref>
-                                            <Button variant="outline" size="icon" className="h-8 w-8" title="Edit User">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                        </Link>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>Edit User</p></TooltipContent>
-                                    </Tooltip>
-                                     <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <ConfirmationDialog
-                                              triggerButton={
-                                                  <Button
-                                                      variant="outline"
-                                                      size="icon"
-                                                      className="h-8 w-8 flex items-center gap-1 text-red-500 border-red-500/50 hover:bg-red-500/10 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 dark:border-red-500/40 dark:hover:bg-red-900/30"
-                                                      disabled={isDeleting}
-                                                      title="Delete User"
-                                                  >
-                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                                  </Button>
-                                              }
-                                              title={`Delete User ${user.username}?`}
-                                              description={`Are you sure you want to delete user ${user.username} (${user.player_id})? This action is irreversible.`}
-                                              confirmAction={() => performDeleteUser(user.player_id)}
-                                              confirmText="Yes, Delete"
-                                              isDestructive={true}
-                                          />
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>Delete User</p></TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            {/* <TabsContent value="add">
-              {/* Add User Form Component Here */}
-            {/* </TabsContent> */}
-          </Tabs>
+              <TabsContent value="list">
+                <div className="bg-white/60 dark:bg-gray-900/70 rounded-xl shadow-md overflow-hidden border border-white/10 dark:border-gray-800/50">
+                  <div className="border-b border-gray-200 dark:border-gray-700/70 p-5">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">All Users ({users.length})</h2>
+                  </div>
+                  <div className="p-5">
+                    {loading && users.length === 0 ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                      </div>
+                    ) : users.length === 0 && !loading ? (
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-10">
+                          No users found.
+                      </div>
+                    ) : (
+                      <Table className="w-full">
+                        <TableHeader className="bg-gray-50 dark:bg-gray-800/60">
+                          <TableRow>
+                            <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Display Name</TableHead>
+                            <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Username</TableHead>
+                            <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Player ID</TableHead>
+                            <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Admin</TableHead>
+                            <TableHead className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Created</TableHead>
+                            <TableHead className="py-3 px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700/70">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-200 dark:divide-gray-700/70">
+                          {users.map((user) => {
+                            const isDeleting = loadingAction === `delete-${user.player_id}`;
+                            return (
+                              <TableRow key={user.player_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                                <TableCell className="py-4 px-4 text-sm font-medium text-gray-800 dark:text-gray-200">{user.display_name || '-'}</TableCell>
+                                <TableCell className="py-4 px-4 text-sm font-mono text-gray-600 dark:text-gray-400">{user.username}</TableCell>
+                                <TableCell className="py-4 px-4 text-sm font-mono text-gray-600 dark:text-gray-400">{user.player_id}</TableCell>
+                                <TableCell className="py-4 px-4 text-sm">
+                                  {user.admin ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                      Yes
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700/60 dark:text-gray-300">
+                                      No
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell className="py-4 px-4 text-right">
+                                  <div className="flex justify-end items-center space-x-2">
+                                    <TooltipProvider delayDuration={100}>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                           <Link href={`/profile/setup?playerId=${user.player_id}`} passHref>
+                                              <Button variant="ghost" size="icon" className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800/60 rounded">
+                                                 <Edit className="h-4 w-4" />
+                                              </Button>
+                                           </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="text-xs bg-gray-900 text-white border-gray-700"><p>Edit User</p></TooltipContent>
+                                      </Tooltip>
+                                       <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <ConfirmationDialog
+                                                triggerButton={
+                                                    <Button variant="ghost" size="icon" className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800/60 rounded" disabled={isDeleting}>
+                                                       {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                    </Button>
+                                                }
+                                                title={`Delete User ${user.username}?`}
+                                                description={`Are you sure you want to delete user ${user.username} (${user.player_id})? This action is irreversible.`}
+                                                confirmAction={() => performDeleteUser(user.player_id)}
+                                                confirmText="Yes, Delete"
+                                                isDestructive={true}
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="text-xs bg-gray-900 text-white border-gray-700"><p>Delete User</p></TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
     </main>
