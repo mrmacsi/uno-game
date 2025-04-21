@@ -19,7 +19,7 @@ export default function JoinRoom() {
   const router = useRouter()
   const supabase = createClient()
   const [playerDisplayName, setPlayerDisplayName] = useState("")
-  const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
+  const [avatarIndexState, setAvatarIndexState] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [roomId, setRoomId] = useState("")
   const [isJoining, setIsJoining] = useState(false)
@@ -30,7 +30,7 @@ export default function JoinRoom() {
 
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true);
-    setAvatarIndex(null);
+    setAvatarIndexState(null);
     const playerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
 
     if (!playerId) {
@@ -48,16 +48,19 @@ export default function JoinRoom() {
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error);
+        localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
         router.push('/profile/setup');
       } else if (!data || !data.display_name || data.avatar_index === null) {
         console.error("Incomplete profile found (missing display name or avatar). Redirecting to setup.");
+        localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
         router.push('/profile/setup');
       } else {
         setPlayerDisplayName(data.display_name);
-        setAvatarIndex(data.avatar_index);
+        setAvatarIndexState(data.avatar_index);
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err);
+      localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
       router.push('/profile/setup');
     } finally {
       setLoadingProfile(false);
@@ -97,7 +100,7 @@ export default function JoinRoom() {
       setNameError("Player display name missing. Please check profile.")
       hasError = true
     }
-    if (avatarIndex === null) {
+    if (avatarIndexState === null) {
       setNameError("Player avatar missing. Please check profile.");
       hasError = true;
     }
@@ -116,7 +119,7 @@ export default function JoinRoom() {
       const joiningPlayerInput = {
          id: playerId!,
          name: playerDisplayName,
-         avatar_index: avatarIndex!
+         avatarIndex: avatarIndexState!
       };
       
       const serverAssignedPlayerId = await joinRoom(finalRoomId, joiningPlayerInput)
@@ -206,8 +209,8 @@ export default function JoinRoom() {
               )}
 
               <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                {avatarIndex !== null ? (
-                   <AvatarDisplay index={avatarIndex} size="sm" />
+                {avatarIndexState !== null ? (
+                   <AvatarDisplay index={avatarIndexState} size="sm" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                 )}

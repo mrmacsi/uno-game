@@ -37,7 +37,7 @@ export default function PlayerInfo({ player, isCurrentTurn, showRingButton = fal
           {/* Avatar and Host indicator */}
           <div className="relative flex-shrink-0">
             <AvatarDisplay 
-              index={player.avatar_index ?? 0}
+              index={player.avatarIndex ?? 0}
               size="xs"
               className={cn(
                 "transition-all duration-300",

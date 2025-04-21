@@ -13,7 +13,7 @@ export interface Player {
   name: string
   cards: Card[]
   isHost: boolean
-  avatar_index: number
+  avatarIndex: number
   saidUno?: boolean
   points?: number
 }
@@ -35,7 +35,7 @@ export interface LogEntry {
   message: string
   timestamp: number
   player?: string
-  eventType?: 'play' | 'draw' | 'skip' | 'reverse' | 'uno' | 'uno_fail' | 'system' | 'join' | 'leave' | 'win'
+  eventType?: 'play' | 'draw' | 'skip' | 'reverse' | 'uno' | 'uno_fail' | 'system' | 'join' | 'leave' | 'win' | 'message'
   cardType?: CardType
   cardValue?: number
   cardColor?: CardColor
@@ -70,3 +70,14 @@ export interface GameState {
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }
   | { type: "SET_PLAYER_ID"; payload: string | null }
   | { type: "SET_ERROR"; payload: string | null }
+
+export type UserProfile = {
+  player_id: string
+  username: string
+  display_name: string | null
+  admin: boolean
+  created_at: string
+  avatar_name: string | null
+  avatar_index: number | null
+  updated_at: string | null
+}

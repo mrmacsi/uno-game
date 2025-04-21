@@ -93,7 +93,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
       setLoading(true);
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`username, display_name, avatar_name, avatar_index`) // Fetch username too
+        .select(`username, display_name, avatar_name, avatar_index`) // Reverted to avatar_index
         .eq('player_id', idToCheck)
         .single()
 
@@ -106,10 +106,10 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
         // Profile data found (complete or incomplete)
         setUsername(data.username || ''); // Load username
         setDisplayName(data.display_name || ''); // Load display_name or empty string
-        setSelectedAvatar(data.avatar_name && data.avatar_index !== null ? { name: data.avatar_name, index: data.avatar_index } : null);
+        setSelectedAvatar(data.avatar_name && data.avatar_index !== null ? { name: data.avatar_name, index: data.avatar_index } : null); // Use avatar_index from fetched data
         setCurrentUnoPlayerId(idToCheck); // Store the valid ID
         setViewMode('setup'); // Go directly to setup/edit view
-        if (!data.username || !data.display_name || data.avatar_name === null || data.avatar_index === null) {
+        if (!data.username || !data.display_name || data.avatar_name === null || data.avatar_index === null) { // Use avatar_index for check
              // If incomplete, maybe generate part of the name if display_name is missing
              if (!data.display_name) {
                  // Also set username if display name is being generated
@@ -174,7 +174,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
         player_id: currentUnoPlayerId,
         display_name: displayName.trim(),
         avatar_name: selectedAvatar.name,
-        avatar_index: selectedAvatar.index,
+        avatar_index: selectedAvatar.index, // Map selectedAvatar.index to avatar_index for upsert
         updated_at: new Date(),
       };
 

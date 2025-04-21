@@ -203,15 +203,15 @@ export default function PlayerHand() {
 
                         console.log('PlayerHand onClick:', {
                           cardId: card.id,
-                          isPlayable_render: isPlayable,
-                          isPlayable_click: currentPlayable,
+                          isPlayableRender: isPlayable,
+                          isPlayableClick: currentPlayable,
                           isMyTurn,
                           isLoading,
                           animatingCard,
-                          state_currentColor: state.currentColor,
-                          state_topCardId: topCard?.id,
-                          state_topCardColor: topCard?.color,
-                          state_topCardType: topCard?.type,
+                          stateCurrentColor: state.currentColor,
+                          stateTopCardId: topCard?.id,
+                          stateTopCardColor: topCard?.color,
+                          stateTopCardType: topCard?.type,
                           blockConditionMet: blockConditionMet
                         });
 

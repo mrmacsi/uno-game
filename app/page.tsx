@@ -12,17 +12,17 @@ import { useRouter } from "next/navigation";
 import { AvatarDisplay } from "@/components/game/avatar-display";
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 
-interface PlayerProfile {
-  display_name: string;
-  avatar_name: string;
-  avatar_index: number;
-  admin?: boolean;
+type ProfileData = {
+  display_name: string | null;
+  avatar_name: string | null;
+  avatar_index: number | null;
+  admin: boolean | null;
 }
 
 export default function Home() {
   const supabase = createClient()
   const router = useRouter()
-  const [profile, setProfile] = useState<PlayerProfile | null>(null)
+  const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function Home() {
           .from('profiles')
           .select('display_name, avatar_name, avatar_index, admin')
           .eq('player_id', unoPlayerId)
-          .single();
+          .single<ProfileData>();
 
         if (error && status !== 406) {
           console.error("Error fetching profile:", error);
@@ -50,7 +50,7 @@ export default function Home() {
           console.log("Incomplete profile data, redirecting to setup.");
           router.push('/profile/setup');
         } else {
-          setProfile(data as PlayerProfile);
+          setProfile(data as ProfileData);
         }
       } catch (err) {
         console.error("Unexpected error during profile check:", err);
@@ -127,7 +127,7 @@ export default function Home() {
             <div className="px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/15 dark:border-gray-800/50">
               <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-2 sm:mb-3">
                 <div className="flex items-center gap-2.5 flex-shrink min-w-0">
-                  <AvatarDisplay index={profile.avatar_index} size="md" />
+                  <AvatarDisplay index={profile.avatar_index ?? 0} size="md" />
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-50 truncate">
                       {profile.display_name}

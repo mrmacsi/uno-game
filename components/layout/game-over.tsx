@@ -30,8 +30,6 @@ export default function GameOver() {
   const handleGoHome = () => {
     leaveRoom()
   }
-  const lastLogEntry = state.log && state.log.length > 0 ? state.log[state.log.length - 1] : null;
-  const gameEndTime = lastLogEntry?.timestamp; // Use timestamp if available
   
   const cardPointsGuide = [
     { type: "Number cards 0-9", value: "Face value (0-9 points)" },
@@ -75,7 +73,7 @@ export default function GameOver() {
                   : "Someone"} has won the game!
                 <div className="mt-3 flex items-center justify-center text-sm text-white/80">
                   <Clock className="w-4 h-4 mr-1.5" />
-                  <span>Game Duration: {getGameDuration(gameEndTime)}</span>
+                  <span>Game Duration: {getGameDuration()}</span>
                 </div>
               </CardDescription>
             </div>
@@ -135,7 +133,7 @@ export default function GameOver() {
                       >
                         <div className="flex items-center gap-3">
                           <AvatarDisplay 
-                            index={player.avatar_index ?? 0} 
+                            index={player.avatarIndex ?? 0} 
                             size="sm" 
                             className={cn(
                               index === 0 && "ring-2 ring-yellow-300",
@@ -214,7 +212,7 @@ export default function GameOver() {
                           style={{animationDelay: `${playerIndex * 100}ms`, animationFillMode: 'forwards'}}
                         >
                           <h5 className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
-                            <AvatarDisplay index={player.avatar_index ?? 0} size="xs" />
+                            <AvatarDisplay index={player.avatarIndex ?? 0} size="xs" />
                             <span>{player.name}'s Cards</span>
                           </h5>
                           <div className="space-y-1.5">
@@ -317,7 +315,7 @@ export default function GameOver() {
                                   <div key={player.playerId} className="flex justify-between items-center text-sm px-1 py-1">
                                     <div className="flex items-center gap-2">
                                       <AvatarDisplay 
-                                        index={player.avatar_index ?? 0} 
+                                        index={player.avatar_index ?? 0}
                                         size="xs"
                                         className="flex-shrink-0"
                                       />

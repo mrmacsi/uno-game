@@ -19,7 +19,7 @@ export default function CreateRoom() {
   const router = useRouter()
   const supabase = createClient()
   const [playerDisplayName, setPlayerDisplayName] = useState("")
-  const [avatarIndex, setAvatarIndex] = useState<number | null>(null)
+  const [avatarIndexState, setAvatarIndexState] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [submitError, setSubmitError] = useState("")
@@ -40,7 +40,7 @@ export default function CreateRoom() {
       console.error("CreateRoom Error: playerDisplayName state is empty")
       return
     }
-     if (avatarIndex === null) {
+     if (avatarIndexState === null) {
       setSubmitError("Cannot create room: Player avatar missing.")
       console.error("CreateRoom Error: avatarIndex state is null")
       return
@@ -55,7 +55,7 @@ export default function CreateRoom() {
       const hostPlayerInput = {
          id: unoPlayerId,
          name: playerDisplayName,
-         avatar_index: avatarIndex
+         avatarIndex: avatarIndexState!
       }
       
       const { roomId, playerId: returnedPlayerId } = await createRoom(hostPlayerInput)
@@ -72,7 +72,7 @@ export default function CreateRoom() {
 
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true)
-    setAvatarIndex(null)
+    setAvatarIndexState(null)
     const unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
 
     if (!unoPlayerId) {
@@ -96,7 +96,7 @@ export default function CreateRoom() {
         router.push('/profile/setup')
       } else {
         setPlayerDisplayName(data.display_name)
-        setAvatarIndex(data.avatar_index)
+        setAvatarIndexState(data.avatar_index)
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err)
@@ -142,8 +142,8 @@ export default function CreateRoom() {
               transition={{ delay: 0.3 }}
             >
               <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                {avatarIndex !== null ? (
-                   <AvatarDisplay index={avatarIndex} size="sm" />
+                {avatarIndexState !== null ? (
+                   <AvatarDisplay index={avatarIndexState} size="sm" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                 )}
@@ -165,7 +165,7 @@ export default function CreateRoom() {
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70"
-              disabled={isCreating || !playerDisplayName}
+              disabled={isCreating || !playerDisplayName || avatarIndexState === null}
             >
               {isCreating ? "Creating Room..." : "Create Room"}
               {!isCreating && <ArrowRight className="ml-2 h-4 w-4" />}

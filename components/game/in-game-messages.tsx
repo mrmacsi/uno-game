@@ -29,9 +29,9 @@ export default function InGameMessages({ onClose }: InGameMessagesProps) {
   const handleSendMessage = async (message: string) => {
     if (isSending) return;
     setIsSending(true);
+    onClose();
     try {
       await sendGameMessage(message)
-      onClose();
     } finally {
       setIsSending(false);
     }

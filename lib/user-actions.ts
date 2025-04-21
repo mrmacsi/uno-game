@@ -3,24 +3,23 @@
 import { createClient } from '@/lib/supabase/client';
 import { revalidatePath } from 'next/cache';
 
-// Define a basic UserProfile type based on expected columns
-// Align this with your actual Supabase table structure
-export type UserProfile = {
+// Define a type for the user data we expect
+export interface User {
   player_id: string;
   username: string;
   display_name: string | null;
+  admin: boolean;
   avatar_name: string | null;
-  avatar_index: number | null;
-  admin: boolean | null;
+  avatar_index: number | null; // Reverted to avatar_index
   created_at: string;
   updated_at: string | null;
-};
+}
 
-export async function getAllUsers(): Promise<UserProfile[]> {
+export async function getAllUsers(): Promise<User[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('player_id, username, display_name, admin, created_at, avatar_name, avatar_index, updated_at') // Select display_name
+    .select('player_id, username, display_name, admin, created_at, avatar_name, avatar_index, updated_at') // Reverted to avatar_index
     .order('created_at', { ascending: false }); // Optional: Order by creation date
 
   if (error) {
@@ -28,8 +27,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     throw new Error('Could not fetch users.');
   }
 
-  // Ensure data conforms to UserProfile[], even if some rows have unexpected nulls handled by the type
-  return data as UserProfile[]; 
+  // Ensure data conforms to User[], even if some rows have unexpected nulls handled by the type
+  return data as User[]; 
 }
 
 export async function deleteUser(userId: string): Promise<void> {

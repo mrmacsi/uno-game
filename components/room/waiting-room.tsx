@@ -12,6 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Player } from "@/lib/types"
 import { startGame } from "@/lib/game-actions"
 import { AvatarDisplay } from "@/components/game/avatar-display"
+import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 export default function WaitingRoom() {
   const {
@@ -158,14 +160,14 @@ export default function WaitingRoom() {
   return (
     <div className="flex flex-col min-h-screen max-h-screen overflow-auto bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 text-white p-4 sm:p-6">
       <Card className="w-full max-w-md mx-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 shadow-xl rounded-2xl flex flex-col flex-grow overflow-hidden">
-        <CardHeader className="p-6 border-b border-gray-200 dark:border-gray-700/50">
-          <div className="absolute top-4 right-4 flex gap-1 sm:gap-2">
+        <CardHeader className="p-5 border-b border-gray-200 dark:border-gray-700/50">
+          <div className="absolute top-3 right-3 flex gap-1">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8 sm:h-9 sm:w-9"
+              className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8"
               title="Refresh Room"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -174,23 +176,23 @@ export default function WaitingRoom() {
               variant="ghost" 
               size="icon"
               onClick={goToHome}
-              className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8 sm:h-9 sm:w-9"
+              className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8"
               title="Back to Home"
             >
               <Home className="h-4 w-4" />
             </Button>
           </div>
           
-          <div className="flex flex-col items-center justify-center pt-6 sm:pt-4 text-center">
-            <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 flex items-center justify-center shadow-lg mb-3">
-              <Users className="h-6 sm:h-7 w-6 sm:h-7 text-white/90" />
+          <div className="flex flex-col items-center justify-center pt-5 text-center">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 flex items-center justify-center shadow-lg mb-2">
+              <Users className="h-6 w-6 text-white/90" />
             </div>
-            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-100">Waiting Room</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mt-1">
+            <CardTitle className="text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">Waiting Room</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400 text-sm mt-1">
               Welcome, <span className="font-semibold text-gray-700 dark:text-gray-300">{currentPlayer?.name || "Player"}</span>!
               {isHost && (
-                <div className="mt-2 inline-flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800/60 px-2.5 py-1 rounded-full text-yellow-700 dark:text-yellow-300 text-xs font-medium">
-                  <Crown className="h-3.5 w-3.5" />
+                <div className="mt-1.5 inline-flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800/60 px-2 py-0.5 rounded-full text-yellow-700 dark:text-yellow-300 text-xs font-medium">
+                  <Crown className="h-3 w-3" />
                   <span>You are the host</span>
                 </div>
               )}
@@ -198,76 +200,79 @@ export default function WaitingRoom() {
           </div>
         </CardHeader>
         
-        <CardContent className="p-6 text-gray-900 dark:text-gray-100 flex-grow flex flex-col overflow-auto">
-          <div className="space-y-6 flex-grow flex flex-col">
+        <CardContent className="p-4 text-gray-900 dark:text-gray-100 flex-grow flex flex-col overflow-auto">
+          <div className="space-y-4 flex-grow flex flex-col">
             {/* Room code */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
               <div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Room Code</p>
-                <p className="text-xl font-mono font-bold text-gray-800 dark:text-gray-100">{state.roomId}</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Room Code</p>
+                <p className="text-lg font-mono font-bold text-gray-800 dark:text-gray-100">{state.roomId}</p>
               </div>
               <Button 
                 variant="outline" 
                 size="icon" 
                 onClick={copyRoomCode} 
-                className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors duration-200"
+                className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors duration-200"
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Players list */}
-            <div className="space-y-3 flex-grow flex flex-col">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <div className="space-y-2 flex-grow flex flex-col">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                   <span>Players</span>
                 </h3>
-                <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
                   {state.players.length}/4
                 </span>
               </div>
               
-              <ScrollArea className="flex-grow h-[150px]">
-                <div className="space-y-2 pr-4">
-                  {state.players.map((player: Player) => {
-                    // Log the player object being mapped
-                    console.log(`WaitingRoom: Mapping player - ID: ${player.id}, Name: ${player.name}, Avatar Index: ${player.avatar_index}, Is Host: ${player.isHost}`);
-                    
-                    // Ensure avatar_index is a number, default to 0 if missing
-                    const avatarIndex = typeof player.avatar_index === 'number' ? player.avatar_index : 0;
-                    
-                    // Log the index being passed to AvatarDisplay
-                    console.log(`WaitingRoom: Passing avatarIndex ${avatarIndex} to AvatarDisplay for player ${player.name}`);
+              <ScrollArea className="flex-grow h-auto min-h-[80px]">
+                <div className="grid grid-cols-4 gap-2 pr-2">
+                  {state.players.map((player: Player, index: number) => {
+                    console.log(`WaitingRoom: Render, ${state.players.length} players, host: ${currentPlayer?.name}`);
+                    console.log(`WaitingRoom: Mapping player - ID: ${player.id}, Name: ${player.name}, Avatar Index: ${player.avatarIndex}, Is Host: ${player.isHost}`);
+                    const avatarIndexValue = typeof player.avatarIndex === 'number' ? player.avatarIndex : 0;
                     
                     return (
-                      <div 
-                        key={player.id} 
-                        // Adjusted padding and background
-                        className={`p-2.5 rounded-lg flex justify-between items-center border transition-all duration-200 hover:shadow-sm 
-                          ${player.id === currentPlayerId 
-                            ? "bg-indigo-100 border-indigo-200 shadow-sm" // Brighter highlight for current player
-                            : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50"}
-                        `}
+                      <motion.div
+                        key={player.id}
+                        className="relative transition-all duration-300 ease-out bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50 flex flex-col items-center text-center shadow-sm"
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        layout
+                        transition={{ delay: index * 0.05, type: "spring", stiffness: 100, damping: 15 }}
                       >
-                        {/* Left side: Avatar and Name */}
-                        <div className="flex items-center gap-2.5 flex-grow min-w-0"> {/* Slightly increased gap */}
-                           <AvatarDisplay index={avatarIndex} size="sm" />
-                           <span className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate" title={player.name}> {/* Added title attribute */}
-                            {player.name} 
-                            {player.id === currentPlayerId && (
-                              <span className="ml-1.5 text-xs text-indigo-600 font-normal">(You)</span>
+                        <div className="relative mb-1.5">
+                          {player.isHost && (
+                            <div className="absolute -top-1 -right-1 z-10 bg-gradient-to-r from-yellow-400 to-amber-500 p-0.5 rounded-full shadow-md">
+                              <Crown className="w-2.5 h-2.5 text-yellow-900" />
+                            </div>
+                          )}
+                          <AvatarDisplay 
+                            index={avatarIndexValue}
+                            size="sm"
+                            className={cn(
+                              player.id === currentPlayerId 
+                                ? "ring-2 ring-offset-1 ring-indigo-400 dark:ring-indigo-500 ring-offset-gray-50 dark:ring-offset-gray-800/50"
+                                : ""
                             )}
-                          </span>
+                          />
                         </div>
-                        
-                        {/* Right side: Host Crown (wrapped) */}
-                        {player.isHost && (
-                          <span title="Host">
-                            <Crown className="h-5 w-5 text-yellow-500 flex-shrink-0 ml-2" />
-                          </span>
-                        )}
-                      </div>
+                        <span 
+                          className="font-medium text-xs text-gray-800 dark:text-gray-100 truncate w-full" 
+                          title={player.name}
+                        >
+                          {player.name} 
+                          {player.id === currentPlayerId && (
+                            <span className="block text-[9px] text-indigo-600 dark:text-indigo-400 font-normal">(You)</span>
+                          )}
+                        </span>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -276,22 +281,21 @@ export default function WaitingRoom() {
             
             {/* Info message - Adjusted Styling */}
             {isHost ? (
-              <div className={` p-3 rounded-lg border text-sm ${canStartGame ? "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800/60 text-green-700 dark:text-green-200" : "bg-yellow-50 dark:bg-yellow-900/40 border-yellow-200 dark:border-yellow-800/60 text-yellow-700 dark:text-yellow-200"}`}> 
-                <p>{canStartGame ? "Ready to start!" : "Need at least 2 players to start."}</p>
+              <div className={`p-2.5 rounded-lg border text-xs ${canStartGame ? "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800/60 text-green-700 dark:text-green-200" : "bg-yellow-50 dark:bg-yellow-900/40 border-yellow-200 dark:border-yellow-800/60 text-yellow-700 dark:text-yellow-200"}`}> 
+                <p>{canStartGame ? "Ready to start!" : "Need at least 2 players."}</p>
               </div>
             ) : (
-              // Use softer gray styling for non-host waiting message
-              <div className="bg-gray-100 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 text-sm text-center">
-                <p>Waiting for the host to start the game...</p>
+              <div className="bg-gray-100 dark:bg-gray-800/60 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 text-xs text-center">
+                <p>Waiting for host...</p>
               </div>
             )}
           </div>
         </CardContent>
         
-        <CardFooter className="p-6 border-t border-gray-200 dark:border-gray-700/50 flex flex-col gap-3">
-          <div className="flex flex-col gap-3 w-full">
+        <CardFooter className="p-4 border-t border-gray-200 dark:border-gray-700/50 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full">
             <Button
-              className={`w-full shadow-md py-3 text-base font-semibold rounded-lg transition-all duration-200 ease-in-out 
+              className={`w-full shadow-md py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ease-in-out 
                 ${canStartGame
                   ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:shadow-lg"
                   : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70"} 
@@ -300,25 +304,25 @@ export default function WaitingRoom() {
               onClick={handleStartGame}
             >
               {isStarting ? ( 
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...</> 
+                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Starting...</>
               ) : ( 
-                <><Play className="mr-2 h-4 w-4 fill-current" /> Start Game</> 
+                <><Play className="mr-1.5 h-4 w-4 fill-current" /> Start Game</>
               )}
             </Button>
             {isHost && (
               <div className="w-full">
                 <ResetRoomButton 
                   roomId={state.roomId} 
-                  className="w-full text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" 
+                  className="w-full text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                 />
               </div>
             )}
           </div>
-          <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-1">
+          <p className="text-[10px] text-center text-gray-500 dark:text-gray-400 pt-1">
             {!isHost 
-              ? "Only the host can start the game."
+              ? "Only the host can start."
               : (state.players.length < 2 
-                ? "Invite at least one more player!" 
+                ? "Need 2+ players."
                 : "Click Start Game when ready.")}
           </p>
         </CardFooter>

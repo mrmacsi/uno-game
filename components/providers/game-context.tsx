@@ -200,6 +200,8 @@ export function GameProvider({
           // toastTitle = `${newestEntry.player || 'Someone'} Drew`;
           // message might contain count, keep it
           return; // Do not show toast for drawing cards
+        case 'message':
+          return; // Do not show toast for player messages (handled optimistically)
         case 'skip':
           toastTitle = `${newestEntry.player || 'Someone'} Skipped`;
           // message explains who was skipped
@@ -576,7 +578,7 @@ export function GameProvider({
     if (!player) return;
 
     try {
-      console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, state_currentColor: state.currentColor, turn: state.currentPlayer })
+      console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, stateCurrentColor: state.currentColor, turn: state.currentPlayer })
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
         toast.error("Not Your Turn", { description: "Please wait for your turn." })

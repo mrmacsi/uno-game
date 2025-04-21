@@ -268,9 +268,9 @@ export default function RoomList() {
                       playersToShow.map((player: Player) => (
                         <AvatarDisplay 
                           key={player.id}
-                          index={typeof player.avatar_index === 'number' ? player.avatar_index : 0}
+                          index={typeof player.avatarIndex === 'number' ? player.avatarIndex : 0}
                           size="xs"
-                          className="border-2 border-white dark:border-gray-800 shadow-sm"
+                          className="ring-2 ring-white/90 dark:ring-gray-950/90 shadow-sm"
                         />
                       ))
                     ) : (

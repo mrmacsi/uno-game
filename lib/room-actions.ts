@@ -17,7 +17,7 @@ function generateRoomCode(): string {
 }
 
 // Create a new game room - Accepts host player object
-export async function createRoom(hostPlayerInput: { id: string; name: string; avatar_index: number }): Promise<{ roomId: string; playerId: string }> {
+export async function createRoom(hostPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<{ roomId: string; playerId: string }> {
   console.log("[createRoom] Received input:", hostPlayerInput);
   const roomId = generateRoomCode()
 
@@ -27,7 +27,7 @@ export async function createRoom(hostPlayerInput: { id: string; name: string; av
     name: hostPlayerInput.name, 
     cards: [],
     isHost: true,
-    avatar_index: hostPlayerInput.avatar_index, 
+    avatarIndex: hostPlayerInput.avatarIndex,
   }
   console.log("[createRoom] Created hostPlayer object:", hostPlayer);
 
@@ -56,7 +56,7 @@ export async function createRoom(hostPlayerInput: { id: string; name: string; av
 }
 
 // Join an existing game room - Accepts joining player object
-export async function joinRoom(roomId: string, joiningPlayerInput: { id: string; name: string; avatar_index: number }): Promise<string> {
+export async function joinRoom(roomId: string, joiningPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<string> {
   console.log(`[joinRoom] Received input for room ${roomId}:`, joiningPlayerInput);
   if (roomId === "DEFAULT") {
      // ... (handle default room creation/reset) ...
@@ -96,7 +96,7 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
     name: joiningPlayerInput.name,
     cards: [],
     isHost: gameState.players.length === 0, 
-    avatar_index: joiningPlayerInput.avatar_index,
+    avatarIndex: joiningPlayerInput.avatarIndex,
   }
   console.log("[joinRoom] Created joining player object:", player);
 
@@ -106,6 +106,7 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
       message: `${player.name} joined the room.`,
       timestamp: Date.now(),
       player: player.name,
+      avatarIndex: player.avatarIndex,
       eventType: 'join'
   });
 

@@ -58,7 +58,18 @@ export default function RootLayout({
             <div className="relative flex min-h-screen flex-col">
               {children}
             </div>
-            <Toaster richColors position="top-right" size="sm" />
+            <Toaster 
+              richColors 
+              position="top-right" 
+              toastOptions={{ 
+                classNames: {
+                  toast: 'p-0.5 border',
+                  title: 'text-xs font-semibold',
+                  description: 'text-[10px]',
+                  closeButton: 'right-0.5 top-0.5 h-4 w-4',
+                },
+              }}
+            />
           </SafeHydration>
         </ThemeProvider>
       </body>

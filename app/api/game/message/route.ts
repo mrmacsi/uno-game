@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
       message: message,
       timestamp: Date.now(),
       player: player.name,
-      avatarIndex: player.avatar_index,
-      eventType: 'system'
+      avatarIndex: player.avatarIndex,
+      eventType: 'message'
     }
     
     // Add to game log

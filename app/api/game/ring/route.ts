@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       from: {
         id: fromPlayer.id,
         name: fromPlayer.name,
-        avatarIndex: fromPlayer.avatar_index
+        avatarIndex: fromPlayer.avatarIndex
       },
       timestamp: Date.now()
     }

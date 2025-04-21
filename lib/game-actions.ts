@@ -104,7 +104,7 @@ async function broadcastUpdate(roomId: string, gameState: GameState, newLogs?: L
 
 export async function createGame(hostId: string, hostName: string, hostAvatarIndex: number): Promise<GameState> {
   const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const initialPlayer: Player = { id: hostId, name: hostName, avatar_index: hostAvatarIndex, cards: [], isHost: true };
+  const initialPlayer: Player = { id: hostId, name: hostName, avatarIndex: hostAvatarIndex, cards: [], isHost: true };
   const initialState: GameState = {
     roomId,
     status: "waiting",
@@ -129,6 +129,7 @@ export async function createGame(hostId: string, hostName: string, hostAvatarInd
 }
 
 export async function addPlayer(roomId: string, playerId: string, playerName: string, avatarIndex: number): Promise<GameState> {
+  console.log("[addPlayer] Adding player:", { roomId, playerId, playerName, avatarIndex });
   const gameState = await fetchAndValidateGameState(roomId);
   if (gameState.status !== "waiting") {
     throw new Error("Cannot join game that has already started");
@@ -141,7 +142,7 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
     return gameState;
   }
 
-  const newPlayer: Player = { id: playerId, name: playerName, avatar_index: avatarIndex, cards: [], isHost: false };
+  const newPlayer: Player = { id: playerId, name: playerName, avatarIndex: avatarIndex, cards: [], isHost: false };
   
   const originalLogLength = gameState.log ? gameState.log.length : 0;
   
@@ -209,7 +210,7 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
     message: `Game started by ${player.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
     timestamp: Date.now(),
     player: player.name,
-    avatarIndex: player.avatar_index,
+    avatarIndex: player.avatarIndex,
     eventType: 'system',
     cardType: firstCard.type,
     cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
@@ -249,7 +250,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       message: `${checkingPlayer.name} forgot to declare UNO! Turn passed.`,
       timestamp: Date.now(),
       player: checkingPlayer.name,
-      avatarIndex: checkingPlayer.avatar_index,
+      avatarIndex: checkingPlayer.avatarIndex,
       eventType: 'uno_fail'
     });
     
@@ -294,7 +295,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       message: `${playerForCard.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
       timestamp: Date.now(),
       player: playerForCard.name,
-      avatarIndex: playerForCard.avatar_index,
+      avatarIndex: playerForCard.avatarIndex,
       eventType: 'play',
       cardType: cardToPlay.type,
       cardValue: undefined,
@@ -307,6 +308,17 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
 
   if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4" && cardToPlay.color) {
     gameState.currentColor = cardToPlay.color;
+    gameState.log.push({
+      id: uuidv4(),
+      message: `${playerForCard.name} played a ${cardToPlay.color} ${cardToPlay.type === 'number' ? '' : cardToPlay.type + ' '}${cardToPlay.value ?? ''}`.trim(),
+      timestamp: Date.now(),
+      player: playerForCard.name,
+      avatarIndex: playerForCard.avatarIndex,
+      eventType: 'play',
+      cardType: cardToPlay.type,
+      cardValue: cardToPlay.value,
+      cardColor: cardToPlay.color
+    });
   }
 
   if (playerForCard.cards.length === 0) {
@@ -317,7 +329,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       message: `${playerForCard.name} won the game!`,
       timestamp: Date.now(),
       player: playerForCard.name,
-      avatarIndex: playerForCard.avatar_index,
+      avatarIndex: playerForCard.avatarIndex,
       eventType: 'win'
     });
     
@@ -339,7 +351,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
         message: `${playerForCard.name} forgot to say UNO!`,
         timestamp: Date.now(),
         player: playerForCard.name,
-        avatarIndex: playerForCard.avatar_index,
+        avatarIndex: playerForCard.avatarIndex,
         eventType: 'uno_fail'
       });
   }
@@ -392,7 +404,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
         message: `${player?.name || 'Player'} tried to draw, but both piles are effectively empty. Turn passes.`,
         timestamp: Date.now(),
         player: player?.name,
-        avatarIndex: player?.avatar_index,
+        avatarIndex: player?.avatarIndex,
         eventType: 'system' 
      });
      const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
@@ -417,7 +429,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     message: `${player.name} drew a card.`,
     timestamp: Date.now(),
     player: player.name,
-    avatarIndex: player.avatar_index,
+    avatarIndex: player.avatarIndex,
     eventType: 'draw'
   });
 
@@ -429,7 +441,7 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
       message: `${player.name} has no playable cards after drawing. Turn passes.`,
       timestamp: Date.now(),
       player: player.name,
-      avatarIndex: player.avatar_index,
+      avatarIndex: player.avatarIndex,
       eventType: 'system'
     });
     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
@@ -493,7 +505,7 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     message: `${player.name} declared UNO!`,
     timestamp: Date.now(),
     player: player.name,
-    avatarIndex: player.avatar_index,
+    avatarIndex: player.avatarIndex,
     eventType: 'uno'
   });
 
@@ -544,7 +556,7 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
     message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
     timestamp: Date.now(),
     player: gameState.players[currentPlayerIndex].name,
-    avatarIndex: gameState.players[currentPlayerIndex].avatar_index,
+    avatarIndex: gameState.players[currentPlayerIndex].avatarIndex,
     eventType: 'system'
   });
 
@@ -607,7 +619,7 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
     message: `Rematch started by ${initiatorPlayer.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
     timestamp: Date.now(),
     player: initiatorPlayer.name,
-    avatarIndex: initiatorPlayer.avatar_index,
+    avatarIndex: initiatorPlayer.avatarIndex,
     eventType: 'system',
     cardType: firstCard.type,
     cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
