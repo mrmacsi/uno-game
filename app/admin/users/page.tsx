@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Loader2, Trash2, Edit, ArrowLeft, Users } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 // Import user fetching/deleting actions
 import { getAllUsers, deleteUser, UserProfile } from "@/lib/user-actions";
 
@@ -16,7 +16,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState<string | null>(null); // e.g., "delete-userId"
-  const { toast } = useToast();
 
   // Fetch function using the imported action
   const fetchUsers = useCallback(async () => {
@@ -26,12 +25,12 @@ export default function AdminUsersPage() {
       setUsers(fetchedUsers);
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      toast({ title: "Error", description: "Could not fetch users.", variant: "destructive" });
+      toast.error("Error", { description: "Could not fetch users." });
       setUsers([]); // Clear users on error
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -43,13 +42,13 @@ export default function AdminUsersPage() {
     
     try {
       await deleteUser(userId);
-      toast({ title: "User Deleted", description: `User ${userId} was deleted.` });
+      toast.success("User Deleted", { description: `User ${userId} was deleted.` });
       // Re-fetch users after deletion (revalidatePath in action should handle UI update, 
       // but fetching again ensures local state consistency)
       fetchUsers(); 
     } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete user.", variant: "destructive" });
+      toast.error("Error", { description: error instanceof Error ? error.message : "Could not delete user." });
     } finally {
       setLoadingAction(null);
     }

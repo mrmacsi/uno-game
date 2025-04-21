@@ -4,25 +4,23 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { avatars } from "@/lib/avatar-config"; // Only need avatars array here
 import { AvatarDisplay } from "@/components/game/avatar-display"; // Import the new component
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
 // Removed size calculation as it's handled by AvatarDisplay
 
 export default function AdminAvatarsPage() {
-  const { toast } = useToast()
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null); // State for selected index
 
   const handleAvatarClick = (name: string, index: number) => {
     // Toggle selection: if clicking the already selected one, deselect.
     if (selectedIndex === index) {
       setSelectedIndex(null);
-      toast({ title: "Avatar Deselected" });
+      toast("Avatar Deselected");
     } else {
       setSelectedIndex(index);
-      toast({
-        title: "Avatar Selected",
+      toast("Avatar Selected", {
         description: `Name: ${name}, Index: ${index}`,
       });
       console.log(`Selected Avatar: ${name} (Index: ${index})`);

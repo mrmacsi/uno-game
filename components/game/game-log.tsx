@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LogEntry, CardColor } from "@/lib/types";
 import { AvatarDisplay } from "./avatar-display";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface GameLogProps {
   logs: LogEntry[];
@@ -73,8 +73,7 @@ export default function GameLog({ logs }: GameLogProps) {
     }
     try {
       await navigator.clipboard.writeText(messageText);
-      toast({ 
-        title: "Copied!", 
+      toast.success("Copied!", { 
         description: "Message copied to clipboard.",
         duration: 2000
       });

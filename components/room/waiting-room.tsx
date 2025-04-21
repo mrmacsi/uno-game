@@ -5,7 +5,7 @@ import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import ResetRoomButton from "./reset-room-button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,7 +21,6 @@ export default function WaitingRoom() {
   } = useGame()
   const router = useRouter()
   const [isStarting, setIsStarting] = useState(false)
-  const { toast } = useToast()
   const [isRefreshing, setIsRefreshing] = useState(false)
   
   // Find current player in players array
@@ -44,23 +43,18 @@ export default function WaitingRoom() {
     if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(state.roomId)
         .then(() => {
-          toast({
-            title: "Room code copied!",
+          toast.success("Room code copied!", {
             description: "Share this with your friends to join the game.",
           })
         })
         .catch(() => {
-          toast({
-            title: "Clipboard error",
+          toast.error("Clipboard error", {
             description: "Could not copy to clipboard. Please copy manually.",
-            variant: "destructive",
           })
         })
     } else {
-      toast({
-        title: "Clipboard not supported",
+      toast.error("Clipboard not supported", {
         description: "Clipboard is not supported in this browser. Please copy manually.",
-        variant: "destructive",
       })
     }
   }
@@ -68,12 +62,10 @@ export default function WaitingRoom() {
   const handleStartGame = async () => {
     if (!canStartGame) {
       console.log("Cannot start game:", { isHost, playerCount: state.players.length })
-      toast({
-        title: "Cannot start game",
+      toast.error("Cannot start game", {
         description: isHost 
           ? "Need at least 2 players to start" 
           : "Only the host can start the game",
-        variant: "destructive",
       })
       return
     }
@@ -87,10 +79,8 @@ export default function WaitingRoom() {
       if (err instanceof Error && err.message === "Game has already started") {
         description = "Game has already started. Please refresh or rejoin the room."
       }
-      toast({
-        title: "Failed to start game",
+      toast.error("Failed to start game", {
         description,
-        variant: "destructive",
       })
     } finally {
       setIsStarting(false)
@@ -101,8 +91,7 @@ export default function WaitingRoom() {
     setIsRefreshing(true)
     try {
       await refreshGameState()
-      toast({
-        title: "Game refreshed",
+      toast.success("Game refreshed", {
         description: "Latest game state loaded.",
       })
     } catch (error) {

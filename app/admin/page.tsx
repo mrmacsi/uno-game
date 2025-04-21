@@ -8,8 +8,6 @@ import { Database, Info, Trash2, List, RefreshCw, Loader2, Users, Eraser, KeyRou
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { getAllRooms, deleteRoom, resetRoom, clearMatchHistory } from "@/lib/room-actions"
-import { clearDb } from "@/lib/db-actions"
-import { useToast } from "@/components/ui/use-toast"
 import type { GameState, MatchResult } from "@/lib/types"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -17,7 +15,7 @@ import { getAllGameRoomKeys, getRedisValue } from '@/lib/redis-actions'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AvatarDisplay } from '@/components/game/avatar-display'
 import { Badge } from '@/components/ui/badge'
-import { toast as sonnerToast } from "sonner"
+import { toast } from "sonner"
 import { avatars } from "@/lib/avatar-config"
 import { getAllUsers, deleteUser, UserProfile } from "@/lib/user-actions"
 
@@ -31,17 +29,15 @@ interface RedisInfo {
 
 // --- Avatar Management Section --- (Moved from app/admin/avatars/page.tsx)
 const AvatarManagementSection = () => {
-  const { toast } = useToast();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const handleAvatarClick = (name: string, index: number) => {
     if (selectedIndex === index) {
       setSelectedIndex(null);
-      toast({ title: "Avatar Deselected" });
+      toast("Avatar Deselected");
     } else {
       setSelectedIndex(index);
-      toast({
-        title: "Avatar Selected",
+      toast("Avatar Selected", {
         description: `Name: ${name}, Index: ${index}`,
       });
       console.log(`Selected Avatar: ${name} (Index: ${index})`);
@@ -110,7 +106,6 @@ const UserManagementSection = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingUserAction, setLoadingUserAction] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
@@ -119,12 +114,12 @@ const UserManagementSection = () => {
       setUsers(fetchedUsers);
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      toast({ title: "Error", description: "Could not fetch users.", variant: "destructive" });
+      toast.error("Error", { description: "Could not fetch users." });
       setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -135,11 +130,11 @@ const UserManagementSection = () => {
     setLoadingUserAction(`delete-${userId}`);
     try {
       await deleteUser(userId);
-      toast({ title: "User Deleted", description: `User ${userId} was deleted.` });
+      toast.success("User Deleted", { description: `User ${userId} was deleted.` });
       fetchUsers();
     } catch (error: unknown) {
       console.error("Failed to delete user:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete user.", variant: "destructive" });
+      toast.error("Error", { description: error instanceof Error ? error.message : "Could not delete user." });
     } finally {
       setLoadingUserAction(null);
     }
@@ -241,7 +236,6 @@ export default function AdminPage() {
   const [infoLoading, setInfoLoading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const [redisKeys, setRedisKeys] = useState<string[]>([])
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
@@ -259,11 +253,11 @@ export default function AdminPage() {
       setRooms(fetchedRooms);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
-      toast({ title: "Error", description: "Could not fetch rooms.", variant: "destructive" });
-    } finally {
+      setRooms([]);
       setLoadingRooms(false);
+      toast.error("Error", { description: "Could not fetch rooms." });
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchRooms();
@@ -281,7 +275,7 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to fetch Redis info:", error);
-      setRedisInfo({ used_memory_human: "Error fetching" });
+      toast.error("Error", { description: "Could not fetch Redis info." });
     } finally {
       setInfoLoading(false);
     }
@@ -294,14 +288,14 @@ export default function AdminPage() {
   const performDeleteRoom = async (roomId: string) => {
     if (!roomId || roomId === "DEFAULT") return;
     setSelectedRoom(roomId);
-    setLoadingAction("delete");
+    setLoadingAction(`delete-${roomId}`);
     try {
       await deleteRoom(roomId);
-      toast({ title: "Room Deleted", description: `Room ${roomId} was deleted.` });
+      toast.success("Room Deleted", { description: `Room ${roomId} was deleted.` });
       fetchRooms();
     } catch (error: unknown) {
       console.error("Failed to delete room:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not delete room.", variant: "destructive" });
+      toast.error("Error", { description: "Could not delete room." });
     } finally {
       setLoadingAction(null);
       setSelectedRoom(null);
@@ -311,14 +305,14 @@ export default function AdminPage() {
   const handleResetRoom = async (roomId: string) => {
     if (!roomId) return;
     setSelectedRoom(roomId);
-    setLoadingAction("reset");
+    setLoadingAction(`reset-${roomId}`);
     try {
       await resetRoom(roomId);
-      toast({ title: "Room Reset", description: `Room ${roomId} was reset.` });
+      toast.success("Room Reset", { description: `Room ${roomId} has been reset.` });
       fetchRooms();
     } catch (error: unknown) {
       console.error("Failed to reset room:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not reset room.", variant: "destructive" });
+      toast.error("Error", { description: "Could not reset room." });
     } finally {
       setLoadingAction(null);
       setSelectedRoom(null);
@@ -328,14 +322,14 @@ export default function AdminPage() {
   const handleClearHistory = async (roomId: string) => {
     if (!roomId) return;
     setSelectedRoom(roomId);
-    setLoadingAction("clearHistory");
+    setLoadingAction(`clearHistory-${roomId}`);
     try {
       await clearMatchHistory(roomId);
-      toast({ title: "History Cleared", description: `Match history for room ${roomId} was cleared.` });
-      fetchRooms(); // Fetch rooms again to reflect potential status changes
+      toast.success("Match History Cleared", { description: `History for room ${roomId} cleared.` });
+      fetchRooms(); // Refresh rooms to show updated history status
     } catch (error: unknown) {
       console.error("Failed to clear history:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear history.", variant: "destructive" });
+      toast.error("Error", { description: "Could not clear history." });
     } finally {
       setLoadingAction(null);
       setSelectedRoom(null);
@@ -343,14 +337,15 @@ export default function AdminPage() {
   };
 
   const performClearAllRooms = async () => {
-    setLoadingAction("clearDb");
+    setLoadingAction('clear-rooms');
     try {
-      await clearDb();
-      toast({ title: "Database Cleared", description: `All non-DEFAULT rooms cleared.` });
+      const result = await getAllRooms(); // Get all rooms first
+      await Promise.all(result.map(room => deleteRoom(room.roomId))); // Delete each room
+      toast.success("All Rooms Cleared", { description: `Successfully deleted ${result.length} rooms.` });
       fetchRooms();
-    } catch (error: unknown) {
-      console.error("Failed to clear DB:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Could not clear database.", variant: "destructive" });
+    } catch (error) {
+      console.error("Failed to clear all rooms:", error);
+      toast.error("Error", { description: "Could not clear all rooms." });
     } finally {
       setLoadingAction(null);
     }
@@ -360,12 +355,12 @@ export default function AdminPage() {
     setLoadingKeys(true)
     setRedisError(null)
     try {
-      const fetchedKeys = await getAllGameRoomKeys()
-      setRedisKeys(fetchedKeys.sort())
+      const keys = await getAllGameRoomKeys()
+      setRedisKeys(keys)
     } catch (err) {
       console.error("Failed to fetch Redis keys:", err)
       setRedisError("Failed to fetch Redis keys.")
-      sonnerToast.error("Could not load Redis keys.")
+      toast.error("Error", { description: "Failed to fetch Redis keys." })
     } finally {
       setLoadingKeys(false)
     }
@@ -395,7 +390,7 @@ export default function AdminPage() {
            setRedisMatchHistory(null);
            setParsedGameState(null);
            setRedisError(`Failed to parse JSON data for key ${key}.`);
-           sonnerToast.error(`Invalid JSON data for key ${key}.`);
+           toast.error("Error", { description: `Failed to parse JSON data for key ${key}.` });
         }
       } else {
          setRedisMatchHistory(null)
@@ -404,7 +399,7 @@ export default function AdminPage() {
     } catch (err) {
       console.error(`Failed to fetch value for key ${key}:`, err)
       setRedisError(`Failed to fetch value for key ${key}.`)
-      sonnerToast.error(`Could not load value for ${key}.`)
+      toast.error("Error", { description: `Failed to fetch value for key ${key}.` })
     } finally {
       setLoadingValue(false)
     }

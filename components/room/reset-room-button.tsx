@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { RefreshCw, AlertTriangle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface ResetRoomButtonProps {
   roomId: string
@@ -15,7 +15,6 @@ export default function ResetRoomButton({ roomId, className }: ResetRoomButtonPr
   const [resetting, setResetting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
 
   const handleInitialClick = () => {
     setShowConfirm(true)
@@ -39,23 +38,19 @@ export default function ResetRoomButton({ roomId, className }: ResetRoomButtonPr
       })
       
       if (response.ok) {
-        toast({
-          title: "Room Reset",
+        toast.success("Room Reset", {
           description: "Room has been reset successfully",
-          variant: "default"
         })
         router.push("/")
       } else {
         const data = await response.json()
-        toast({
-          title: "Reset Failed",
+        toast.error("Reset Failed", {
           description: `Failed to reset room: ${data.error || "Unknown error"}`,
-          variant: "destructive"
         })
       }
     } catch (err: unknown) {
       console.error("Reset game failed:", err)
-      toast({ title: "Error", description: "Failed to reset room.", variant: "destructive" })
+      toast.error("Error", { description: "Failed to reset room." })
     } finally {
       setResetting(false)
     }

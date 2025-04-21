@@ -10,7 +10,7 @@ import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
 import type { Channel } from "pusher-js"
 import Pusher from 'pusher-js'
 import { checkPlayValidity as checkPlayValidityLogic } from '@/lib/game-logic'
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 type GameContextType = {
   state: GameState
@@ -238,7 +238,7 @@ export function GameProvider({
           toastTitle = `${newestEntry.player || 'System'} Message`; // Maybe give it a specific title
           // Use default description (the message itself)
           toastVariant = "default"; // Ensure it's default
-          duration = 3000; // Slightly longer?
+          duration = 2500; // Slightly longer?
           break;
         default:
           console.log(`[GameProvider Toast] Matched '${newestEntry.eventType || 'default'}' event type.`);
@@ -247,12 +247,10 @@ export function GameProvider({
       }
       
       console.log(`[GameProvider Toast] Calling toast() with:`, { title: toastTitle, description: toastDescription, variant: toastVariant, duration });
-      toast({
-        title: toastTitle,
+      toast(toastTitle, {
         description: toastDescription,
-        variant: toastVariant,
         duration: duration,
-      })
+      });
     });
     
     // Update the ref with the full current log
@@ -367,10 +365,8 @@ export function GameProvider({
         
         channel.bind("room-deleted", (data: { message: string }) => {
           console.log("[GameProvider] Received room-deleted event:", data.message)
-          toast({
-            title: "Room Deleted",
+          toast.error("Room Deleted", {
             description: data.message,
-            variant: "destructive",
           })
         })
         
@@ -401,10 +397,8 @@ export function GameProvider({
               console.log("[GameProvider] Received ring notification from:", data.from.name)
               
               // Show a prominent toast notification
-              toast({
-                title: "Ring! Ring!",
+              toast("Ring! Ring!", {
                 description: `${data.from.name} is trying to get your attention!`,
-                variant: "default",
                 duration: 5000,
               })
               
@@ -557,10 +551,8 @@ export function GameProvider({
     // --- UNO Declaration Check ---    
     if (player.cards.length === 2 && !player.saidUno) {
         console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Passing turn.`);
-        toast({ 
-            title: "UNO!", 
+        toast.error("UNO!", { 
             description: "You must declare UNO before playing your second-to-last card! Turn passed.",
-            variant: "destructive",
             duration: 3000 
         });
         // Automatically pass the turn instead of playing the card
@@ -574,7 +566,7 @@ export function GameProvider({
       console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, state_currentColor: state.currentColor, turn: state.currentPlayer })
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
-        toast({ title: "Not Your Turn", description: "Please wait for your turn.", variant: "destructive" })
+        toast.error("Not Your Turn", { description: "Please wait for your turn." })
         setIsLoading(false)
         return
       }
@@ -614,7 +606,7 @@ export function GameProvider({
     } catch (err) {
       console.error("Failed to play card:", err)
       setError(err instanceof Error ? err.message : "Failed to play card")
-      toast({ title: "Invalid Play", description: err instanceof Error ? err.message : "Could not play card.", variant: "destructive" })
+      toast.error("Invalid Play", { description: err instanceof Error ? err.message : "Could not play card." })
       await refreshGameState()
     } finally {
       setIsLoading(false)
@@ -629,20 +621,16 @@ export function GameProvider({
     
     if (state.currentPlayer !== currentPlayerId) {
       console.error("[GameProvider] Cannot draw card: Not your turn")
-      toast({
-        title: "Cannot Draw Card",
+      toast.error("Cannot Draw Card", {
         description: "It's not your turn",
-        variant: "destructive",
       })
       return
     }
     
     if (state.hasDrawnThisTurn) {
       console.error("[GameProvider] Cannot draw card: Already drawn this turn")
-      toast({
-        title: "Cannot Draw Card",
+      toast.error("Cannot Draw Card", {
         description: "You've already drawn a card this turn",
-        variant: "destructive",
       })
       return
     }
@@ -651,19 +639,15 @@ export function GameProvider({
       setIsLoading(true)
       await drawCard(roomId, currentPlayerId)
       
-      toast({
-        title: "Card Drawn",
+      toast("Card Drawn", {
         description: "You drew a card from the pile",
-        variant: "default",
       })
       
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to draw card:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to draw card",
-        variant: "destructive",
       })
       setIsLoading(false)
     }
@@ -672,13 +656,13 @@ export function GameProvider({
   const handleDeclareUno = async () => {
     if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID")
     if (state.currentPlayer !== currentPlayerId) {
-      toast({ title: "Not Your Turn", description: "You can only declare UNO on your turn.", variant: "default" });
+      toast("Not Your Turn", { description: "You can only declare UNO on your turn." });
       return;
     }
     
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player || player.cards.length !== 2) {
-        toast({ title: "Invalid Action", description: "You can only declare UNO when you have exactly two cards.", variant: "default" });
+        toast("Invalid Action", { description: "You can only declare UNO when you have exactly two cards." });
         return;
     }
 
@@ -692,11 +676,9 @@ export function GameProvider({
             )
         }
     });
-    toast({ 
-      title: "UNO Declared!", 
+    toast("UNO Declared!", { 
       description: "Now you can play your second-to-last card!", 
       duration: 1500,
-      variant: "default" 
     });
 
     setIsLoading(true)
@@ -717,10 +699,8 @@ export function GameProvider({
             )
         }
      });
-     toast({ 
-       title: "Failed to Declare UNO", 
+     toast.error("Failed to Declare UNO", { 
        description: err instanceof Error ? err.message : "Please try again.", 
-       variant: "destructive" 
      });
     } finally {
       setIsLoading(false)
@@ -730,7 +710,7 @@ export function GameProvider({
   const handleSelectWildCardColor = async (color: CardColor) => {
     if (!roomId || !currentPlayerId || !pendingWildCardId || color === 'black') {
       setError("Invalid state or color for selecting wild color.")
-      toast({ title: "Invalid Color", description: "Please select Red, Blue, Green, or Yellow.", variant: "destructive" })
+      toast.error("Invalid Color", { description: "Please select Red, Blue, Green, or Yellow." })
       return
     }
     console.log(`[GameProvider] Color selected: ${color} for card ${pendingWildCardId}`)
@@ -742,7 +722,7 @@ export function GameProvider({
     } catch (err) {
       console.error("Failed to play wild card after color selection:", err)
       setError(err instanceof Error ? err.message : "Failed to play wild card")
-      toast({ title: "Error Playing Wild Card", description: err instanceof Error ? err.message : "Could not play the wild card.", variant: "destructive" })
+      toast.error("Error Playing Wild Card", { description: err instanceof Error ? err.message : "Could not play the wild card." })
       await refreshGameState()
     } finally {
       setIsLoading(false)
@@ -764,10 +744,8 @@ export function GameProvider({
     // Check if the game is in playing status
     if (state.status !== "playing") {
       console.error("[GameProvider] Cannot pass turn: Game is not in progress")
-      toast({
-        title: "Cannot Pass Turn",
+      toast.error("Cannot Pass Turn", {
         description: "Game is not in progress yet",
-        variant: "destructive",
       })
       return
     }
@@ -775,10 +753,8 @@ export function GameProvider({
     // Check if it's the player's turn
     if (state.currentPlayer !== currentPlayerId) {
       console.error("[GameProvider] Cannot pass turn: Not your turn")
-      toast({
-        title: "Cannot Pass Turn",
+      toast.error("Cannot Pass Turn", {
         description: "It's not your turn",
-        variant: "destructive",
       })
       return
     }
@@ -790,10 +766,8 @@ export function GameProvider({
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to pass turn:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to pass turn",
-        variant: "destructive",
       })
       setIsLoading(false)
     }
@@ -809,10 +783,8 @@ export function GameProvider({
     const currentPlayer = state.players.find(p => p.id === currentPlayerId)
     if (!currentPlayer?.isHost) {
       console.error("[GameProvider] Cannot start game: Not the host")
-      toast({
-        title: "Cannot Start Game",
+      toast.error("Cannot Start Game", {
         description: "Only the host can start the game",
-        variant: "destructive",
       })
       return
     }
@@ -827,10 +799,8 @@ export function GameProvider({
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to start game:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to start game",
-        variant: "destructive",
       })
       setIsLoading(false)
     }
@@ -847,11 +817,11 @@ export function GameProvider({
     try {
       await resetRoom(roomId)
       console.log(`[GameProvider] Reset action called successfully for room: ${roomId}`)
-      toast({ description: "Room is resetting...", duration: 2000 })
+      toast("Room is resetting...", { duration: 2000 })
     } catch (err) {
       console.error("[GameProvider] Failed to reset game:", err)
       setError(err instanceof Error ? err.message : "Failed to reset room")
-      toast({ title: "Error", description: "Could not reset the room.", variant: "destructive" })
+      toast.error("Error", { description: "Could not reset the room." })
     } finally {
       setIsResetting(false)
     }
@@ -866,7 +836,7 @@ export function GameProvider({
     // Optional: Check if the current player is the host
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player?.isHost) {
-        toast({ title: "Rematch Failed", description: "Only the host can start a rematch.", variant: "destructive" });
+        toast.error("Rematch Failed", { description: "Only the host can start a rematch." });
         setError("Only the host can start a rematch.");
         return;
     }
@@ -877,12 +847,12 @@ export function GameProvider({
     try {
         await rematchGame(roomId, currentPlayerId);
         console.log(`[GameProvider] Rematch action called successfully for room: ${roomId}`);
-        toast({ description: "Starting Rematch!", duration: 2000 });
+        toast("Starting Rematch!", { duration: 2000 });
         // State updates will come via Pusher
     } catch (err) {
         console.error("[GameProvider] Failed to initiate rematch:", err);
         setError(err instanceof Error ? err.message : "Failed to start rematch");
-        toast({ title: "Error", description: "Could not start rematch.", variant: "destructive" });
+        toast.error("Error", { description: "Could not start rematch." });
     } finally {
         setIsLoading(false);
     }
@@ -927,10 +897,8 @@ export function GameProvider({
       } else {
         // Success! Trigger toast for the sender immediately.
         console.log("[GameProvider] Message sent successfully via API. Triggering sender toast.");
-        toast({
-          title: `${player.name || 'You'} said:`,
+        toast(`${player.name || 'You'} said:`, {
           description: message,
-          variant: "default",
           duration: 3000 
         });
       }
@@ -938,10 +906,8 @@ export function GameProvider({
       console.error("[GameProvider] Error sending message:", err)
       
       // Show a clear error to the user
-      toast({
-        title: "Message Failed",
+      toast.error("Message Failed", {
         description: err instanceof Error ? err.message : "Could not send message, please try again",
-        variant: "destructive",
       })
     }
   }
@@ -968,17 +934,14 @@ export function GameProvider({
         throw new Error("Failed to ring opponent")
       }
       
-      toast({
-        title: "Ring Sent",
+      toast("Ring Sent", {
         description: "Notification sent to player",
         duration: 1500,
       })
     } catch (err) {
       console.error("[GameProvider] Error ringing opponent:", err)
-      toast({
-        title: "Ring Failed",
+      toast.error("Ring Failed", {
         description: "Could not send notification",
-        variant: "destructive",
       })
     }
   }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useGame } from "../providers/game-context"
 import UnoCard from "./uno-card"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { checkPlayValidity } from "@/lib/game-logic"
 
 export default function PlayerHand() {
@@ -24,10 +24,8 @@ export default function PlayerHand() {
 
   useEffect(() => {
     if (gameError) {
-      toast({
-        title: "Game Error",
+      toast.error("Game Error", {
         description: gameError,
-        variant: "destructive",
       })
     }
   }, [gameError])
@@ -222,7 +220,7 @@ export default function PlayerHand() {
                             if (!isMyTurn) {
                                 setAnimatingCard(null);
                                 console.log('--> Play blocked: Not your turn (checked before color prompt)');
-                                toast({ title: "Not Your Turn", description: "Wait for your turn to play.", variant: "default" });
+                                toast("Not Your Turn", { description: "Wait for your turn to play." });
                                 return;
                             }
                             promptColorSelection(card.id);

@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Please run pnpm run build after each finished task and fix the issues or errors mentioned in the result
