@@ -149,7 +149,7 @@ export function GameProvider({
     const seconds = totalSeconds % 60
     
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-  }, [])
+  }, [gameStartTime, state.gameStartTime])
 
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
@@ -519,7 +519,7 @@ export function GameProvider({
         pusher.disconnect()
       }
     }
-  }, [roomId, currentPlayerId, updateGameState, refreshGameState])
+  }, [roomId, currentPlayerId, updateGameState, refreshGameState, state])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
