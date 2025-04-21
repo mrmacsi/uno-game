@@ -49,6 +49,7 @@ const nextConfig = {
   },
   experimental: {
     esmExternals: false,
+    allowedDevOrigins: ["https://192.168.1.76:3000"],
   },
   webpack: (config) => {
     // Fix clipboard API issues in development mode
