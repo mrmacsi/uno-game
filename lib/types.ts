@@ -63,6 +63,10 @@ export interface GameState {
   isDrawing?: boolean
   isValidPlay?: (card: Card) => boolean
   gameStartTime?: number
+  rematchRequestedBy?: string | null
+  rematchConfirmedBy?: string[]
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }
+  | { type: "SET_PLAYER_ID"; payload: string | null }
+  | { type: "SET_ERROR"; payload: string | null }

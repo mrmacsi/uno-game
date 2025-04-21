@@ -1,6 +1,6 @@
 "use server"
 
-import type { GameState, Card, CardColor, Player } from "./types"
+import type { GameState, Card, CardColor, Player, LogEntry } from "./types"
 import { getGameState, updateGameState } from "./db-actions"
 import { 
   dealCards,
@@ -27,16 +27,19 @@ async function fetchAndValidateGameState(roomId: string, playerId?: string): Pro
   return gameState
 }
 
-async function broadcastUpdate(roomId: string, gameState: GameState) {
+async function broadcastUpdate(roomId: string, gameState: GameState, newLogs?: LogEntry[]) {
   // Create a copy of the state to modify for broadcasting
   const broadcastState = { ...gameState };
 
   // Remove the large drawPile array to reduce payload size
-  // Clients should rely on drawPileCount
-  broadcastState.drawPile = []; // Set to empty array or null
+  broadcastState.drawPile = []; 
 
-  // Strip any remaining functions (if any were added back temporarily)
+  // Strip any remaining functions
   const strippedState = stripFunctionsFromGameState(broadcastState);
+  
+  // Construct the state to send *without* the log property
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { log, ...stateToSend } = strippedState;
   
   await new Promise(resolve => setTimeout(resolve, BROADCAST_DELAY_MS));
 
@@ -44,31 +47,57 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
   const RETRY_DELAY_MS = 150;
   let attempt = 0;
   let success = false;
+  let mainUpdateSuccess = false;
 
+  // Try sending the main game-updated event
   while (attempt < MAX_RETRIES && !success) {
     attempt++;
     try {
-      await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+       // Send state *without* logs
+      await pusherServer.trigger(`game-${roomId}`, "game-updated", stateToSend); // Send state without log
       success = true;
-      console.log(`Broadcast update sent for room ${roomId} on attempt ${attempt}. Payload size (approx estimate): ${JSON.stringify(strippedState).length} bytes`);
+      mainUpdateSuccess = true; // Mark main update as successful
+      console.log(`Broadcast 'game-updated' sent for room ${roomId} (log excluded) on attempt ${attempt}. Payload size (approx estimate): ${JSON.stringify(stateToSend).length} bytes`);
     } catch (error) {
-      console.error(`Pusher trigger attempt ${attempt} failed for room ${roomId}:`, error);
       // Log specific errors
       if (error instanceof Error && error.message.includes('413')) {
-          console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile. State snapshot:", JSON.stringify(strippedState).substring(0, 500)); // Log first 500 chars
-          // Don't retry for payload size errors
+          console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile and logs. State snapshot:", JSON.stringify(stateToSend).substring(0, 500)); // Log first 500 chars
           break; 
       }
+      console.error(`Pusher 'game-updated' trigger attempt ${attempt} failed for room ${roomId}:`, error);
       // Check if it's a retryable error (like ECONNRESET) and if we haven't reached max retries
       const isRetryable = error instanceof Error && typeof (error as { code?: string }) === "object" && (error as { code?: string }).code === 'ECONNRESET';
       if (isRetryable && attempt < MAX_RETRIES) {
-          console.log(`Retrying Pusher trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
+          console.log(`Retrying Pusher 'game-updated' trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
       } else {
-          // Log final failure but don't throw, as the main action might have succeeded
-          console.error(`Pusher trigger failed definitively for room ${roomId} after ${attempt} attempts.`);
+          console.error(`Pusher 'game-updated' failed definitively for room ${roomId} after ${attempt} attempts.`);
           break; // Exit the loop
       }
+    }
+  }
+  
+  // If the main update succeeded AND there are new logs, send them separately
+  if (mainUpdateSuccess && newLogs && newLogs.length > 0) {
+    attempt = 0; // Reset retry counter for the new event
+    success = false;
+    while (attempt < MAX_RETRIES && !success) {
+        attempt++;
+        try {
+            await pusherServer.trigger(`game-${roomId}`, "new-log-entries", { logs: newLogs });
+            success = true;
+            console.log(`Broadcast 'new-log-entries' sent for room ${roomId} (${newLogs.length} entries) on attempt ${attempt}.`);
+        } catch (error) {
+            console.error(`Pusher 'new-log-entries' trigger attempt ${attempt} failed for room ${roomId}:`, error);
+            // Add similar retry logic if desired for log entries, or just log the failure
+             if (attempt < MAX_RETRIES) {
+                 console.log(`Retrying Pusher 'new-log-entries' trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
+                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+             } else {
+                 console.error(`Pusher 'new-log-entries' failed definitively for room ${roomId} after ${attempt} attempts.`);
+                 break; 
+             }
+        }
     }
   }
 }
@@ -113,7 +142,11 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
   }
 
   const newPlayer: Player = { id: playerId, name: playerName, avatar_index: avatarIndex, cards: [], isHost: false };
+  
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  
   gameState.players.push(newPlayer);
+  if (!gameState.log) gameState.log = []; 
   gameState.log.push({
     id: uuidv4(),
     message: `${playerName} joined the room.`,
@@ -124,7 +157,9 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
   });
 
   await updateGameState(roomId, gameState);
-  await broadcastUpdate(roomId, gameState);
+
+  const newLogs = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs);
 
   console.log(`Player ${playerName} added to room ${roomId}`);
   return gameState;
@@ -163,6 +198,8 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
   gameState.status = "playing";
   gameState.gameStartTime = gameStartTime || Date.now();
   
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  
   if (!gameState.log) {
       gameState.log = [];
   }
@@ -182,7 +219,8 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
   console.log(`Game started successfully for room ${roomId}. Current player: ${gameState.currentPlayer}`);
   await updateGameState(roomId, gameState);
 
-  await broadcastUpdate(roomId, gameState);
+  const newLogs = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs);
 
   return gameState;
 }
@@ -197,40 +235,46 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     throw new Error("Not your turn");
   }
 
-  const player = gameState.players.find((p: Player) => p.id === playerId);
-  if (!player) {
-    throw new Error("Player not found");
-  }
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  let newLogs: LogEntry[] = [];
+
+  if (!gameState.log) gameState.log = [];
 
   // UNO Check - must be handled before card is played
-  if (player.cards.length === 2 && !player.saidUno) {
-    console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
+  const checkingPlayer = gameState.players.find((p: Player) => p.id === playerId);
+  if (checkingPlayer && checkingPlayer.cards.length === 2 && !checkingPlayer.saidUno) {
+    console.log(`${checkingPlayer.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
     gameState.log.push({
       id: uuidv4(),
-      message: `${player.name} forgot to declare UNO! Turn passed.`,
+      message: `${checkingPlayer.name} forgot to declare UNO! Turn passed.`,
       timestamp: Date.now(),
-      player: player.name,
-      avatarIndex: player.avatar_index
+      player: checkingPlayer.name,
+      avatarIndex: checkingPlayer.avatar_index,
+      eventType: 'uno_fail'
     });
     
-    // Pass turn as penalty for not declaring UNO
+    // Pass turn as penalty
     const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
     gameState.hasDrawnThisTurn = false;
     
     await updateGameState(roomId, gameState);
-    await broadcastUpdate(roomId, gameState);
+    
+    newLogs = gameState.log.slice(originalLogLength);
+    await broadcastUpdate(roomId, gameState, newLogs);
     
     throw new Error("You must declare UNO before playing your second-to-last card!");
   }
 
-  const cardIndex = player.cards.findIndex((c: Card) => c.id === cardId);
+  const playerForCard = gameState.players.find((p: Player) => p.id === playerId);
+  if (!playerForCard) throw new Error("Player not found when finding card");
+  const cardIndex = playerForCard.cards.findIndex((c: Card) => c.id === cardId);
   if (cardIndex === -1) {
     throw new Error("Card not found in player's hand")
   }
   
-  const cardToPlay = player.cards[cardIndex];
+  const cardToPlay = playerForCard.cards[cardIndex];
 
   if (!checkPlayValidity(gameState, cardToPlay)) {
      const topCard = gameState.discardPile[gameState.discardPile.length - 1];
@@ -245,12 +289,12 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       throw new Error("Must choose a color for wild card")
     }
     gameState.currentColor = chosenColor;
-    gameState.log.push({
+    gameState.log.push({ 
       id: uuidv4(),
-      message: `${player.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
+      message: `${playerForCard.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
       timestamp: Date.now(),
-      player: player.name,
-      avatarIndex: player.avatar_index,
+      player: playerForCard.name,
+      avatarIndex: playerForCard.avatar_index,
       eventType: 'play',
       cardType: cardToPlay.type,
       cardValue: undefined,
@@ -258,51 +302,61 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     });
   }
   
-  player.cards.splice(cardIndex, 1);
+  playerForCard.cards.splice(cardIndex, 1);
   gameState.discardPile.push(cardToPlay);
 
-  if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4") {
+  if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4" && cardToPlay.color) {
     gameState.currentColor = cardToPlay.color;
   }
 
-  if (player.cards.length === 0) {
+  if (playerForCard.cards.length === 0) {
     gameState.status = "finished";
     gameState.winner = playerId;
-    gameState.log.push({
+    gameState.log.push({ 
       id: uuidv4(),
-      message: `${player.name} won the game!`,
+      message: `${playerForCard.name} won the game!`,
       timestamp: Date.now(),
-      player: player.name,
-      avatarIndex: player.avatar_index
+      player: playerForCard.name,
+      avatarIndex: playerForCard.avatar_index,
+      eventType: 'win'
     });
-    calculatePoints(gameState);
+    
+    calculatePoints(gameState); 
+    
     await updateGameState(roomId, gameState);
-    await broadcastUpdate(roomId, gameState);
+    
+    newLogs = gameState.log.slice(originalLogLength);
+    await broadcastUpdate(roomId, gameState, newLogs);
+    
     console.log(`Game finished in room ${roomId}. Winner: ${playerId}`);
     return gameState;
   }
   
-  if (player.cards.length === 1 && !player.saidUno) {
-      console.log(`${player.name} forgot to say UNO!`);
+  if (playerForCard.cards.length === 1 && !playerForCard.saidUno) {
+      console.log(`${playerForCard.name} forgot to say UNO!`);
        gameState.log.push({
         id: uuidv4(),
-        message: `${player.name} forgot to say UNO!`,
+        message: `${playerForCard.name} forgot to say UNO!`,
         timestamp: Date.now(),
-        player: player.name,
-        avatarIndex: player.avatar_index
+        player: playerForCard.name,
+        avatarIndex: playerForCard.avatar_index,
+        eventType: 'uno_fail'
       });
   }
-   if (player.cards.length > 1) {
-      player.saidUno = false;
-   }
+  
+  if (playerForCard.cards.length > 1) {
+      playerForCard.saidUno = false;
+  }
 
-  applyCardEffects(gameState, cardToPlay);
+  applyCardEffects(gameState, cardToPlay); 
+  
   gameState.hasDrawnThisTurn = false;
-
   gameState.drawPileCount = gameState.drawPile.length;
 
   await updateGameState(roomId, gameState);
-  await broadcastUpdate(roomId, gameState);
+
+  newLogs = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs);
 
   return gameState;
 }
@@ -326,63 +380,83 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
      throw new Error("Already drew a card this turn");
   }
 
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  
+  if (!gameState.log) gameState.log = [];
+
   reshuffleIfNeeded(gameState);
 
   if (gameState.drawPile.length === 0) {
-    throw new Error("Draw pile is empty!");
+    gameState.log.push({
+        id: uuidv4(),
+        message: `${player?.name || 'Player'} tried to draw, but both piles are effectively empty. Turn passes.`,
+        timestamp: Date.now(),
+        player: player?.name,
+        avatarIndex: player?.avatar_index,
+        eventType: 'system' 
+     });
+     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
+     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
+     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
+     gameState.hasDrawnThisTurn = false; 
+     await updateGameState(roomId, gameState);
+     const newLogs_emptyDraw = gameState.log.slice(originalLogLength);
+     await broadcastUpdate(roomId, gameState, newLogs_emptyDraw);
+     return gameState; 
   }
 
   const drawnCard = gameState.drawPile.pop()!;
   if (!player) {
-      throw new Error("Player not found");
+      throw new Error("Player not found"); 
   }
   player.cards.push(drawnCard);
   gameState.hasDrawnThisTurn = true;
+  
   gameState.log.push({
     id: uuidv4(),
     message: `${player.name} drew a card.`,
     timestamp: Date.now(),
     player: player.name,
-    avatarIndex: player.avatar_index
+    avatarIndex: player.avatar_index,
+    eventType: 'draw'
   });
 
-  // Check if ANY card in the hand is playable (including the drawn one)
   const hasAnyPlayableCard = player.cards.some(card => checkPlayValidity(gameState, card));
 
   if (!hasAnyPlayableCard) {
-    // NO playable cards, automatically end the turn
     gameState.log.push({
       id: uuidv4(),
       message: `${player.name} has no playable cards after drawing. Turn passes.`,
       timestamp: Date.now(),
       player: player.name,
-      avatarIndex: player.avatar_index
+      avatarIndex: player.avatar_index,
+      eventType: 'system'
     });
     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
-    gameState.hasDrawnThisTurn = false; // Reset draw status for next player
+    gameState.hasDrawnThisTurn = false;
     
-    // Reset saidUno status for the next player
     const nextPlayer = gameState.players[nextPlayerIndex];
     if (nextPlayer && nextPlayer.cards.length !== 1) {
         nextPlayer.saidUno = false;
     }
     
     console.log(`Player ${playerId} drew an unplayable card. Turn automatically passed to ${gameState.currentPlayer}.`);
-    // Save the state *after* advancing the turn
     await updateGameState(roomId, gameState);
-    await broadcastUpdate(roomId, gameState); 
+    
+    const newLogs_drawPass = gameState.log.slice(originalLogLength);
+    await broadcastUpdate(roomId, gameState, newLogs_drawPass);
     
   } else {
-    // Player HAS playable cards. Do NOT pass turn. 
-    // Just update state with the drawn card and let player decide.
     console.log(`Player ${playerId} drew a card and has playable options.`);
-    await updateGameState(roomId, gameState); 
-    await broadcastUpdate(roomId, gameState); 
-    // Remove the specific drawn-card-playable event, it's not needed anymore
-    // await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { playerId, card: drawnCard });
+    await updateGameState(roomId, gameState);
+    
+    const newLogs_drawOnly = gameState.log.slice(originalLogLength);
+    await broadcastUpdate(roomId, gameState, newLogs_drawOnly);
   }
+
+  gameState.drawPileCount = gameState.drawPile.length;
 
   return gameState;
 }
@@ -399,10 +473,8 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     throw new Error("Player not found");
   }
 
-  // Allow UNO declaration when having exactly 2 cards (before playing second-to-last card)
   if (player.cards.length !== 2) {
     console.warn(`${player.name} tried to declare UNO with ${player.cards.length} cards.`);
-    // We don't update state or broadcast if the declaration is invalid
     return gameState;
   }
 
@@ -411,20 +483,26 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     return gameState;
   }
   
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  
+  if (!gameState.log) gameState.log = [];
+
   player.saidUno = true;
-  // Add log entry for UNO declaration
   gameState.log.push({
     id: uuidv4(),
     message: `${player.name} declared UNO!`,
     timestamp: Date.now(),
     player: player.name,
     avatarIndex: player.avatar_index,
-    eventType: 'uno' // Add eventType for client-side handling
+    eventType: 'uno'
   });
 
-  await updateGameState(roomId, gameState); 
-  await broadcastUpdate(roomId, gameState);
+  await updateGameState(roomId, gameState);
+
+  const newLogs = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs);
   
+  console.log(`Player ${playerId} declared UNO.`);
   return gameState;
 }
 
@@ -443,41 +521,39 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   if (gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn");
   }
-  // Skip this check if the turn pass is forced (e.g., due to forgetting UNO)
   if (!forcePass && !gameState.hasDrawnThisTurn) {
      throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
   }
 
-  // Determine next player
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  
+  if (!gameState.log) gameState.log = [];
+
   const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
   const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
-  gameState.hasDrawnThisTurn = false; // Reset draw status for next player
-
-  // Use a different log message if the pass was forced due to forgetting UNO
-  if (forcePass) {
-    gameState.log.push({
-      id: uuidv4(),
-      message: `${gameState.players[currentPlayerIndex].name} forgot to declare UNO! Turn passed.`,
-      timestamp: Date.now(),
-      player: gameState.players[currentPlayerIndex].name,
-      avatarIndex: gameState.players[currentPlayerIndex].avatar_index,
-      eventType: 'uno_fail'
-    });
-  } else {
-    gameState.log.push({
-      id: uuidv4(),
-      message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
-      timestamp: Date.now(),
-      player: gameState.players[currentPlayerIndex].name,
-      avatarIndex: gameState.players[currentPlayerIndex].avatar_index,
-      eventType: 'draw'
-    });
+  gameState.hasDrawnThisTurn = false;
+  
+  const nextPlayer = gameState.players[nextPlayerIndex];
+  if (nextPlayer && nextPlayer.cards.length !== 1) {
+      nextPlayer.saidUno = false;
   }
 
-  await updateGameState(roomId, gameState);
-  await broadcastUpdate(roomId, gameState);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
+    timestamp: Date.now(),
+    player: gameState.players[currentPlayerIndex].name,
+    avatarIndex: gameState.players[currentPlayerIndex].avatar_index,
+    eventType: 'system'
+  });
 
+  await updateGameState(roomId, gameState);
+
+  const newLogs = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs);
+  
+  console.log(`Player ${playerId} passed turn. Next player: ${gameState.currentPlayer}`);
   return gameState;
 }
 
@@ -486,8 +562,8 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
   const gameState = await fetchAndValidateGameState(roomId, playerId);
   const initiatorPlayer = gameState.players.find((p: Player) => p.id === playerId);
 
-  if (!initiatorPlayer || !initiatorPlayer.isHost) {
-    throw new Error("Only the host can initiate a rematch");
+  if (!initiatorPlayer) {
+     throw new Error("Player not found, cannot initiate rematch.");
   }
   if (gameState.status !== "finished") {
     throw new Error("Can only rematch a finished game");
@@ -496,42 +572,36 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
     throw new Error("Need at least 2 players for a rematch");
   }
 
-  // Reset player hands and saidUno status
   gameState.players.forEach((p: Player) => {
     p.cards = [];
     p.saidUno = false;
   });
 
-  // Deal new cards
   const { drawPile, hands } = dealCards(gameState.players.length);
   gameState.players.forEach((player: Player, index: number) => {
     player.cards = hands[index];
   });
 
-  // Find a valid starting card
   const firstCardIndex = drawPile.findIndex((card: Card) => card.type === "number");
   if (firstCardIndex === -1) {
-    // Should be rare, but handle shuffling and trying again if no number card found initially
     console.warn("No number card found in initial deal for rematch, reshuffling...");
-    // A more robust solution might involve a full deck reset and reshuffle here
-    // For simplicity, we'll assume dealCards provides a playable deck
     throw new Error("Deck error during rematch: No initial number card found");
   }
   const firstCard = drawPile.splice(firstCardIndex, 1)[0];
   
-  // Reset game state variables
   gameState.discardPile = [firstCard];
   gameState.drawPile = drawPile;
   gameState.drawPileCount = drawPile.length;
   gameState.currentColor = firstCard.color;
-  gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id; // Random start player
+  gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id;
   gameState.status = "playing";
-  gameState.gameStartTime = Date.now(); // New start time
+  gameState.gameStartTime = Date.now();
   gameState.winner = null;
-  gameState.direction = 1; // Reset direction
+  gameState.direction = 1;
   gameState.hasDrawnThisTurn = false;
+  gameState.rematchRequestedBy = null;
+  gameState.rematchConfirmedBy = [];
 
-  // Clear previous log and add rematch entry
   gameState.log = [{
     id: uuidv4(),
     message: `Rematch started by ${initiatorPlayer.name}! First card: ${firstCard.color} ${firstCard.type === 'number' ? firstCard.value : firstCard.type}. ${gameState.players.find((p: Player)=>p.id === gameState.currentPlayer)?.name}'s turn.`,
@@ -546,7 +616,9 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
 
   console.log(`Rematch successful for room ${roomId}. Current player: ${gameState.currentPlayer}`);
   await updateGameState(roomId, gameState);
-  await broadcastUpdate(roomId, gameState);
+
+  const newLogs = gameState.log;
+  await broadcastUpdate(roomId, gameState, newLogs);
 
   return gameState;
 }

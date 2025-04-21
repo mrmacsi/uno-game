@@ -254,8 +254,9 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
       setRooms([]);
-      setLoadingRooms(false);
       toast.error("Error", { description: "Could not fetch rooms." });
+    } finally {
+      setLoadingRooms(false);
     }
   }, []);
 
@@ -264,19 +265,24 @@ export default function AdminPage() {
   }, [fetchRooms]);
 
   async function fetchRedisInfo() {
+    console.log("[Admin] fetchRedisInfo: Starting fetch...");
     setInfoLoading(true);
     try {
       const res = await fetch("/api/redis/info");
+      console.log("[Admin] fetchRedisInfo: Fetch response status:", res.status);
       if (res.ok) {
         const data: RedisInfo = await res.json();
+        console.log("[Admin] fetchRedisInfo: Data received:", data);
         setRedisInfo(data);
       } else {
+        console.error("[Admin] fetchRedisInfo: Response not OK:", res.statusText);
         setRedisInfo({ used_memory_human: "Error fetching" });
       }
     } catch (error) {
-      console.error("Failed to fetch Redis info:", error);
+      console.error("[Admin] fetchRedisInfo: Caught error:", error);
       toast.error("Error", { description: "Could not fetch Redis info." });
     } finally {
+      console.log("[Admin] fetchRedisInfo: Setting infoLoading to false.");
       setInfoLoading(false);
     }
   }
@@ -337,18 +343,29 @@ export default function AdminPage() {
   };
 
   const performClearAllRooms = async () => {
+    console.log("[Admin] Starting performClearAllRooms...");
     setLoadingAction('clear-rooms');
     try {
-      const result = await getAllRooms(); // Get all rooms first
-      await Promise.all(result.map(room => deleteRoom(room.roomId))); // Delete each room
-      toast.success("All Rooms Cleared", { description: `Successfully deleted ${result.length} rooms.` });
-      fetchRooms();
-    } catch (error) {
-      console.error("Failed to clear all rooms:", error);
-      toast.error("Error", { description: "Could not clear all rooms." });
-    } finally {
-      setLoadingAction(null);
-    }
+       const result = await getAllRooms(); // Get all rooms first
+       console.log(`[Admin] Fetched ${result.length} rooms:`, result.map(r => r.roomId));
+
+       // Filter out the DEFAULT room before attempting deletion
+       const roomsToDelete = result.filter(room => room.roomId !== "DEFAULT");
+       console.log(`[Admin] Attempting to delete ${roomsToDelete.length} non-DEFAULT rooms...`);
+
+       if (roomsToDelete.length > 0) {
+           await Promise.all(roomsToDelete.map(room => deleteRoom(room.roomId))); // Delete each non-DEFAULT room
+           toast.success("Rooms Cleared", { description: `Successfully initiated deletion for ${roomsToDelete.length} non-DEFAULT rooms.` });
+       } else {
+           toast.info("No Rooms to Clear", { description: "No non-DEFAULT rooms found to clear." });
+       }
+       fetchRooms();
+     } catch (error) {
+       console.error("Failed to clear all rooms:", error);
+       toast.error("Error", { description: "Could not clear all rooms." });
+     } finally {
+       setLoadingAction(null);
+     }
   };
 
   const fetchRedisKeys = useCallback(async () => {
@@ -653,6 +670,23 @@ export default function AdminPage() {
                              <p className="text-center text-gray-500 dark:text-gray-400 h-60 flex items-center justify-center">Key exists but has no value.</p>
                            ) : (
                              <div className="space-y-4">
+                               {/* Add Reset Default button when DEFAULT is selected */}
+                               {selectedKey === `${ROOM_PREFIX}DEFAULT` && (
+                                 <ConfirmationDialog
+                                   triggerButton={
+                                     <Button variant="outline" className="w-full sm:w-auto flex items-center gap-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-800/50 font-medium" disabled={loadingAction === 'reset-DEFAULT'}>
+                                       {loadingAction === 'reset-DEFAULT' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                       Reset DEFAULT Room Content
+                                     </Button>
+                                   }
+                                   title="Reset DEFAULT Room?"
+                                   description="This will clear players and reset the state of the DEFAULT public room, making it available for new players. Are you sure?"
+                                   confirmAction={() => handleResetRoom("DEFAULT")} // Use existing handler
+                                   confirmText="Yes, Reset DEFAULT"
+                                   isDestructive={false} // Not destructive like delete, just a reset
+                                 />
+                               )}
+
                                <div>
                                  <h4 className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                    <History className="h-4 w-4 text-purple-500 dark:text-purple-400" />

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import { LogEntry, Card as UnoCardType } from "@/lib/types"
 
 export default function GameOver() {
-  const { state, currentPlayerId, rematch, leaveRoom } = useGame()
+  const { state, rematch, leaveRoom, getGameDuration } = useGame()
   const [isRematchLoading, setIsRematchLoading] = useState(false)
   const winner = state.players.find((p) => p.id === state.winner)
   const handleRematch = async () => {
@@ -30,6 +30,9 @@ export default function GameOver() {
   const handleGoHome = () => {
     leaveRoom()
   }
+  const lastLogEntry = state.log && state.log.length > 0 ? state.log[state.log.length - 1] : null;
+  const gameEndTime = lastLogEntry?.timestamp; // Use timestamp if available
+  
   const cardPointsGuide = [
     { type: "Number cards 0-9", value: "Face value (0-9 points)" },
     { type: "Skip", value: "20 points" },
@@ -70,6 +73,10 @@ export default function GameOver() {
                 {winner 
                   ? <span className="font-semibold bg-white/20 px-2 py-0.5 rounded">{winner.name}</span> 
                   : "Someone"} has won the game!
+                <div className="mt-3 flex items-center justify-center text-sm text-white/80">
+                  <Clock className="w-4 h-4 mr-1.5" />
+                  <span>Game Duration: {getGameDuration(gameEndTime)}</span>
+                </div>
               </CardDescription>
             </div>
           </CardHeader>
@@ -430,9 +437,9 @@ export default function GameOver() {
             </Button>
             <Button 
               onClick={handleRematch}
-              disabled={isRematchLoading || !state.players.find(p => p.id === currentPlayerId)?.isHost}
+              disabled={isRematchLoading}
               className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center gap-1 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              title={!state.players.find(p => p.id === currentPlayerId)?.isHost ? "Only the host can start a rematch" : ""}
+              title="Start a new game with the same players"
             >
               {isRematchLoading ? (
                 <>

@@ -131,19 +131,25 @@ export function GameProvider({
   }, [])
   
   // Format the game duration as mm:ss
-  const getGameDuration = useCallback((): string => {
+  const getGameDuration = useCallback((endTime?: number): string => {
     // Use gameStartTime from state if available, fall back to local state
     const startTime = state.gameStartTime || gameStartTime
     
     if (!startTime) return "00:00"
     
-    const durationMs = Date.now() - startTime
+    // Use provided endTime if available, otherwise use current time
+    const endTimestamp = endTime || Date.now();
+    const durationMs = endTimestamp - startTime;
+    
+    // Ensure duration isn't negative if timestamps are weird
+    if (durationMs < 0) return "00:00"; 
+    
     const totalSeconds = Math.floor(durationMs / 1000)
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
     
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-  }, [state.gameStartTime, gameStartTime])
+  }, [])
 
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
@@ -338,17 +344,25 @@ export function GameProvider({
           throw new Error("Failed to create Pusher channel")
         }
         
-        channel.bind("game-updated", (data: GameState) => {
-          console.log("[GameProvider] Received game-updated event:", data?.players?.length, "players")
+        // Handler for main state updates (excluding logs)
+        channel.bind("game-updated", (data: Omit<GameState, 'log'>) => { 
+          console.log("[GameProvider] Received game-updated event (log excluded):", data?.players?.length, "players");
           setDrawnCardPlayable(null)
-          if (data && typeof data === 'object' && data.roomId) {
-            updateGameState(data)
-          } else {
-            console.error("[GameProvider] Invalid data received from game-updated event:", data)
-            // Call the memoized refreshGameState directly
-            refreshGameState()
-          }
-        })
+           if (data && typeof data === 'object' && data.roomId) {
+             // Prepare the payload for the reducer, merging received data but preserving logs
+             const currentState = state; // Get current state from the useReducer hook
+             const mergedPayload: GameState = {
+               ...currentState,         // Start with current full state (including logs)
+               ...data,                 // Overwrite with received data (which excludes logs)
+               drawPileCount: data.drawPileCount ?? currentState.drawPileCount, // Ensure drawPileCount update
+               // Log is implicitly preserved from currentState
+             };
+             dispatch({ type: "UPDATE_GAME_STATE", payload: mergedPayload });
+           } else {
+             console.error("[GameProvider] Invalid data received from game-updated event:", data)
+             refreshGameState(); // Fallback remains the same
+           }
+        });
         
         channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
           console.log("[GameProvider] Received drawn-card-playable event for player:", data.playerId)
@@ -461,6 +475,17 @@ export function GameProvider({
           }
         }
         
+        // Handler for new log entries - triggers a full refresh
+        channel.bind("new-log-entries", (data: { logs: LogEntry[] }) => {
+          if (data && Array.isArray(data.logs) && data.logs.length > 0) {
+              console.log(`[GameProvider] Received ${data.logs.length} new log entries via Pusher. Triggering state refresh.`);
+              // Immediately refresh from Redis to get the full consistent state including new logs
+              refreshGameState(); 
+          } else {
+              console.warn("[GameProvider] Received empty or invalid 'new-log-entries' event:", data);
+          }
+        })
+        
         console.log(`[GameProvider] Successfully subscribed to game-${roomId}`)
       } catch (error) {
         console.error("[GameProvider] Error setting up Pusher:", error)
@@ -496,6 +521,7 @@ export function GameProvider({
     }
   }, [roomId, currentPlayerId, updateGameState, refreshGameState])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (state.status !== "playing") return
     const interval = setInterval(() => {
@@ -819,14 +845,6 @@ export function GameProvider({
   const handleRematch = async (): Promise<void> => {
     if (!roomId || !currentPlayerId) {
         setError("Missing Room/Player ID for rematch.");
-        return;
-    }
-
-    // Optional: Check if the current player is the host
-    const player = state.players.find(p => p.id === currentPlayerId);
-    if (!player?.isHost) {
-        toast.error("Rematch Failed", { description: "Only the host can start a rematch." });
-        setError("Only the host can start a rematch.");
         return;
     }
 
