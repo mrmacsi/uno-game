@@ -6,11 +6,12 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
-import { Award, Clock, Home, RotateCw, Trophy, Users, Layers } from "lucide-react"
+import { Award, Clock, Home, RotateCw, Trophy, Users, List } from "lucide-react"
 import UnoCard from "../game/uno-card"
 import { AvatarDisplay } from "../game/avatar-display"
 import { calculateHandPoints } from "@/lib/game-logic"
 import { cn } from "@/lib/utils"
+import { LogEntry, Card as UnoCardType } from "@/lib/types"
 
 export default function GameOver() {
   const { state, currentPlayerId, rematch, leaveRoom } = useGame()
@@ -93,10 +94,10 @@ export default function GameOver() {
                 History
               </TabsTrigger>
               <TabsTrigger 
-                value="discardPile" 
+                value="logs" 
                 className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
               >
-                Discard Pile
+                Game Logs
               </TabsTrigger>
             </TabsList>
             <TabsContent value="standings" className="p-4">
@@ -246,7 +247,7 @@ export default function GameOver() {
                             </div>
                           </div>
                           <div className="mt-4 flex flex-wrap gap-1">
-                            {player.cards.map((card) => (
+                            {player.cards.map((card: UnoCardType) => (
                               <div
                                 key={card.id}
                                 style={{
@@ -256,7 +257,7 @@ export default function GameOver() {
                                   height: '86px',
                                 }}
                               >
-                                <UnoCard card={card} disabled />
+                                <UnoCard card={card as UnoCardType} disabled />
                               </div>
                             ))}
                           </div>
@@ -340,90 +341,79 @@ export default function GameOver() {
                 )}
               </div>
             </TabsContent>
-            <TabsContent value="discardPile" className="px-4 py-3">
+            <TabsContent value="logs" className="px-4 py-3">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
-                  <Layers className="w-5 h-5 text-blue-500" /> 
-                  <span>Discard Pile (Last to First)</span>
+                  <List className="w-5 h-5 text-blue-500" />
+                  <span>Game Logs (Latest First)</span>
                 </h3>
                 <ScrollArea className="h-[400px] w-full pr-3">
-                  {state.discardPile && state.discardPile.length > 0 ? (
+                  {state.log && state.log.length > 0 ? (
                     <div className="space-y-2">
-                      {[...state.discardPile]
+                      {[...state.log]
                         .reverse()
-                        .map((card, index) => {
-                          // Try to find matching log entry for this card
-                          const playLogEntry = state.log.find(
-                            log => log.eventType === 'play' && 
-                                  log.cardType === card.type && 
-                                  log.cardColor === card.color && 
-                                  (card.type !== 'number' || log.cardValue === card.value)
-                          );
-                          
+                        .map((log: LogEntry, index: number) => {
+                          const isPlayEventWithCard = log.eventType === 'play' && log.cardType && log.cardColor;
+                          const cardToShow: Partial<UnoCardType> | null = isPlayEventWithCard ? {
+                            id: log.id,
+                            type: log.cardType,
+                            color: log.cardColor,
+                            value: log.cardValue,
+                          } : null;
+
                           return (
                             <div
-                              key={`${card.id}-${index}`}
-                              className="flex items-center gap-3 p-2 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors animate-fade-in-up"
-                              style={{animationDelay: `${index * 30}ms`, animationFillMode: 'forwards'}}
+                              key={`${log.id}-${index}`}
+                              className="flex items-start gap-3 p-2 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors animate-fade-in-up"
+                              style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'forwards' }}
                             >
-                              {/* Card with same scaling as Points tab */}
-                              <div
-                                style={{
-                                  transform: 'scale(0.45)',
-                                  transformOrigin: 'top left',
-                                  width: '48px',
-                                  height: '86px',
-                                  flexShrink: 0
-                                }}
-                              >
-                                <UnoCard card={card} disabled />
-                              </div>
-                              
-                              {/* Card info */}
-                              <div className="flex-grow">
-                                <div className="text-sm font-medium text-gray-800">
-                                  {card.color !== 'black' ? card.color.charAt(0).toUpperCase() + card.color.slice(1) : 'Wild'} 
-                                  {card.type === 'number' ? ` ${card.value}` : 
-                                   card.type === 'wild4' ? ' +4' :
-                                   card.type === 'draw2' ? ' +2' :
-                                   card.type === 'skip' ? ' Skip' :
-                                   card.type === 'reverse' ? ' Reverse' : 
-                                   ' ' + card.type.charAt(0).toUpperCase() + card.type.slice(1)}
+                              {cardToShow && (
+                                <div
+                                  style={{
+                                    transform: 'scale(0.45)',
+                                    transformOrigin: 'top left',
+                                    width: '48px',
+                                    height: '86px',
+                                    flexShrink: 0,
+                                    marginTop: '2px' // Align better with text
+                                  }}
+                                >
+                                  <UnoCard card={cardToShow as UnoCardType} disabled />
                                 </div>
-                                
-                                {/* Player info if available */}
-                                {playLogEntry && (
-                                  <div className="flex items-center mt-1">
-                                    {playLogEntry.avatarIndex !== undefined && (
-                                      <AvatarDisplay 
-                                        index={playLogEntry.avatarIndex} 
-                                        size="xs" 
-                                        className="mr-1 flex-shrink-0" 
-                                      />
+                              )}
+
+                              <div className="flex-grow">
+                                <div className="text-sm font-medium text-gray-800">{log.message}</div>
+                                <div className="flex items-center mt-1">
+                                  {log.avatarIndex !== undefined && (
+                                    <AvatarDisplay
+                                      index={log.avatarIndex}
+                                      size="xs"
+                                      className="mr-1 flex-shrink-0"
+                                    />
+                                  )}
+                                  <span className="text-xs text-gray-600">
+                                    {log.player ? `${log.player}` : 'System'}
+                                    {log.timestamp && (
+                                      <span className="text-gray-400 ml-1">
+                                        {new Date(log.timestamp).toLocaleTimeString([], {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit'
+                                        })}
+                                      </span>
                                     )}
-                                    <span className="text-xs text-gray-600">
-                                      Played by {playLogEntry.player || 'Unknown'}
-                                      {playLogEntry.timestamp && (
-                                        <span className="text-gray-400 ml-1">
-                                          {new Date(playLogEntry.timestamp).toLocaleTimeString([], {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit'
-                                          })}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                )}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
                         })}
                     </div>
                   ) : (
-                     <div className="text-center py-6 text-gray-500">
-                        <p>The discard pile is empty.</p>
-                     </div>
+                    <div className="text-center py-6 text-gray-500">
+                      <p>No game logs available for this match.</p>
+                    </div>
                   )}
                 </ScrollArea>
               </div>

@@ -217,9 +217,6 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
     }
   }
 
-  // Limit log length *before* setting next player
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10); 
-  
   gameState.drawPileCount = gameState.drawPile.length;
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
 

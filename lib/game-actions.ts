@@ -35,12 +35,6 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
   // Clients should rely on drawPileCount
   broadcastState.drawPile = []; // Set to empty array or null
 
-  // Strictly cap the log size before sending
-  if (broadcastState.log && broadcastState.log.length > 10) {
-    console.warn(`[broadcastUpdate] Capping log size from ${broadcastState.log.length} to 10 before broadcast.`);
-    broadcastState.log = broadcastState.log.slice(-10);
-  }
-
   // Strip any remaining functions (if any were added back temporarily)
   const strippedState = stripFunctionsFromGameState(broadcastState);
   
@@ -128,7 +122,6 @@ export async function addPlayer(roomId: string, playerId: string, playerName: st
     avatarIndex: avatarIndex,
     eventType: 'join'
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
   await updateGameState(roomId, gameState);
   await broadcastUpdate(roomId, gameState);
@@ -185,7 +178,6 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
     cardValue: firstCard.type === 'number' ? firstCard.value : undefined,
     cardColor: firstCard.color
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
   console.log(`Game started successfully for room ${roomId}. Current player: ${gameState.currentPlayer}`);
   await updateGameState(roomId, gameState);
@@ -226,8 +218,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
     gameState.hasDrawnThisTurn = false;
-    
-    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
     
     await updateGameState(roomId, gameState);
     await broadcastUpdate(roomId, gameState);
@@ -309,7 +299,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
   applyCardEffects(gameState, cardToPlay);
   gameState.hasDrawnThisTurn = false;
 
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
   gameState.drawPileCount = gameState.drawPile.length;
 
   await updateGameState(roomId, gameState);
@@ -356,8 +345,6 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     player: player.name,
     avatarIndex: player.avatar_index
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10); // Cap log after adding draw message
-  gameState.drawPileCount = gameState.drawPile.length;
 
   // Check if ANY card in the hand is playable (including the drawn one)
   const hasAnyPlayableCard = player.cards.some(card => checkPlayValidity(gameState, card));
@@ -381,8 +368,6 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     if (nextPlayer && nextPlayer.cards.length !== 1) {
         nextPlayer.saidUno = false;
     }
-    
-    if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10); // Ensure log limit again after adding pass message
     
     console.log(`Player ${playerId} drew an unplayable card. Turn automatically passed to ${gameState.currentPlayer}.`);
     // Save the state *after* advancing the turn
@@ -436,8 +421,6 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     avatarIndex: player.avatar_index,
     eventType: 'uno' // Add eventType for client-side handling
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
-  console.log(`Player ${playerId} declared UNO.`);
 
   await updateGameState(roomId, gameState); 
   await broadcastUpdate(roomId, gameState);
@@ -491,8 +474,7 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
       eventType: 'draw'
     });
   }
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
-  
+
   await updateGameState(roomId, gameState);
   await broadcastUpdate(roomId, gameState);
 

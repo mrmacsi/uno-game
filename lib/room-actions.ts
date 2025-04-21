@@ -108,7 +108,6 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
       player: player.name,
       eventType: 'join'
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
 
   await updateGameState(roomId, gameState)
   console.log(`[joinRoom] Updated GameState in DB for room ${roomId}.`);
