@@ -41,6 +41,7 @@ type GameContextType = {
   ringOpponent: (playerId: string) => Promise<void>
   gameStartTime: number | null
   getGameDuration: () => string
+  isProcessingPlay: boolean
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -52,17 +53,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     default:
       return state
   }
-}
-
-// Helper function to format card description
-function formatCardDescription(logEntry: LogEntry): string {
-  if (!logEntry.cardType) return "a card"; // Fallback
-  const color = logEntry.cardColor && logEntry.cardColor !== 'black' ? `${logEntry.cardColor.charAt(0).toUpperCase() + logEntry.cardColor.slice(1)} ` : "";
-  if (logEntry.cardType === 'number') {
-    return `${color}${logEntry.cardValue}`;
-  }
-  const typeName = logEntry.cardType.charAt(0).toUpperCase() + logEntry.cardType.slice(1).replace('4', ' 4');
-  return `${color}${typeName}`;
 }
 
 // Add a type for the ring notification data
@@ -89,15 +79,16 @@ export function GameProvider({
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
     typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
   )
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+  const [isProcessingPlay, setIsProcessingPlay] = useState(false)
   const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
   const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
   
   const [cardScale, setCardScale] = useState(100)
   
   const previousLogRef = useRef<LogEntry[]>([])
+  const shownToastIds = useRef(new Set<string>());
   
   const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null)
   
@@ -177,11 +168,14 @@ export function GameProvider({
     const newEntries = currentLog.slice(prevLog.length);
 
     newEntries.forEach(newestEntry => {
-      // Check if this specific entry ID has already been processed (handle potential duplicates)
-      if (prevLog.some(entry => entry.id === newestEntry.id)) {
-        console.log(`[GameProvider Toast] Skipping already processed log entry: ${newestEntry.id}`);
-        return; // Skip already processed entry
+      // Skip if already shown or too old
+      if (shownToastIds.current.has(newestEntry.id) || (Date.now() - newestEntry.timestamp > 5000)) {
+         console.log(`[GameProvider Toast] Skipping log entry: ${newestEntry.id} (already shown or too old)`);
+         return;
       }
+
+      // Add to shown set immediately
+      shownToastIds.current.add(newestEntry.id);
       
       console.log(`[GameProvider Toast] Processing new log entry:`, newestEntry);
 
@@ -192,14 +186,14 @@ export function GameProvider({
 
       switch (newestEntry.eventType) {
         case 'play':
-          toastTitle = `${newestEntry.player || 'Someone'} Played`;
-          toastDescription = formatCardDescription(newestEntry);
-          duration = 1500; // Shorter duration for play events
-          break;
+          // toastTitle = `${newestEntry.player || 'Someone'} Played`;
+          // toastDescription = formatCardDescription(newestEntry);
+          // duration = 1500; // Shorter duration for play events
+          return; // Do not show toast for playing cards
         case 'draw':
-          toastTitle = `${newestEntry.player || 'Someone'} Drew`;
+          // toastTitle = `${newestEntry.player || 'Someone'} Drew`;
           // message might contain count, keep it
-          break;
+          return; // Do not show toast for drawing cards
         case 'skip':
           toastTitle = `${newestEntry.player || 'Someone'} Skipped`;
           // message explains who was skipped
@@ -538,36 +532,29 @@ export function GameProvider({
   }
 
   const handlePlayCard = async (cardId: string, selectedColor?: CardColor) => {
+    if (!state || !currentPlayerId) return;
+
+    console.log("Attempting to play card:", { cardId, selectedColor });
+
+    if (isProcessingPlay) {
+      console.log("Play blocked: Another play is already in progress.");
+      toast.warning("Please wait", { description: "Processing previous action." });
+      return; // Prevent multiple plays if one is already processing
+    }
+    
+    setIsProcessingPlay(true); // Set processing state
     setIsLoading(true)
     setError(null)
 
     const player = state.players.find(p => p.id === currentPlayerId)
-    if (!player) {
-      setError("Player not found.")
-      setIsLoading(false)
-      return
-    }
-
-    // --- UNO Declaration Check ---    
-    if (player.cards.length === 2 && !player.saidUno) {
-        console.log(`${player.name} attempted to play second-to-last card without declaring UNO. Passing turn.`);
-        toast.error("UNO!", { 
-            description: "You must declare UNO before playing your second-to-last card! Turn passed.",
-            duration: 3000 
-        });
-        // Automatically pass the turn instead of playing the card
-        await handlePassTurn(true); // Pass turn forcefully
-        setIsLoading(false); // Ensure loading state is reset
-        return; // Stop the play card execution
-    }
-    // --- End UNO Declaration Check ---
+    if (!player) return;
 
     try {
       console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, state_currentColor: state.currentColor, turn: state.currentPlayer })
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
         toast.error("Not Your Turn", { description: "Please wait for your turn." })
-        setIsLoading(false)
+        setIsProcessingPlay(false); // Reset processing state here
         return
       }
       const card = player?.cards.find(c => c.id === cardId)
@@ -578,7 +565,7 @@ export function GameProvider({
       if ((card.type === "wild" || card.type === "wild4") && !selectedColor) {
         setPendingWildCardId(cardId)
         setIsColorSelectionOpen(true)
-        setIsLoading(false)
+        setIsProcessingPlay(false); // Reset processing state here
         return
       }
       // Optimistic update for non-wild cards
@@ -604,12 +591,12 @@ export function GameProvider({
       setPendingWildCardId(null)
       setIsColorSelectionOpen(false)
     } catch (err) {
-      console.error("Failed to play card:", err)
-      setError(err instanceof Error ? err.message : "Failed to play card")
-      toast.error("Invalid Play", { description: err instanceof Error ? err.message : "Could not play card." })
+      console.error("[handlePlayCard] Error playing card:", err)
+      toast.error("Error", { description: err instanceof Error ? err.message : "Could not play card." })
       await refreshGameState()
     } finally {
       setIsLoading(false)
+      setIsProcessingPlay(false); // Reset processing state regardless of outcome
     }
   }
 
@@ -639,9 +626,10 @@ export function GameProvider({
       setIsLoading(true)
       await drawCard(roomId, currentPlayerId)
       
-      toast("Card Drawn", {
-        description: "You drew a card from the pile",
-      })
+      // Remove toast for drawing card
+      // toast("Card Drawn", {
+      //   description: "You drew a card from the pile",
+      // })
       
       setIsLoading(false)
     } catch (error) {
@@ -676,10 +664,11 @@ export function GameProvider({
             )
         }
     });
-    toast("UNO Declared!", { 
-      description: "Now you can play your second-to-last card!", 
-      duration: 1500,
-    });
+    // Remove optimistic toast - rely on log event broadcast
+    // toast("UNO Declared!", { 
+    //   description: "Now you can play your second-to-last card!", 
+    //   duration: 1500,
+    // });
 
     setIsLoading(true)
     setError(null)
@@ -982,7 +971,8 @@ export function GameProvider({
     sendGameMessage: handleSendGameMessage,
     ringOpponent: handleRingOpponent,
     gameStartTime,
-    getGameDuration
+    getGameDuration,
+    isProcessingPlay
   }
 
   return (

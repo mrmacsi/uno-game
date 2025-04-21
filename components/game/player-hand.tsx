@@ -15,6 +15,7 @@ export default function PlayerHand() {
     isLoading, 
     promptColorSelection,
     cardScale,
+    isProcessingPlay,
   } = useGame()
   const [animatingCard, setAnimatingCard] = useState<string | null>(null)
   const prevCardsRef = useRef<string[]>([])
@@ -163,7 +164,7 @@ export default function PlayerHand() {
                 return (
                   <div 
                     key={card.id} 
-                    className={`transform transition-all duration-300 ease-out relative group h-full card-wrapper`}
+                    className={`transform transition-all duration-300 ease-out relative group h-full card-wrapper ${isProcessingPlay ? 'pointer-events-none' : ''}`}
                     style={{ 
                       marginLeft: index > 0 ? `-${Math.min(20, 45 - Math.min(45, cardCount * 1.5))}px` : undefined,
                       zIndex: isPlayable ? 50 + index : index,
@@ -175,13 +176,17 @@ export default function PlayerHand() {
                       <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
                     )}
                     <div 
-                      className={`z-10 relative h-full ${isPlayable && !isLoading ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
+                      className={`z-10 relative h-full ${isPlayable && !isLoading && !isProcessingPlay ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
                       } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
                       }}
                       onClick={async () => {
+                        if (isProcessingPlay) {
+                          console.log('--> Click blocked: Play is already processing.');
+                          return;
+                        }
                         if (!isMyTurn) {
                           console.log('--> Click blocked by stricter guard (not turn)');
                           return;
@@ -236,7 +241,7 @@ export default function PlayerHand() {
                       <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
                         <UnoCard
                           card={card}
-                          disabled={!isPlayable}
+                          disabled={!isPlayable || isProcessingPlay}
                           animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
                         />
                       </div>
@@ -250,7 +255,7 @@ export default function PlayerHand() {
                       </div>
                     )}
                     
-                    {isPlayable && !isLoading && (
+                    {isPlayable && !isLoading && !isProcessingPlay && (
                       <div className="absolute inset-0 rounded-xl bg-green-500/10 filter blur-md opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-0"></div>
                     )}
                   </div>

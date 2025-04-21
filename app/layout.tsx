@@ -58,7 +58,7 @@ export default function RootLayout({
             <div className="relative flex min-h-screen flex-col">
               {children}
             </div>
-            <Toaster richColors />
+            <Toaster richColors position="top-right" size="sm" />
           </SafeHydration>
         </ThemeProvider>
       </body>

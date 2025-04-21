@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { useGame } from "../providers/game-context"
 import { X } from "lucide-react"
+import { useState } from "react"
 
 const PRESET_MESSAGES = [
   "Good game!",
@@ -23,10 +24,17 @@ interface InGameMessagesProps {
 
 export default function InGameMessages({ onClose }: InGameMessagesProps) {
   const { sendGameMessage } = useGame()
+  const [isSending, setIsSending] = useState(false);
   
   const handleSendMessage = async (message: string) => {
-    await sendGameMessage(message)
-    onClose();
+    if (isSending) return;
+    setIsSending(true);
+    try {
+      await sendGameMessage(message)
+      onClose();
+    } finally {
+      setIsSending(false);
+    }
   }
   
   return (
@@ -48,8 +56,9 @@ export default function InGameMessages({ onClose }: InGameMessagesProps) {
             key={message}
             variant="secondary"
             size="sm"
-            className="bg-white/10 hover:bg-white/20 text-white text-sm justify-start truncate h-auto py-2"
+            className={`bg-white/10 hover:bg-white/20 text-white text-sm justify-start truncate h-auto py-2 ${isSending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={() => handleSendMessage(message)}
+            disabled={isSending}
           >
             {message}
           </Button>

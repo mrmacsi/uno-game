@@ -31,7 +31,6 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
   const {
     state,
     currentPlayerId,
-    hasPlayableCard,
     drawCard,
     passTurn,
     declareUno,
@@ -43,8 +42,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
   const isMyTurn = state.currentPlayer === currentPlayerId
   const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn
   const canEndTurn = isMyTurn && state.hasDrawnThisTurn
-  const noPlayableCards = isMyTurn && !hasPlayableCard() && canDraw
-  
+
   // Find current player to check if they have few cards
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
   const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2 && !currentPlayer.saidUno
@@ -293,21 +291,26 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           </Button>
         )}
         
-        {/* Draw button */}
-        {canDraw && (
-          <Button
-            onClick={drawCard}
-            size="sm"
-            variant={noPlayableCards ? "default" : "outline"}
-            className={`px-2 py-1 h-7 text-[10px] sm:text-xs min-w-[70px] ${
-              noPlayableCards 
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold animate-pulse shadow" 
-                : "border-white/20 text-white hover:bg-white/10"
-            } ${isMobile && noPlayableCards ? 'w-[65px]' : ''}`}
-          >
-            Draw
-          </Button>
-        )}
+        {/* Draw Button */} 
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-sm font-bold border-2 rounded-lg px-3 py-1.5 shadow-md transition-all duration-150 ${canDraw ? 'bg-blue-600 hover:bg-blue-500 border-blue-700 text-white cursor-pointer' : 'bg-gray-500 border-gray-600 text-gray-300 opacity-50 cursor-not-allowed'}`}
+                onClick={drawCard} 
+                disabled={!canDraw}
+              >
+                <ArrowDown className="w-4 h-4 mr-1.5" />
+                Draw
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+              <p>{canDraw ? "Draw a card" : "Cannot draw now"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
           
         {/* Pass turn button */}
         {canEndTurn && (

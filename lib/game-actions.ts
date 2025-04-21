@@ -35,6 +35,12 @@ async function broadcastUpdate(roomId: string, gameState: GameState) {
   // Clients should rely on drawPileCount
   broadcastState.drawPile = []; // Set to empty array or null
 
+  // Strictly cap the log size before sending
+  if (broadcastState.log && broadcastState.log.length > 10) {
+    console.warn(`[broadcastUpdate] Capping log size from ${broadcastState.log.length} to 10 before broadcast.`);
+    broadcastState.log = broadcastState.log.slice(-10);
+  }
+
   // Strip any remaining functions (if any were added back temporarily)
   const strippedState = stripFunctionsFromGameState(broadcastState);
   
@@ -350,17 +356,17 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     player: player.name,
     avatarIndex: player.avatar_index
   });
-  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10);
+  if (gameState.log.length > 10) gameState.log = gameState.log.slice(-10); // Cap log after adding draw message
   gameState.drawPileCount = gameState.drawPile.length;
 
-  // Check if the drawn card is playable
-  const isPlayable = checkPlayValidity(gameState, drawnCard);
+  // Check if ANY card in the hand is playable (including the drawn one)
+  const hasAnyPlayableCard = player.cards.some(card => checkPlayValidity(gameState, card));
 
-  if (!isPlayable) {
-    // Drawn card is not playable, automatically end the turn
+  if (!hasAnyPlayableCard) {
+    // NO playable cards, automatically end the turn
     gameState.log.push({
       id: uuidv4(),
-      message: `${player.name}'s drawn card wasn't playable. Turn passes.`,
+      message: `${player.name} has no playable cards after drawing. Turn passes.`,
       timestamp: Date.now(),
       player: player.name,
       avatarIndex: player.avatar_index
@@ -384,13 +390,13 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     await broadcastUpdate(roomId, gameState); 
     
   } else {
-    // Drawn card is playable, save state and notify player
-    console.log(`Player ${playerId} drew a playable card: ${drawnCard.color} ${drawnCard.type}`);
-    // Save the state *before* sending the playable event
+    // Player HAS playable cards. Do NOT pass turn. 
+    // Just update state with the drawn card and let player decide.
+    console.log(`Player ${playerId} drew a card and has playable options.`);
     await updateGameState(roomId, gameState); 
-    await broadcastUpdate(roomId, gameState); // Update everyone first
-    // Send specific event to the drawing player
-    await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { playerId, card: drawnCard });
+    await broadcastUpdate(roomId, gameState); 
+    // Remove the specific drawn-card-playable event, it's not needed anymore
+    // await pusherServer.trigger(`game-${roomId}`, "drawn-card-playable", { playerId, card: drawnCard });
   }
 
   return gameState;

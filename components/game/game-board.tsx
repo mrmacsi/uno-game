@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useGame } from "../providers/game-context"
 import PlayerHand from "./player-hand"
 import DrawPile from "./draw-pile"
@@ -27,6 +27,7 @@ export default function GameBoard() {
   const [fullscreen, setFullscreen] = useState(false)
   const [gameTime, setGameTime] = useState("00:00")
   const [isMessagesOpen, setIsMessagesOpen] = useState(false)
+  const messagesPanelRef = useRef<HTMLDivElement>(null); // Ref for the messages panel
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
@@ -42,6 +43,23 @@ export default function GameBoard() {
     
     return () => clearInterval(interval)
   }, [state.status, getGameDuration])
+
+  // Effect to close message panel on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (messagesPanelRef.current && !messagesPanelRef.current.contains(event.target as Node)) {
+        setIsMessagesOpen(false);
+      }
+    }
+    // Bind the event listener
+    if (isMessagesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMessagesOpen]); // Only re-run if isMessagesOpen changes
 
   if (state.status === "finished") {
     return <GameOver />
@@ -201,7 +219,9 @@ export default function GameBoard() {
       
       {/* Messages Side Panel (Conditionally Rendered) */}
       {isMessagesOpen && (
-        <div className="absolute inset-y-0 left-0 w-56 sm:w-64 bg-black/70 backdrop-blur-lg border-r border-white/10 shadow-2xl z-40 animate-in slide-in-from-left duration-300 p-4 flex flex-col">
+        <div 
+          ref={messagesPanelRef} // Attach the ref here
+          className="absolute inset-y-0 left-0 w-56 sm:w-64 bg-black/70 backdrop-blur-lg border-r border-white/10 shadow-2xl z-40 animate-in slide-in-from-left duration-300 p-4 flex flex-col">
           <InGameMessages onClose={() => setIsMessagesOpen(false)} />
         </div>
       )}
