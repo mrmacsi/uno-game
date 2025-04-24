@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
-import { PlusCircle, LogIn, ArrowRight, ListChecks, Globe, Settings, Loader2, LogOut } from "lucide-react"
+import { PlusCircle, LogIn, ListChecks, Globe, Settings, Loader2, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -206,18 +206,26 @@ export default function Home() {
                     </motion.div>
                     
                     <motion.div variants={itemVariants}>
-                      <Link href={`/join-room?roomId=${defaultRoomId}`} className="w-full block">
-                        <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2 sm:py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
-                          <Globe className="h-4 w-4" />
-                          Join Default Room
-                          <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                        </Button>
-                      </Link>
+                      <div className="bg-gradient-to-br from-green-600/40 to-emerald-600/40 p-6 rounded-lg shadow-lg border border-white/10 flex flex-col items-center justify-center min-h-[250px] sm:min-h-[300px] gap-4 hover:border-emerald-400 transition-colors duration-300">
+                        <h2 className="text-lg sm:text-xl font-semibold text-emerald-300 flex items-center gap-2">
+                          <Globe className="h-5 w-5" />
+                          Public Room
+                        </h2>
+                        <p className="text-sm text-white/70 text-center max-w-xs">
+                          A public room always available for quick play.
+                        </p>
+                        <div className="w-full max-w-[200px] mt-2">
+                          <motion.div variants={itemVariants}>
+                            <Link href={`/join-room?roomId=${defaultRoomId}`} className="w-full block">
+                              <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2 sm:py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
+                                <Globe className="h-4 w-4" />
+                                Join Default Room
+                              </Button>
+                            </Link>
+                          </motion.div>
+                        </div>
+                      </div>
                     </motion.div>
-                    
-                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center px-1 pt-1">
-                      A public room always available for quick play.
-                    </p>
                   </motion.div>
                 </div>
                 
