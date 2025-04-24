@@ -125,19 +125,46 @@ export default function GameBoard() {
       <div className="flex-1 flex flex-col relative" style={{ overflow: 'visible' }}>
         {/* Top section wrapper: Takes available space, relative positioning context */}
         <div className="flex-1 relative">
-          {/* Opponent player info - horizontal scroll bar on mobile, absolute on sm+ */}
+          {/* Opponent player info - custom mobile layout, absolute on sm+ */}
           <div>
-            {/* Mobile: horizontal scroll bar */}
-            <div className="flex sm:hidden overflow-x-auto gap-2 px-2 pt-2 z-20 relative">
-              {otherPlayers.map((player) => (
-                <div key={player.id} className="flex-shrink-0 w-32">
+            {/* Mobile: left/right just above piles for 3/4 players, top center for 2 players */}
+            <div className="sm:hidden z-20 relative w-full">
+              {otherPlayers.length === 1 && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-[60px] w-40">
                   <PlayerInfo 
-                    player={player}
-                    isCurrentTurn={player.id === state.currentPlayer}
+                    player={otherPlayers[0]}
+                    isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
                     showRingButton={state.status === "playing"}
                   />
                 </div>
-              ))}
+              )}
+              {otherPlayers.length > 1 && (
+                <>
+                  <div className="absolute left-2 top-[100px] w-32">
+                    <PlayerInfo 
+                      player={otherPlayers[0]}
+                      isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
+                      showRingButton={state.status === "playing"}
+                    />
+                  </div>
+                  {otherPlayers.length === 3 && (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-2 w-40">
+                      <PlayerInfo 
+                        player={otherPlayers[1]}
+                        isCurrentTurn={otherPlayers[1].id === state.currentPlayer}
+                        showRingButton={state.status === "playing"}
+                      />
+                    </div>
+                  )}
+                  <div className="absolute right-2 top-[100px] w-32">
+                    <PlayerInfo 
+                      player={otherPlayers[otherPlayers.length - 1]}
+                      isCurrentTurn={otherPlayers[otherPlayers.length - 1].id === state.currentPlayer}
+                      showRingButton={state.status === "playing"}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             {/* Desktop/tablet: absolute layout */}
             <div className="hidden sm:block absolute inset-0 pointer-events-none z-10">
