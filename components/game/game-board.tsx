@@ -130,7 +130,7 @@ export default function GameBoard() {
             {/* Mobile: left/right just above piles for 3/4 players, top center for 2 players */}
             <div className="sm:hidden z-20 relative w-full">
               {otherPlayers.length === 1 && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-[60px] w-40">
+                <div className="absolute left-1/2 -translate-x-1/2 top-2 w-40 pointer-events-auto">
                   <PlayerInfo 
                     player={otherPlayers[0]}
                     isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
