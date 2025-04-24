@@ -125,45 +125,53 @@ export default function GameBoard() {
       <div className="flex-1 flex flex-col relative" style={{ overflow: 'visible' }}>
         {/* Top section wrapper: Takes available space, relative positioning context */}
         <div className="flex-1 relative">
-          {/* Opponent player info positioned absolutely within the top section wrapper */}
-          <div className="absolute inset-0 pointer-events-none z-10">
-            {/* Player 1 (Top) */}
-            {/* Renders top player only if 1 or 3 opponents */}
-            {(otherPlayers.length === 1 || otherPlayers.length === 3) && (
-              <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 pointer-events-auto w-44 sm:w-56">
-                <PlayerInfo 
-                  player={otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]} 
-                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]).id === state.currentPlayer}
-                  showRingButton={state.status === "playing"} 
-                />
-              </div>
-            )}
-            {/* Player 2 (Left) */}
-            {/* Renders left player only if 2 or 3 opponents */}
-            {otherPlayers.length > 1 && (
-              <div>
-                <div className="absolute left-2 top-2 w-32 pointer-events-auto sm:static sm:left-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-40">
+          {/* Opponent player info - horizontal scroll bar on mobile, absolute on sm+ */}
+          <div>
+            {/* Mobile: horizontal scroll bar */}
+            <div className="flex sm:hidden overflow-x-auto gap-2 px-2 pt-2 z-20 relative">
+              {otherPlayers.map((player) => (
+                <div key={player.id} className="flex-shrink-0 w-32">
+                  <PlayerInfo 
+                    player={player}
+                    isCurrentTurn={player.id === state.currentPlayer}
+                    showRingButton={state.status === "playing"}
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Desktop/tablet: absolute layout */}
+            <div className="hidden sm:block absolute inset-0 pointer-events-none z-10">
+              {/* Player 1 (Top) */}
+              {(otherPlayers.length === 1 || otherPlayers.length === 3) && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto w-56">
+                  <PlayerInfo 
+                    player={otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]} 
+                    isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[1] : otherPlayers[0]).id === state.currentPlayer}
+                    showRingButton={state.status === "playing"} 
+                  />
+                </div>
+              )}
+              {/* Player 2 (Left) */}
+              {otherPlayers.length > 1 && (
+                <div className="absolute top-1/2 -translate-y-1/2 left-4 pointer-events-auto w-40">
                   <PlayerInfo 
                     player={otherPlayers[0]} 
                     isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
                     showRingButton={state.status === "playing"} 
                   />
                 </div>
-              </div>
-            )}
-            {/* Player 3 (Right) */}
-            {/* Renders right player only if 2 or 3 opponents */}
-            {otherPlayers.length > 1 && (
-              <div>
-                <div className="absolute right-2 top-2 w-32 pointer-events-auto sm:static sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-40">
+              )}
+              {/* Player 3 (Right) */}
+              {otherPlayers.length > 1 && (
+                <div className="absolute top-1/2 -translate-y-1/2 right-4 pointer-events-auto w-40">
                   <PlayerInfo 
                      player={otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]} 
                      isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer}
                      showRingButton={state.status === "playing"} 
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
