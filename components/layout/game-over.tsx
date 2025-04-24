@@ -283,6 +283,32 @@ export default function GameOver() {
                   <Clock className="w-5 h-5 text-purple-500" />
                   <span>Match History</span>
                 </h3>
+                {/* Total Points Summary Across All Matches */}
+                {state.matchHistory && state.matchHistory.length > 0 && (
+                  <div className="mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-wrap gap-3 items-center justify-center">
+                    {(() => {
+                      // Aggregate total points per playerId
+                      const totals: Record<string, { name: string, avatar: number | null, points: number }> = {};
+                      state.matchHistory.forEach(match => {
+                        match.playerResults.forEach(p => {
+                          if (!totals[p.playerId]) {
+                            totals[p.playerId] = { name: p.playerName, avatar: p.avatar_index, points: 0 };
+                          }
+                          totals[p.playerId].points += p.points;
+                        });
+                      });
+                      // Sort by points descending
+                      const sorted = Object.entries(totals).sort((a, b) => b[1].points - a[1].points);
+                      return sorted.map(([playerId, info]) => (
+                        <div key={playerId} className="flex items-center gap-2 bg-white rounded-lg px-3 py-1 shadow-sm border border-gray-100">
+                          <AvatarDisplay index={info.avatar ?? 0} size="xs" />
+                          <span className="font-medium text-gray-800 text-sm">{info.name}</span>
+                          <span className="text-indigo-700 font-bold text-sm">{info.points} pts</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
                 {state.matchHistory && state.matchHistory.length > 0 ? (
                   <div className="space-y-3">
                     {[...state.matchHistory]

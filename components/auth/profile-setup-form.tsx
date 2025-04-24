@@ -298,7 +298,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
           <>
             <CardHeader className="text-center pt-8 pb-4">
               {/* Change title dynamically based on editing state */}
-              <CardTitle className="text-3xl font-bold tracking-tight">
+              <CardTitle className="text-3xl font-bold tracking-tight dark:text-white">
                 {isEditing ? 'Edit Your Profile' : 'Set Up Your Profile'}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
@@ -318,7 +318,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                     required 
                     minLength={3} 
                     disabled={isEditing} // Disable if editing
-                    className="disabled:opacity-70 disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
+                    className="disabled:opacity-70 disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 dark:text-white transition duration-150 ease-in-out rounded-md" 
                     aria-describedby={isEditing ? "username-description" : undefined}
                  />
                  {isEditing && (
@@ -349,7 +349,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                     placeholder="e.g., MightyPigeon" 
                     required 
                     minLength={3} 
-                    className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
+                    className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 dark:text-white transition duration-150 ease-in-out rounded-md" 
                  />
                </div>
 
@@ -364,7 +364,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                          <Button 
                             variant="outline" 
                             size="sm" 
-                            className="dark:border-gray-600 dark:hover:bg-gray-800 transition duration-150 ease-in-out rounded-md whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
+                            className="dark:border-gray-600 dark:hover:bg-gray-800 dark:text-white transition duration-150 ease-in-out rounded-md whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
                          >
                             <Edit className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> 
                             {selectedAvatar ? 'Change Avatar' : 'Select Avatar'}
