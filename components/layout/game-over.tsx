@@ -79,7 +79,7 @@ export default function GameOver() {
             </div>
           </CardHeader>
           <Tabs defaultValue="standings" className="w-full">
-            <TabsList className="flex flex-wrap justify-center w-full gap-1 sm:gap-2 bg-gray-100/80 backdrop-blur-sm rounded-lg shadow-inner p-1 mt-4 border border-gray-200/80 transition-all duration-300 mx-auto max-w-max">
+            <TabsList className="flex overflow-x-auto whitespace-nowrap no-scrollbar justify-center w-full gap-1 sm:gap-2 bg-gray-100/80 backdrop-blur-sm rounded-lg shadow-inner p-1 mt-4 border border-gray-200/80 transition-all duration-300 mx-auto max-w-max">
               <TabsTrigger 
                 value="standings" 
                 className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] rounded-md px-4 py-1 text-sm sm:text-base font-medium transition-all duration-200 bg-transparent text-gray-700 hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-indigo-400 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md cursor-pointer"
