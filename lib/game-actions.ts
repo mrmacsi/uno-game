@@ -290,6 +290,7 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       throw new Error("Must choose a color for wild card")
     }
     gameState.currentColor = chosenColor;
+    console.log(`[playCard:Log] About to add log for wild card play. Player: ${playerForCard.name}, Card: ${cardToPlay.type}, Chosen: ${chosenColor}, Log count: ${gameState.log.length}`);
     gameState.log.push({ 
       id: uuidv4(),
       message: `${playerForCard.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
@@ -308,17 +309,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
 
   if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4" && cardToPlay.color) {
     gameState.currentColor = cardToPlay.color;
-    gameState.log.push({
-      id: uuidv4(),
-      message: `${playerForCard.name} played a ${cardToPlay.color} ${cardToPlay.type === 'number' ? '' : cardToPlay.type + ' '}${cardToPlay.value ?? ''}`.trim(),
-      timestamp: Date.now(),
-      player: playerForCard.name,
-      avatarIndex: playerForCard.avatarIndex,
-      eventType: 'play',
-      cardType: cardToPlay.type,
-      cardValue: cardToPlay.value,
-      cardColor: cardToPlay.color
-    });
   }
 
   if (playerForCard.cards.length === 0) {

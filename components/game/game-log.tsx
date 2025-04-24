@@ -132,19 +132,7 @@ export default function GameLog({ logs }: GameLogProps) {
               )}
               <div className="flex-grow flex flex-col">
                 <p>
-                  {(() => {
-                    if (player && typeof formattedMessage === 'string') {
-                      const trimmed = formattedMessage.trim();
-                      if (trimmed.startsWith(player + ':')) {
-                        return <><span className="font-medium">{player}: </span>{trimmed.slice(player.length + 1).trim()}</>;
-                      }
-                      if (trimmed.startsWith(player)) {
-                        return <><span className="font-medium">{player}: </span>{trimmed.slice(player.length).trim()}</>;
-                      }
-                      return <><span className="font-medium">{player}: </span>{formattedMessage}</>;
-                    }
-                    return formattedMessage;
-                  })()}
+                  {formattedMessage}
                 </p>
                 {formattedTime && (
                   <span className="text-[10px] text-white/50 mt-0.5">{formattedTime}</span>
