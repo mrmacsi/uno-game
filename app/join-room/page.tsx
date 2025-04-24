@@ -162,7 +162,7 @@ export default function JoinRoom() {
     >
       <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
         <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
-          <CardTitle className="text-2xl font-bold tracking-tight text-center">
+          <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">
             {isDefault ? "Join the Public Room" : "Join Game Room"}
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
@@ -182,7 +182,7 @@ export default function JoinRoom() {
             >
               {!isDefault && (
                 <div className="space-y-2">
-                  <Label htmlFor="roomId" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+                  <Label htmlFor="roomId" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-200">
                      <KeyRound className="h-4 w-4" />
                      Room Code
                   </Label>
@@ -195,7 +195,7 @@ export default function JoinRoom() {
                       if (roomIdError) setRoomIdError("")
                       if (error) setError("")
                     }}
-                    className={`rounded-xl border-gray-300 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all uppercase tracking-widest ${roomIdError ? 'border-red-500 dark:border-red-500' : ''}`}
+                    className={`rounded-xl border-gray-300 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white transition-all uppercase tracking-widest ${roomIdError ? 'border-red-500 dark:border-red-500' : ''}`}
                     required
                     maxLength={4}
                     minLength={4}
@@ -218,7 +218,7 @@ export default function JoinRoom() {
                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
                      Playing as:
                    </Label>
-                   <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
+                   <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
                      {playerDisplayName}
                    </p>
                  </div>

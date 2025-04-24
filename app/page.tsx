@@ -89,8 +89,6 @@ export default function Home() {
     );
   }
 
-  const defaultRoomId = "DEFAULT"
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -211,7 +209,7 @@ export default function Home() {
                           <Globe className="h-4 w-4 text-emerald-400" />
                           <span className="text-base font-semibold text-emerald-300">Public Room</span>
                         </div>
-                        <Link href={`/join-room?roomId=${defaultRoomId}`} className="w-full block">
+                        <Link href={`/room/DEFAULT`} className="w-full block">
                           <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-base">
                             <Globe className="h-4 w-4" />
                             Join

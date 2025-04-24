@@ -128,7 +128,7 @@ export default function CreateRoom() {
     >
       <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
         <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
-          <CardTitle className="text-2xl font-bold tracking-tight text-center">Create a New Game Room</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">Create a New Game Room</CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
             Set up a private room and invite your friends!
           </CardDescription>
@@ -151,7 +151,7 @@ export default function CreateRoom() {
                   <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
                     Playing as:
                   </Label>
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate">
+                  <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
                     {playerDisplayName} 
                   </p>
                 </div>
