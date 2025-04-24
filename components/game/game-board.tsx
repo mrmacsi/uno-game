@@ -141,24 +141,27 @@ export default function GameBoard() {
             {/* Player 2 (Left) */}
             {/* Renders left player only if 2 or 3 opponents */}
             {otherPlayers.length > 1 && (
-              <div className="absolute top-1/2 -translate-y-1/2 left-2 sm:left-4 pointer-events-auto w-32 sm:w-40">
-                <PlayerInfo 
-                  player={otherPlayers[0]} 
-                  isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
-                  showRingButton={state.status === "playing"} 
-                />
+              <div>
+                <div className="absolute left-2 top-2 w-32 pointer-events-auto sm:static sm:left-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-40">
+                  <PlayerInfo 
+                    player={otherPlayers[0]} 
+                    isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
+                    showRingButton={state.status === "playing"} 
+                  />
+                </div>
               </div>
             )}
             {/* Player 3 (Right) */}
             {/* Renders right player only if 2 or 3 opponents */}
             {otherPlayers.length > 1 && (
-              <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-4 pointer-events-auto w-32 sm:w-40">
-                <PlayerInfo 
-                   // If 2 players, right is index 1. If 3 players, right is index 2.
-                  player={otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]} 
-                  isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer}
-                  showRingButton={state.status === "playing"} 
-                />
+              <div>
+                <div className="absolute right-2 top-2 w-32 pointer-events-auto sm:static sm:right-4 sm:top-1/2 sm:-translate-y-1/2 sm:w-40">
+                  <PlayerInfo 
+                     player={otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]} 
+                     isCurrentTurn={(otherPlayers.length === 3 ? otherPlayers[2] : otherPlayers[1]).id === state.currentPlayer}
+                     showRingButton={state.status === "playing"} 
+                  />
+                </div>
               </div>
             )}
           </div>

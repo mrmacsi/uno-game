@@ -620,7 +620,12 @@ export function GameProvider({
       setIsColorSelectionOpen(false)
     } catch (err) {
       console.error("[handlePlayCard] Error playing card:", err)
-      toast.error("Error", { description: err instanceof Error ? err.message : "Could not play card." })
+      // Show specific message if available, otherwise generic
+      const specificErrors = ["Invalid play", "Card not in hand", "Not Your Turn"];
+      const errorMessage = err instanceof Error && specificErrors.some(e => err.message.includes(e)) 
+        ? err.message 
+        : "Could not play card. Please try again.";
+      toast.error("Action Failed", { description: errorMessage })
       await refreshGameState()
     } finally {
       setIsLoading(false)
@@ -662,9 +667,12 @@ export function GameProvider({
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to draw card:", error)
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to draw card",
-      })
+      // Show specific message if available, otherwise generic
+      const specificErrors = ["It's not your turn", "Already drawn"];
+      const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
+        ? error.message
+        : "Failed to draw card. Please try again.";
+      toast.error("Action Failed", { description: errorMessage });
       setIsLoading(false)
     }
   }
@@ -705,20 +713,11 @@ export function GameProvider({
       // State will be updated via Pusher, no need to manually dispatch here after await
     } catch (err) {
       console.error("[handleDeclareUno] Error declaring UNO:", err)
-      setError(err instanceof Error ? err.message : "Failed to declare UNO")
-      // Revert optimistic update on error
-      dispatch({ 
-        type: "UPDATE_GAME_STATE", 
-        payload: {
-            ...state,
-            players: state.players.map(p => 
-                p.id === currentPlayerId ? { ...p, saidUno: false } : p // Revert the flag
-            )
-        }
-     });
-     toast.error("Failed to Declare UNO", { 
-       description: err instanceof Error ? err.message : "Please try again.", 
-     });
+      // Use a more generic error message unless it's a specific known issue
+      const errorMessage = err instanceof Error && err.message.includes("Invalid Action") 
+        ? err.message 
+        : "Failed to declare UNO. Please try again.";
+      toast.error("Action Failed", { description: errorMessage });
     } finally {
       setIsLoading(false)
     }
@@ -738,8 +737,8 @@ export function GameProvider({
       setPendingWildCardId(null)
     } catch (err) {
       console.error("Failed to play wild card after color selection:", err)
-      setError(err instanceof Error ? err.message : "Failed to play wild card")
-      toast.error("Error Playing Wild Card", { description: err instanceof Error ? err.message : "Could not play the wild card." })
+      // Use a more generic error message
+      toast.error("Action Failed", { description: "Could not play the wild card. Please try again." })
       await refreshGameState()
     } finally {
       setIsLoading(false)
@@ -783,9 +782,12 @@ export function GameProvider({
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to pass turn:", error)
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to pass turn",
-      })
+       // Show specific message if available, otherwise generic
+      const specificErrors = ["It's not your turn", "Game is not in progress"];
+       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
+        ? error.message
+        : "Failed to pass turn. Please try again.";
+      toast.error("Action Failed", { description: errorMessage });
       setIsLoading(false)
     }
   }
@@ -816,9 +818,11 @@ export function GameProvider({
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to start game:", error)
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to start game",
-      })
+      // Use a more generic error message, unless it's "Not the host"
+       const errorMessage = error instanceof Error && error.message.includes("Not the host")
+        ? error.message
+        : "Failed to start game. Please try again.";
+      toast.error("Action Failed", { description: errorMessage });
       setIsLoading(false)
     }
   }
@@ -838,7 +842,8 @@ export function GameProvider({
     } catch (err) {
       console.error("[GameProvider] Failed to reset game:", err)
       setError(err instanceof Error ? err.message : "Failed to reset room")
-      toast.error("Error", { description: "Could not reset the room." })
+      // Generic error toast
+      toast.error("Action Failed", { description: "Could not reset the room. Please try again." })
     } finally {
       setIsResetting(false)
     }
@@ -861,7 +866,8 @@ export function GameProvider({
     } catch (err) {
         console.error("[GameProvider] Failed to initiate rematch:", err);
         setError(err instanceof Error ? err.message : "Failed to start rematch");
-        toast.error("Error", { description: "Could not start rematch." });
+        // Generic error toast
+        toast.error("Action Failed", { description: "Could not start rematch. Please try again." });
     } finally {
         setIsLoading(false);
     }
@@ -914,9 +920,9 @@ export function GameProvider({
     } catch (err) {
       console.error("[GameProvider] Error sending message:", err)
       
-      // Show a clear error to the user
+      // Show a clear, generic error to the user
       toast.error("Message Failed", {
-        description: err instanceof Error ? err.message : "Could not send message, please try again",
+        description: "Could not send message, please try again",
       })
     }
   }
@@ -950,7 +956,7 @@ export function GameProvider({
     } catch (err) {
       console.error("[GameProvider] Error ringing opponent:", err)
       toast.error("Ring Failed", {
-        description: "Could not send notification",
+        description: "Could not send notification. Please try again.",
       })
     }
   }
