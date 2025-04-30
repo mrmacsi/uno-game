@@ -319,9 +319,9 @@ export default function RoomList() {
                     <Button 
                       size="sm" 
                       className="rounded-full text-xs bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all"
-                      disabled={action.loading || room.status === 'finished' || (room.status === 'playing' && room.players.length >= 4)}
+                      disabled={action.loading || (room.roomId !== "DEFAULT" && (room.status === 'finished' || (room.status === 'playing' && room.players.length >= 4)))}
                     >
-                      {room.status === 'waiting' || room.status === 'playing' && room.players.length < 4 ? 'Join Room' : 'View'}
+                      {room.roomId === "DEFAULT" || room.status === 'waiting' || (room.status === 'playing' && room.players.length < 4) ? 'Join Room' : 'View'}
                       <ArrowRightCircle className="h-4 w-4 ml-1.5" />
                     </Button>
                   </Link>

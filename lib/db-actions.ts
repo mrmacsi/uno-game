@@ -54,8 +54,8 @@ export async function getAllRooms(): Promise<GameState[]> {
             if (!data) return null;
             try {
                 const room = initializeGameState(JSON.parse(data)) as GameState;
-                // Return rooms that are waiting OR currently playing for the public list
-                if (room && (room.status === 'waiting' || room.status === 'playing')) {
+                // Always include DEFAULT room regardless of status, or other rooms that are waiting/playing
+                if (room && (room.roomId === "DEFAULT" || room.status === 'waiting' || room.status === 'playing')) {
                     return room;
                 }
             } catch (error) {

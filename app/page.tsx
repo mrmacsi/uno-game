@@ -204,18 +204,12 @@ export default function Home() {
                     </motion.div>
                     
                     <motion.div variants={itemVariants}>
-                      <div className="bg-gradient-to-br from-green-600/40 to-emerald-600/40 p-2 rounded-lg shadow border border-white/10 flex flex-col items-center justify-center gap-2 hover:border-emerald-400 transition-colors duration-300 w-full">
-                        <div className="flex items-center gap-1 mb-1">
-                          <Globe className="h-4 w-4 text-emerald-400" />
-                          <span className="text-base font-semibold text-emerald-300">Public Room</span>
-                        </div>
-                        <Link href={`/room/DEFAULT`} className="w-full block">
-                          <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-base">
-                            <Globe className="h-4 w-4" />
-                            Join
-                          </Button>
-                        </Link>
-                      </div>
+                      <Link href={`/room/DEFAULT`} className="w-full block">
+                        <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
+                          <Globe className="h-4 w-4" />
+                          Join Public Room
+                        </Button>
+                      </Link>
                     </motion.div>
                   </motion.div>
                 </div>
