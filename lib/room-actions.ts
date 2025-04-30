@@ -77,17 +77,23 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
      gameState = (await getGameState(roomId))!; // Re-fetch state after reset
      if (!gameState) throw new Error("Failed to reset/fetch default room");
   } else if (gameState.status !== "waiting") {
-    throw new Error("Game has already started")
+    // Check if the player is already in the room (existing player trying to rejoin)
+    const isExistingPlayer = gameState.players.some(p => p.id === joiningPlayerInput.id);
+    
+    // Only allow existing players to rejoin a game in progress
+    if (!isExistingPlayer) {
+      throw new Error("Game has already started")
+    }
+  }
+
+  if (gameState.players.length >= 4) {
+    throw new Error("Room is full")
   }
 
   // Check if player already exists by ID
   if (gameState.players.some(p => p.id === joiningPlayerInput.id)) {
     console.warn(`[joinRoom] Player ${joiningPlayerInput.id} already in room ${roomId}.`);
     return joiningPlayerInput.id; 
-  }
-
-  if (gameState.players.length >= 4) {
-    throw new Error("Room is full")
   }
 
   // Create the Player object directly from input

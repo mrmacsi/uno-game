@@ -12,9 +12,19 @@ export default function RoomClientContent({ initialGameState }: { initialGameSta
 
   useEffect(() => {
     const storedPlayerId = getPlayerIdFromLocalStorage()
+    
+    // If there's no player ID stored, redirect to join room
     if (!storedPlayerId) {
       router.push(`/join-room?roomId=${initialGameState.roomId}`)
-    } else if (!initialGameState.players.some(p => p.id === storedPlayerId)) {
+      return
+    }
+    
+    // Check if the player is already in the room
+    const isPlayerInRoom = initialGameState.players.some(p => p.id === storedPlayerId)
+    
+    // If player is not in the room, redirect to join room
+    if (!isPlayerInRoom) {
+      // For games in progress, only redirect if player is not in the room
       router.push(`/join-room?roomId=${initialGameState.roomId}`)
     }
   }, [initialGameState.roomId, initialGameState.players, router])

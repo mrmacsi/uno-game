@@ -134,6 +134,11 @@ export default function JoinRoom() {
           setRoomIdError("Room code not found. Please check and try again.");
         } else if (error.message.includes("Room is full")) {
           setError("This room is currently full.");
+        } else if (error.message.includes("Game has already started")) {
+          // If it's a game in progress, just redirect to the room
+          // The player is not in this game, but we'll handle the error display in the room page
+          router.push(`/room/${finalRoomId}`);
+          return;
         } else {
           setError(error.message);
         }
