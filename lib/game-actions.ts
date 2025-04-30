@@ -316,11 +316,14 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     gameState.winner = playerId;
     gameState.log.push({ 
       id: uuidv4(),
-      message: `${playerForCard.name} won the game!`,
+      message: `${playerForCard.name} won the game with a ${cardToPlay.color || ''} ${cardToPlay.value || ''} ${cardToPlay.type}!`,
       timestamp: Date.now(),
       player: playerForCard.name,
       avatarIndex: playerForCard.avatarIndex,
-      eventType: 'win'
+      eventType: 'win',
+      cardType: cardToPlay.type,
+      cardValue: cardToPlay.value,
+      cardColor: cardToPlay.color
     });
     
     calculatePoints(gameState); 
