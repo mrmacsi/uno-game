@@ -14,9 +14,6 @@ import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
-import { cn } from "@/lib/utils"
-
-const WINNING_SCORES = [100, 200, 300, 400, 500];
 
 export default function CreateRoom() {
   const router = useRouter()
@@ -26,7 +23,6 @@ export default function CreateRoom() {
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [submitError, setSubmitError] = useState("")
-  const [selectedWinningScore, setSelectedWinningScore] = useState<string>(WINNING_SCORES[WINNING_SCORES.length - 1].toString()) // Default to 500
   
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,7 +58,7 @@ export default function CreateRoom() {
          avatarIndex: avatarIndexState!
       }
       
-      const { roomId, playerId: returnedPlayerId } = await createRoom(hostPlayerInput, parseInt(selectedWinningScore, 10))
+      const { roomId, playerId: returnedPlayerId } = await createRoom(hostPlayerInput)
       
       storePlayerIdInLocalStorage(returnedPlayerId)
       
@@ -160,31 +156,6 @@ export default function CreateRoom() {
                   </p>
                 </div>
               </div>
-              
-              {/* Winning Score Selector */}
-              <div>
-                <Label htmlFor="winning-score" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Winning Score</Label>
-                <div className="flex flex-wrap gap-2">
-                  {WINNING_SCORES.map(score => (
-                    <Button
-                      key={score}
-                      type="button"
-                      variant={selectedWinningScore === score.toString() ? "default" : "outline"}
-                      onClick={() => setSelectedWinningScore(score.toString())}
-                      className={cn(
-                        "px-4 py-2 text-sm font-medium rounded-md transition-all duration-150",
-                        selectedWinningScore === score.toString() 
-                          ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-sm border-transparent" 
-                          : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                      )}
-                    >
-                      {score}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 ml-1">First player to reach this score after a round wins.</p>
-              </div>
-              
               {submitError && (
                  <p className="text-red-500 text-xs mt-2 ml-1">{submitError}</p>
               )}

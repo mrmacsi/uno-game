@@ -17,13 +17,6 @@ export default function GameOver() {
   const { state, rematch, leaveRoom, getGameDuration } = useGame()
   const [isRematchLoading, setIsRematchLoading] = useState(false)
   const winner = state.players.find((p) => p.id === state.winner)
-  
-  // Determine if the overall game target score has been reached
-  const winningScoreTarget = state.winningScore || 500;
-  const lastMatch = state.matchHistory && state.matchHistory.length > 0 ? state.matchHistory[state.matchHistory.length - 1] : null;
-  const overallWinnerResult = lastMatch?.playerResults.find(p => p.playerId === lastMatch.winner && p.totalScore >= winningScoreTarget);
-  const overallWinner = overallWinnerResult ? state.players.find(p => p.id === overallWinnerResult.playerId) : null;
-  
   const handleRematch = async () => {
     setIsRematchLoading(true)
     try {
@@ -63,7 +56,7 @@ export default function GameOver() {
             </div>
             <div className="relative z-10 flex flex-col items-center">
               <div className="mb-3">
-                {overallWinner || winner ? (
+                {winner ? (
                   <div className="flex items-center justify-center mb-2">
                     <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
                       <Trophy className="w-8 h-8 text-yellow-900" />
@@ -73,23 +66,14 @@ export default function GameOver() {
                   <Award className="w-16 h-16 text-yellow-400 mb-2" />
                 )}
               </div>
-              <CardTitle className="text-3xl font-bold mb-2 text-center">
-                {overallWinner ? "Overall Winner!" : "Round Over!"}
-              </CardTitle>
+              <CardTitle className="text-3xl font-bold mb-2 text-center">Game Over!</CardTitle>
               <CardDescription className="text-white/90 text-lg text-center font-medium">
-                {overallWinner ? (
-                  <> <span className="font-semibold bg-white/20 px-2 py-0.5 rounded">{overallWinner.name}</span> reached the target score!</>
-                ) : winner ? (
-                  <> <span className="font-semibold bg-white/20 px-2 py-0.5 rounded">{winner.name}</span> won the round!</>
-                ) : (
-                  "The round has ended!"
-                )}
+                {winner 
+                  ? <span className="font-semibold bg-white/20 px-2 py-0.5 rounded">{winner.name}</span> 
+                  : "Someone"} has won the game!
                 <div className="mt-3 flex items-center justify-center text-sm text-white/80">
                   <Clock className="w-4 h-4 mr-1.5" />
                   <span>Game Duration: {getGameDuration()}</span>
-                </div>
-                <div className="mt-2 text-xs text-white/70">
-                  Target Score: {winningScoreTarget} points
                 </div>
               </CardDescription>
             </div>
@@ -299,30 +283,41 @@ export default function GameOver() {
                   <Clock className="w-5 h-5 text-purple-500" />
                   <span>Match History</span>
                 </h3>
-                {/* Display cumulative scores from the latest match result */}
-                {lastMatch && (
-                    <div className="mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                      <h4 className="text-sm font-medium text-indigo-800 mb-2 text-center">Total Scores (Target: {winningScoreTarget})</h4>
-                      <div className="flex flex-col gap-2">
-                        {[...lastMatch.playerResults]
-                          .sort((a, b) => b.totalScore - a.totalScore) // Sort by total score descending
-                          .map((playerResult) => (
-                            <div 
-                              key={playerResult.playerId} 
-                              className={cn(
-                                "flex items-center gap-2 bg-white rounded-lg px-3 py-1 shadow-sm border",
-                                // Highlight the overall winner if they exist and match this player
-                                overallWinner?.id === playerResult.playerId ? "border-yellow-300 ring-1 ring-yellow-300" : "border-gray-100"
-                              )}
-                            >
-                              {overallWinner?.id === playerResult.playerId && <Trophy className="w-3.5 h-3.5 text-yellow-500 mr-1" />}
-                              <AvatarDisplay index={playerResult.avatar_index ?? 0} size="xs" />
-                              <span className="font-medium text-gray-800 text-sm">{playerResult.playerName}</span>
-                              <span className="text-indigo-700 font-bold text-sm">{playerResult.totalScore} pts</span>
-                            </div>
-                          ))}
-                      </div>
+                {/* Total Points Summary Across All Matches */}
+                {state.matchHistory && state.matchHistory.length > 0 && (
+                  <div className="mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                    <h4 className="text-sm font-medium text-indigo-800 mb-2 text-center">Total Points (Lowest Wins)</h4>
+                    <div className="flex flex-col gap-2">
+                      {(() => {
+                        // Aggregate total points per playerId
+                        const totals: Record<string, { name: string, avatar: number | null, points: number }> = {};
+                        state.matchHistory.forEach(match => {
+                          match.playerResults.forEach(p => {
+                            if (!totals[p.playerId]) {
+                              totals[p.playerId] = { name: p.playerName, avatar: p.avatar_index, points: 0 };
+                            }
+                            totals[p.playerId].points += p.points;
+                          });
+                        });
+                        // Sort by points ascending
+                        const sorted = Object.entries(totals).sort((a, b) => a[1].points - b[1].points);
+                        return sorted.map(([playerId, info], index) => (
+                          <div 
+                            key={playerId} 
+                            className={cn(
+                              "flex items-center gap-2 bg-white rounded-lg px-3 py-1 shadow-sm border",
+                              index === 0 ? "border-yellow-300 ring-1 ring-yellow-300" : "border-gray-100"
+                            )}
+                          >
+                            {index === 0 && <Trophy className="w-3.5 h-3.5 text-yellow-500 mr-1" />}
+                            <AvatarDisplay index={info.avatar ?? 0} size="xs" />
+                            <span className="font-medium text-gray-800 text-sm">{info.name}</span>
+                            <span className="text-indigo-700 font-bold text-sm">{info.points} pts</span>
+                          </div>
+                        ));
+                      })()}
                     </div>
+                  </div>
                 )}
                 {state.matchHistory && state.matchHistory.length > 0 ? (
                   <div className="space-y-3">
@@ -411,7 +406,7 @@ export default function GameOver() {
                           return (
                             <div
                               key={`${log.id}-${index}`}
-                              className="flex items-start gap-2 px-2 py-1.5 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors animate-fade-in-up"
+                              className="flex items-start gap-3 p-2 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors animate-fade-in-up"
                               style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'forwards' }}
                             >
                               {cardToShow && (
@@ -429,9 +424,9 @@ export default function GameOver() {
                                 </div>
                               )}
 
-                              <div className="flex-grow min-w-0">
-                                <div className="text-sm font-medium text-gray-800 break-words">{log.message}</div>
-                                <div className="flex items-center mt-0.5">
+                              <div className="flex-grow">
+                                <div className="text-sm font-medium text-gray-800">{log.message}</div>
+                                <div className="flex items-center mt-1">
                                   {log.avatarIndex !== undefined && (
                                     <AvatarDisplay
                                       index={log.avatarIndex}
