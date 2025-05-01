@@ -59,14 +59,23 @@ export async function createRoom(
   return { roomId, playerId: hostPlayer.id } 
 }
 
-// Join an existing game room - Accepts joining player object
-export async function joinRoom(roomId: string, joiningPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<string> {
-  console.log(`[joinRoom] Received input for room ${roomId}:`, joiningPlayerInput);
+// Join an existing game room - Accepts joining player object and optional winning score for DEFAULT room
+export async function joinRoom(
+  roomId: string, 
+  joiningPlayerInput: { id: string; name: string; avatarIndex: number },
+  winningScore?: number // Optional: Only relevant for DEFAULT room setup
+): Promise<string> {
+  console.log(`[joinRoom] Received input for room ${roomId}:`, joiningPlayerInput, `Winning Score (if DEFAULT): ${winningScore}`);
+  
+  let needsUpdate = false; // Flag to check if we need to update the state later
+  
   if (roomId === "DEFAULT") {
-     // ... (handle default room creation/reset) ...
-     const defaultRoomExists = await getGameState("DEFAULT")
-     if (!defaultRoomExists) {
-       await createDefaultRoom()
+     const defaultRoomState = await getGameState("DEFAULT")
+     if (!defaultRoomState) {
+       console.log("[joinRoom] Default room doesn't exist, creating...");
+       // createDefaultRoom already sets the winning score
+       await createDefaultRoom() 
+       needsUpdate = true; // Needs update after player is added
      }
   }
 
@@ -75,16 +84,31 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
     throw new Error("Room not found")
   }
 
-  if (roomId === "DEFAULT" && gameState.status !== "waiting") {
-     // ... (reset default room if needed) ...
-     await resetRoom(roomId) 
-     gameState = (await getGameState(roomId))!; // Re-fetch state after reset
-     if (!gameState) throw new Error("Failed to reset/fetch default room");
-  } else if (gameState.status !== "waiting") {
-    // Check if the player is already in the room (existing player trying to rejoin)
+  // Logic for resetting DEFAULT room or setting winning score on first join
+  if (roomId === "DEFAULT") {
+      if (gameState.status !== "waiting") {
+          console.log("[joinRoom] Default room is active, resetting...")
+          await resetRoom(roomId) // Reset first
+          gameState = (await getGameState(roomId))!; // Re-fetch state after reset
+          if (!gameState) throw new Error("Failed to reset/fetch default room");
+          // Set the winning score provided by the joining player after reset
+          gameState.winningScore = winningScore || 500; 
+          needsUpdate = true;
+      } else if (gameState.players.length === 0 && winningScore) {
+          // If room is waiting and empty, set the winning score provided by the first player
+          console.log(`[joinRoom] Default room is empty, setting winning score to ${winningScore}`);
+          gameState.winningScore = winningScore;
+          needsUpdate = true;
+      } else if (!gameState.winningScore) {
+          // Safety: Ensure default room always has a winning score
+          console.warn("[joinRoom] Default room state missing winningScore, setting default (500).");
+          gameState.winningScore = 500;
+          needsUpdate = true;
+      }
+  } 
+  // Logic for non-DEFAULT rooms (unchanged)
+  else if (gameState.status !== "waiting") {
     const isExistingPlayer = gameState.players.some(p => p.id === joiningPlayerInput.id);
-    
-    // Only allow existing players to rejoin a game in progress
     if (!isExistingPlayer) {
       throw new Error("Game has already started")
     }
@@ -120,8 +144,13 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
       eventType: 'join'
   });
 
-  await updateGameState(roomId, gameState)
-  console.log(`[joinRoom] Updated GameState in DB for room ${roomId}.`);
+  // Perform the update only if needed (avoids unnecessary writes)
+  if (needsUpdate || !gameState.players.some(p => p.id === joiningPlayerInput.id)) { // Also update if player wasn't already present
+    await updateGameState(roomId, gameState)
+    console.log(`[joinRoom] Updated GameState in DB for room ${roomId} (Update needed: ${needsUpdate}).`);
+  } else {
+    console.log(`[joinRoom] No state update needed for room ${roomId}.`);
+  }
 
   // Log the state *before* stripping and triggering Pusher
   console.log("[joinRoom] GameState BEFORE stripping:", JSON.stringify(gameState, null, 2));
