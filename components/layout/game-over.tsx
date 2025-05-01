@@ -297,10 +297,17 @@ export default function GameOver() {
                           totals[p.playerId].points += p.points;
                         });
                       });
-                      // Sort by points descending
-                      const sorted = Object.entries(totals).sort((a, b) => b[1].points - a[1].points);
-                      return sorted.map(([playerId, info]) => (
-                        <div key={playerId} className="flex items-center gap-2 bg-white rounded-lg px-3 py-1 shadow-sm border border-gray-100">
+                      // Sort by points ascending
+                      const sorted = Object.entries(totals).sort((a, b) => a[1].points - b[1].points);
+                      return sorted.map(([playerId, info], index) => (
+                        <div 
+                          key={playerId} 
+                          className={cn(
+                            "flex items-center gap-2 bg-white rounded-lg px-3 py-1 shadow-sm border",
+                            index === 0 ? "border-yellow-300 ring-1 ring-yellow-300" : "border-gray-100"
+                          )}
+                        >
+                          {index === 0 && <Trophy className="w-3.5 h-3.5 text-yellow-500 mr-1" />}
                           <AvatarDisplay index={info.avatar ?? 0} size="xs" />
                           <span className="font-medium text-gray-800 text-sm">{info.name}</span>
                           <span className="text-indigo-700 font-bold text-sm">{info.points} pts</span>
