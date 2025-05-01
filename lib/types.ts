@@ -26,6 +26,7 @@ export interface MatchResult {
     playerName: string
     avatar_index: number | null
     points: number
+    totalScore: number
   }[]
   finalScore: number
 }
@@ -65,6 +66,7 @@ export interface GameState {
   gameStartTime?: number
   rematchRequestedBy?: string | null
   rematchConfirmedBy?: string[]
+  winningScore?: number
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

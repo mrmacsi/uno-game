@@ -16,9 +16,12 @@ function generateRoomCode(): string {
   return code
 }
 
-// Create a new game room - Accepts host player object
-export async function createRoom(hostPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<{ roomId: string; playerId: string }> {
-  console.log("[createRoom] Received input:", hostPlayerInput);
+// Create a new game room - Accepts host player object and optional winning score
+export async function createRoom(
+  hostPlayerInput: { id: string; name: string; avatarIndex: number },
+  winningScore: number = 500 // Default to 500 if not provided
+): Promise<{ roomId: string; playerId: string }> {
+  console.log("[createRoom] Received input:", hostPlayerInput, "Winning Score:", winningScore);
   const roomId = generateRoomCode()
 
   // Create Player object directly from input
@@ -48,6 +51,7 @@ export async function createRoom(hostPlayerInput: { id: string; name: string; av
       player: hostPlayer.name,
       eventType: 'system'
     }], 
+    winningScore: winningScore, // Set the winning score 
   }
 
   await storeGameState(roomId, gameState)
@@ -133,6 +137,7 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
 // Create a default public room if it doesn't exist
 export async function createDefaultRoom(): Promise<void> {
   const DEFAULT_ROOM_ID = "DEFAULT"
+  const DEFAULT_WINNING_SCORE = 500;
   const existingRoom = await getGameState(DEFAULT_ROOM_ID)
   if (existingRoom) {
     console.log("Default room already exists")
@@ -150,6 +155,7 @@ export async function createDefaultRoom(): Promise<void> {
     currentColor: "red",
     winner: null,
     log: [], // Initialize log array
+    winningScore: DEFAULT_WINNING_SCORE, // Set default winning score
   }
 
   await storeGameState(DEFAULT_ROOM_ID, gameState)
@@ -183,7 +189,8 @@ export const resetRoom = async (roomId: string) => {
       matchHistory: [], // Clear match history as well for a full reset
       isDrawing: false,
       rematchRequestedBy: null,
-      rematchConfirmedBy: []
+      rematchConfirmedBy: [],
+      winningScore: 500, // Reset default room winning score
     };
     await updateGameState("DEFAULT", newState);
   } else {
@@ -206,8 +213,11 @@ export const resetRoom = async (roomId: string) => {
         hasDrawnThisTurn: false,
         isDrawing: false,
         rematchRequestedBy: null,
-        rematchConfirmedBy: []
+        rematchConfirmedBy: [],
         // Keep matchHistory for non-default rooms unless specifically cleared
+        // Reset winningScore if necessary or keep it?
+        // Keeping existing winningScore for non-default rooms on reset
+        // winningScore: currentGameState?.winningScore // Keep existing score
       };
       await updateGameState(roomId, initialNonDefaultState);
       console.warn(`[resetRoom] Non-DEFAULT room ${roomId} reset using temporary logic due to missing createInitialGameState.`);
@@ -225,7 +235,15 @@ export const resetRoom = async (roomId: string) => {
 
 // Get game state for a room
 export async function getRoom(roomId: string): Promise<GameState | null> {
-  return await getGameState(roomId)
+  const gameState = await getGameState(roomId)
+  // Ensure default room always has a winning score if fetched
+  if (roomId === 'DEFAULT' && gameState && gameState.winningScore === undefined) {
+    console.warn("[getRoom] Default room fetched without winningScore. Setting default (500).");
+    gameState.winningScore = 500;
+    // Optionally update the stored state here too, though it should have been set on creation/reset
+    // await updateGameState(roomId, gameState); 
+  }
+  return gameState;
 }
 
 // Get all room states

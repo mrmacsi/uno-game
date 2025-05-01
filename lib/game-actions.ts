@@ -268,99 +268,145 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
     throw new Error("You must declare UNO before playing your second-to-last card!");
   }
 
-  const playerForCard = gameState.players.find((p: Player) => p.id === playerId);
-  if (!playerForCard) throw new Error("Player not found when finding card");
-  const cardIndex = playerForCard.cards.findIndex((c: Card) => c.id === cardId);
-  if (cardIndex === -1) {
-    throw new Error("Card not found in player's hand")
+  const playerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
+  const player = gameState.players[playerIndex];
+  const cardIndex = player.cards.findIndex((c: Card) => c.id === cardId);
+  const card = player.cards[cardIndex];
+
+  if (!card) {
+    throw new Error("Card not in hand");
   }
+  if (!checkPlayValidity(gameState, card)) {
+    throw new Error("Invalid play");
+  }
+  if ((card.type === "wild" || card.type === "wild4") && !chosenColor) {
+    throw new Error("Must choose a color for wild card");
+  }
+
+  player.cards.splice(cardIndex, 1);
+  gameState.discardPile.push(card);
+
+  if (card.type === "wild" || card.type === "wild4") {
+    gameState.currentColor = chosenColor || "red"; // Default chosenColor to red if somehow undefined
+  } else {
+    gameState.currentColor = card.color;
+  }
+
+  player.saidUno = false;
+
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${player.name} played a ${gameState.currentColor} ${card.type === 'number' ? card.value : card.type}.`,
+    timestamp: Date.now(),
+    player: player.name,
+    avatarIndex: player.avatarIndex,
+    eventType: 'play',
+    cardType: card.type,
+    cardValue: card.value,
+    cardColor: card.color // Store original card color too
+  });
   
-  const cardToPlay = playerForCard.cards[cardIndex];
+  // Check for winner (player has no cards left)
+  if (player.cards.length === 0) {
+    const roundWinner = player;
+    calculatePoints(gameState);
+    
+    gameState.winner = roundWinner.id;
+    gameState.status = "finished"; // Set status to finished for the *round*
 
-  if (!checkPlayValidity(gameState, cardToPlay)) {
-     const topCard = gameState.discardPile[gameState.discardPile.length - 1];
-     console.error(
-       `Invalid Play Attempt: Player ${playerId}, Card ${cardToPlay.color} ${cardToPlay.type} ${cardToPlay.value ?? ''} on Top Card ${topCard?.color} ${topCard?.type} ${topCard?.value ?? ''}, Current Color: ${gameState.currentColor}`
-     );
-    throw new Error("Invalid card play")
-  }
+    // Add round results to match history
+    if (!gameState.matchHistory) gameState.matchHistory = [];
 
-  if (cardToPlay.type === "wild" || cardToPlay.type === "wild4") {
-    if (!chosenColor || chosenColor === "black" || chosenColor === "wild") {
-      throw new Error("Must choose a color for wild card")
+    // Get previous total scores to calculate new ones
+    const previousTotals: Record<string, number> = {};
+    if (gameState.matchHistory.length > 0) {
+      const lastMatch = gameState.matchHistory[gameState.matchHistory.length - 1];
+      lastMatch.playerResults.forEach(p => {
+        previousTotals[p.playerId] = p.totalScore; // Get the last known total score
+      });
     }
-    gameState.currentColor = chosenColor;
-    console.log(`[playCard:Log] About to add log for wild card play. Player: ${playerForCard.name}, Card: ${cardToPlay.type}, Chosen: ${chosenColor}, Log count: ${gameState.log.length}`);
-    gameState.log.push({ 
-      id: uuidv4(),
-      message: `${playerForCard.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
-      timestamp: Date.now(),
-      player: playerForCard.name,
-      avatarIndex: playerForCard.avatarIndex,
-      eventType: 'play',
-      cardType: cardToPlay.type,
-      cardValue: undefined,
-      cardColor: chosenColor
-    });
-  }
-  
-  playerForCard.cards.splice(cardIndex, 1);
-  gameState.discardPile.push(cardToPlay);
+    
+    const newMatchResult = {
+        winner: roundWinner.id,
+        date: new Date().toISOString(),
+        playerResults: gameState.players.map(p => {
+            // Read the points possibly updated by calculatePoints directly from player object
+            const currentRoundPoints = p.id === roundWinner.id ? (gameState.players.find(wp => wp.id === roundWinner.id)?.points || 0) : 0;
+            const calculatedTotalScore = (previousTotals[p.id] || 0) + currentRoundPoints;
+            return {
+                playerId: p.id,
+                playerName: p.name,
+                avatar_index: p.avatarIndex,
+                points: currentRoundPoints, // Points scored in this round
+                totalScore: calculatedTotalScore // Add round points to previous total
+            };
+        }),
+        // Read the total points scored by the winner this round from the winner's updated state
+        finalScore: gameState.players.find(wp => wp.id === roundWinner.id)?.points || 0
+    };
+    gameState.matchHistory.push(newMatchResult);
 
-  if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4" && cardToPlay.color) {
-    gameState.currentColor = cardToPlay.color;
-  }
+    // Get the winner's new total score
+    const winnerResult = newMatchResult.playerResults.find(p => p.playerId === roundWinner.id);
+    const winnerTotalScore = winnerResult ? winnerResult.totalScore : 0;
+    const pointsThisRound = winnerResult ? winnerResult.points : 0; // Get points calculated for this round
 
-  if (playerForCard.cards.length === 0) {
-    gameState.status = "finished";
-    gameState.winner = playerId;
-    gameState.log.push({ 
+    gameState.log.push({
       id: uuidv4(),
-      message: `${playerForCard.name} won the game with a ${cardToPlay.color || ''} ${cardToPlay.value || ''} ${cardToPlay.type}!`,
+      message: `${roundWinner.name} won the round with a ${gameState.currentColor} ${card.type === 'number' ? card.value : card.type} and gets ${pointsThisRound} points! Total: ${winnerTotalScore}.`,
       timestamp: Date.now(),
-      player: playerForCard.name,
-      avatarIndex: playerForCard.avatarIndex,
+      player: roundWinner.name,
+      avatarIndex: roundWinner.avatarIndex,
       eventType: 'win',
-      cardType: cardToPlay.type,
-      cardValue: cardToPlay.value,
-      cardColor: cardToPlay.color
+      cardType: card.type,
+      cardValue: card.value,
+      cardColor: card.color
     });
-    
-    calculatePoints(gameState); 
-    
-    await updateGameState(roomId, gameState);
+
+    // Check if the winner reached the overall game winning score
+    const winningScoreTarget = gameState.winningScore || 500; // Default to 500 if not set
+    if (winnerTotalScore >= winningScoreTarget) {
+        gameState.log.push({
+            id: uuidv4(),
+            message: `${roundWinner.name} reached ${winnerTotalScore} points (target: ${winningScoreTarget}) and wins the game!`,
+            timestamp: Date.now(),
+            eventType: 'system' // Or a new 'game_over' type
+        });
+        // Keep status as 'finished' - the GameOver component will interpret this
+    } else {
+        // If target not met, game continues to next round - status remains 'playing'? NO - game over component handles rematch prompt.
+        // Status should remain 'finished' for the round, Game Over screen shows, then Rematch starts new round.
+        gameState.log.push({
+            id: uuidv4(),
+            message: `Round finished. Target score: ${winningScoreTarget}. Starting next round options...`,
+            timestamp: Date.now(),
+            eventType: 'system'
+        });
+    }
     
     newLogs = gameState.log.slice(originalLogLength);
+    await updateGameState(roomId, gameState);
     await broadcastUpdate(roomId, gameState, newLogs);
-    
-    console.log(`Game finished in room ${roomId}. Winner: ${playerId}`);
     return gameState;
   }
-  
-  if (playerForCard.cards.length === 1 && !playerForCard.saidUno) {
-      console.log(`${playerForCard.name} forgot to say UNO!`);
-       gameState.log.push({
-        id: uuidv4(),
-        message: `${playerForCard.name} forgot to say UNO!`,
-        timestamp: Date.now(),
-        player: playerForCard.name,
-        avatarIndex: playerForCard.avatarIndex,
-        eventType: 'uno_fail'
-      });
-  }
-  
-  if (playerForCard.cards.length > 1) {
-      playerForCard.saidUno = false;
-  }
 
-  applyCardEffects(gameState, cardToPlay); 
-  
-  gameState.hasDrawnThisTurn = false;
-  gameState.drawPileCount = gameState.drawPile.length;
+  // Apply effects and move to next player if game not won
+  applyCardEffects(gameState, card);
+  gameState.currentPlayer = gameState.players[getNextPlayerIndex(gameState, playerIndex)].id;
+  gameState.hasDrawnThisTurn = false; // Reset draw flag for the new player
 
-  await updateGameState(roomId, gameState);
+  // Reshuffle if draw pile is low
+  reshuffleIfNeeded(gameState);
+
+  gameState.log.push({
+    id: uuidv4(),
+    message: `Next turn: ${gameState.players.find(p => p.id === gameState.currentPlayer)?.name}`,
+    timestamp: Date.now(),
+    eventType: 'system'
+  });
 
   newLogs = gameState.log.slice(originalLogLength);
+  await updateGameState(roomId, gameState);
   await broadcastUpdate(roomId, gameState, newLogs);
 
   return gameState;
