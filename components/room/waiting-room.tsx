@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2 } from "lucide-react"
+import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2, Target } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import ResetRoomButton from "./reset-room-button"
@@ -203,19 +203,33 @@ export default function WaitingRoom() {
         <CardContent className="p-4 text-gray-900 dark:text-gray-100 flex-grow flex flex-col overflow-auto">
           <div className="space-y-4 flex-grow flex flex-col">
             {/* Room code */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
-              <div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Room Code</p>
-                <p className="text-lg font-mono font-bold text-gray-800 dark:text-gray-100">{state.roomId}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Room Code Column */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex flex-col justify-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <div>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Room Code</p>
+                  <p className="text-lg font-mono font-bold text-gray-800 dark:text-gray-100">{state.roomId}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={copyRoomCode} 
+                  className="-ml-1 mt-1 h-auto p-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 self-start rounded-md"
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={copyRoomCode} 
-                className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors duration-200"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+
+              {/* Winning Score Column */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex flex-col justify-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
+                <div>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5 flex items-center gap-1"><Target className="h-3 w-3"/>Winning Score</p>
+                  <p className="text-lg font-bold text-gray-800 dark:text-gray-100">{state.winningScore || 500} pts</p>
+                </div>
+                {isHost && (
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Host can change this</span>
+                )}
+              </div>
             </div>
 
             {/* Players list */}
