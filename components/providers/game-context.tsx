@@ -131,25 +131,40 @@ export function GameProvider({
   }, [])
   
   // Format the game duration as mm:ss
-  const getGameDuration = useCallback((endTime?: number): string => {
-    // Use gameStartTime from state if available, fall back to local state
-    const startTime = state.gameStartTime || gameStartTime
+  const getGameDuration = useCallback((): string => {
+    // Use log timestamps for duration
+    if (!state.log || state.log.length < 1) {
+      // Fallback if log is not ready or empty
+      const startTime = state.gameStartTime || gameStartTime
+      if (!startTime) return "00:00"
+      const durationMs = Date.now() - startTime;
+      if (durationMs < 0) return "00:00";
+      const totalSeconds = Math.floor(durationMs / 1000)
+      const minutes = Math.floor(totalSeconds / 60)
+      const seconds = totalSeconds % 60
+      return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+    }
     
-    if (!startTime) return "00:00"
+    // Get the first and last log entries' timestamps
+    const firstLogEntry = state.log[0];
+    const lastLogEntry = state.log[state.log.length - 1];
     
-    // Use provided endTime if available, otherwise use current time
-    const endTimestamp = endTime || Date.now();
-    const durationMs = endTimestamp - startTime;
-    
-    // Ensure duration isn't negative if timestamps are weird
-    if (durationMs < 0) return "00:00"; 
-    
+    const startTime = firstLogEntry.timestamp;
+    const endTime = lastLogEntry.timestamp;
+
+    if (!startTime || !endTime || endTime < startTime) {
+      console.warn("[getGameDuration] Invalid log timestamps found.");
+      return "00:00";
+    }
+
+    const durationMs = endTime - startTime;
     const totalSeconds = Math.floor(durationMs / 1000)
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
-    
+
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-  }, [gameStartTime, state.gameStartTime])
+
+  }, [state.log, state.gameStartTime, gameStartTime])
 
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
