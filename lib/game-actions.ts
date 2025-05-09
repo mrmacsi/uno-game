@@ -28,16 +28,9 @@ async function fetchAndValidateGameState(roomId: string, playerId?: string): Pro
 }
 
 async function broadcastUpdate(roomId: string, gameState: GameState, newLogs?: LogEntry[]) {
-  // Create a copy of the state to modify for broadcasting
   const broadcastState = { ...gameState };
-
-  // Remove the large drawPile array to reduce payload size
   broadcastState.drawPile = []; 
-
-  // Strip any remaining functions
   const strippedState = stripFunctionsFromGameState(broadcastState);
-  
-  // Construct the state to send *without* the log property
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { log, ...stateToSend } = strippedState;
   
@@ -49,37 +42,32 @@ async function broadcastUpdate(roomId: string, gameState: GameState, newLogs?: L
   let success = false;
   let mainUpdateSuccess = false;
 
-  // Try sending the main game-updated event
   while (attempt < MAX_RETRIES && !success) {
     attempt++;
     try {
-       // Send state *without* logs
-      await pusherServer.trigger(`game-${roomId}`, "game-updated", stateToSend); // Send state without log
+      await pusherServer.trigger(`game-${roomId}`, "game-updated", stateToSend);
       success = true;
-      mainUpdateSuccess = true; // Mark main update as successful
+      mainUpdateSuccess = true; 
       console.log(`Broadcast 'game-updated' sent for room ${roomId} (log excluded) on attempt ${attempt}. Payload size (approx estimate): ${JSON.stringify(stateToSend).length} bytes`);
     } catch (error) {
-      // Log specific errors
       if (error instanceof Error && error.message.includes('413')) {
-          console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile and logs. State snapshot:", JSON.stringify(stateToSend).substring(0, 500)); // Log first 500 chars
+          console.error("PUSHER PAYLOAD TOO LARGE - Even after removing drawPile and logs. State snapshot:", JSON.stringify(stateToSend).substring(0, 500)); 
           break; 
       }
       console.error(`Pusher 'game-updated' trigger attempt ${attempt} failed for room ${roomId}:`, error);
-      // Check if it's a retryable error (like ECONNRESET) and if we haven't reached max retries
       const isRetryable = error instanceof Error && typeof (error as { code?: string }) === "object" && (error as { code?: string }).code === 'ECONNRESET';
       if (isRetryable && attempt < MAX_RETRIES) {
           console.log(`Retrying Pusher 'game-updated' trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
       } else {
           console.error(`Pusher 'game-updated' failed definitively for room ${roomId} after ${attempt} attempts.`);
-          break; // Exit the loop
+          break; 
       }
     }
   }
   
-  // If the main update succeeded AND there are new logs, send them separately
   if (mainUpdateSuccess && newLogs && newLogs.length > 0) {
-    attempt = 0; // Reset retry counter for the new event
+    attempt = 0; 
     success = false;
     while (attempt < MAX_RETRIES && !success) {
         attempt++;
@@ -89,7 +77,6 @@ async function broadcastUpdate(roomId: string, gameState: GameState, newLogs?: L
             console.log(`Broadcast 'new-log-entries' sent for room ${roomId} (${newLogs.length} entries) on attempt ${attempt}.`);
         } catch (error) {
             console.error(`Pusher 'new-log-entries' trigger attempt ${attempt} failed for room ${roomId}:`, error);
-            // Add similar retry logic if desired for log entries, or just log the failure
              if (attempt < MAX_RETRIES) {
                  console.log(`Retrying Pusher 'new-log-entries' trigger for room ${roomId} in ${RETRY_DELAY_MS}ms...`);
                  await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
@@ -226,7 +213,16 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
   return gameState;
 }
 
-export async function playCard(roomId: string, playerId: string, cardId: string, chosenColor?: CardColor): Promise<GameState> {
+export async function playCard(roomId: string, playerId: string, cardDetails: Card, chosenColor?: CardColor): Promise<GameState> {
+  console.log("[playCard Action] Received cardDetails:", JSON.stringify(cardDetails, null, 2));
+  console.log("[playCard Action] Received chosenColor:", chosenColor);
+
+  const cardId = cardDetails?.id;
+  if (typeof cardId !== 'string') {
+      console.error("[playCard Action] Error: Card ID is missing or not a string from cardDetails.", cardDetails);
+      throw new Error("Card ID is required and must be a string.");
+  }
+
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
   if (gameState.status !== "playing") {
@@ -241,7 +237,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
 
   if (!gameState.log) gameState.log = [];
 
-  // UNO Check - must be handled before card is played
   const checkingPlayer = gameState.players.find((p: Player) => p.id === playerId);
   if (checkingPlayer && checkingPlayer.cards.length === 2 && !checkingPlayer.saidUno) {
     console.log(`${checkingPlayer.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
@@ -254,7 +249,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
       eventType: 'uno_fail'
     });
     
-    // Pass turn as penalty
     const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
@@ -369,7 +363,6 @@ export async function playCard(roomId: string, playerId: string, cardId: string,
 export async function drawCard(roomId: string, playerId: string): Promise<GameState> {
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
-  // Reset saidUno status at turn start
   const player = gameState.players.find((p: Player) => p.id === playerId);
   if (player) {
       player.saidUno = false; 
@@ -514,7 +507,6 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
 export async function passTurn(roomId: string, playerId: string, forcePass: boolean = false): Promise<GameState> {
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
-  // Reset saidUno status at turn start (This might be redundant if handlePlayCard does it, but safe)
   const player = gameState.players.find((p: Player) => p.id === playerId);
   if (player) {
       player.saidUno = false; 
@@ -627,7 +619,3 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
 
   return gameState;
 }
-
-// --- Utility / Read Actions ---
-
-// (getRoom action is in room-actions.ts)
