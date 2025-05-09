@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react"
 import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2 } from "lucide-react"
+import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import ResetRoomButton from "./reset-room-button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Player } from "@/lib/types"
 import { startGame } from "@/lib/game-actions"
+import { addBotToRoom } from "@/lib/room-actions"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -24,15 +25,13 @@ export default function WaitingRoom() {
   const router = useRouter()
   const [isStarting, setIsStarting] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isAddingBot, setIsAddingBot] = useState(false)
   
-  // Find current player in players array
   const currentPlayer = state.players.find(player => player.id === currentPlayerId)
-  // Check if player is host
   const isHost = Boolean(currentPlayer?.isHost)
-  // Can start game if there are 2+ players and current player is host
   const canStartGame = state.players.length >= 2 && isHost && state.status === "waiting"
+  const canAddBot = isHost && state.players.length < 4 && state.status === "waiting";
   
-  // Force refresh on component mount and animate player joined
   useEffect(() => {
     const timer = setTimeout(() => {
       refreshGameState()
@@ -60,6 +59,29 @@ export default function WaitingRoom() {
       })
     }
   }
+
+  const handleAddBot = async () => {
+    if (!canAddBot) {
+      toast.error("Cannot add bot", {
+        description: state.players.length >= 4 ? "Room is full." : "Only the host can add bots in the waiting room."
+      });
+      return;
+    }
+    setIsAddingBot(true);
+    try {
+      const result = await addBotToRoom(state.roomId);
+      if (result && 'error' in result) {
+        toast.error("Failed to add bot", { description: result.error });
+      } else {
+        toast.success("Bot added to room!")
+      }
+    } catch (err: unknown) {
+      console.error("Failed to add bot:", err);
+      toast.error("Failed to add bot", { description: "An unexpected error occurred." });
+    } finally {
+      setIsAddingBot(false);
+    }
+  };
 
   const handleStartGame = async () => {
     if (!canStartGame) {
@@ -107,11 +129,9 @@ export default function WaitingRoom() {
     router.push("/")
   }
 
-  // Special case: if player ID is null, show a warning
   if (!currentPlayerId) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
-        {/* Background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-48 bg-black/20 backdrop-blur-sm transform -skew-y-3"></div>
           <div className="absolute bottom-0 left-0 right-0 h-48 bg-black/20 backdrop-blur-sm transform skew-y-3"></div>
@@ -202,7 +222,6 @@ export default function WaitingRoom() {
         
         <CardContent className="p-4 text-gray-900 dark:text-gray-100 flex-grow flex flex-col overflow-auto">
           <div className="space-y-4 flex-grow flex flex-col">
-            {/* Room code */}
             <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
               <div>
                 <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Room Code</p>
@@ -218,7 +237,6 @@ export default function WaitingRoom() {
               </Button>
             </div>
 
-            {/* Players list */}
             <div className="space-y-2 flex-grow flex flex-col">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -233,8 +251,6 @@ export default function WaitingRoom() {
               <ScrollArea className="flex-grow h-auto min-h-[80px]">
                 <div className="grid grid-cols-4 gap-2 pr-2">
                   {state.players.map((player: Player, index: number) => {
-                    console.log(`WaitingRoom: Render, ${state.players.length} players, host: ${currentPlayer?.name}`);
-                    console.log(`WaitingRoom: Mapping player - ID: ${player.id}, Name: ${player.name}, Avatar Index: ${player.avatarIndex}, Is Host: ${player.isHost}`);
                     const avatarIndexValue = typeof player.avatarIndex === 'number' ? player.avatarIndex : 0;
                     
                     return (
@@ -267,8 +283,8 @@ export default function WaitingRoom() {
                           className="font-medium text-xs text-gray-800 dark:text-gray-100 truncate w-full" 
                           title={player.name}
                         >
-                          {player.name} 
-                          {player.id === currentPlayerId && (
+                          {player.name} {player.isBot ? "(Bot)" : ""}
+                          {player.id === currentPlayerId && !player.isBot && (
                             <span className="block text-[9px] text-indigo-600 dark:text-indigo-400 font-normal">(You)</span>
                           )}
                         </span>
@@ -279,10 +295,9 @@ export default function WaitingRoom() {
               </ScrollArea>
             </div>
             
-            {/* Info message - Adjusted Styling */}
             {isHost ? (
               <div className={`p-2.5 rounded-lg border text-xs ${canStartGame ? "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800/60 text-green-700 dark:text-green-200" : "bg-yellow-50 dark:bg-yellow-900/40 border-yellow-200 dark:border-yellow-800/60 text-yellow-700 dark:text-yellow-200"}`}> 
-                <p>{canStartGame ? "Ready to start!" : "Need at least 2 players."}</p>
+                <p>{canStartGame ? "Ready to start!" : (state.players.length < 2 ? "Need at least 2 players." : "Add more players or start.")}</p>
               </div>
             ) : (
               <div className="bg-gray-100 dark:bg-gray-800/60 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 text-xs text-center">
@@ -294,6 +309,20 @@ export default function WaitingRoom() {
         
         <CardFooter className="p-4 border-t border-gray-200 dark:border-gray-700/50 flex flex-col gap-2">
           <div className="flex flex-col gap-2 w-full">
+            {canAddBot && (
+                <Button
+                    variant="outline"
+                    className="w-full text-sm py-2.5 rounded-lg border-indigo-500 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-900/30 transition-colors duration-200"
+                    onClick={handleAddBot}
+                    disabled={isAddingBot || state.players.length >=4}
+                >
+                    {isAddingBot ? (
+                        <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Adding Bot...</>
+                    ) : (
+                        <><UserPlus className="mr-1.5 h-4 w-4" /> Add Bot</>
+                    )}
+                </Button>
+            )}
             <Button
               className={`w-full shadow-md py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ease-in-out 
                 ${canStartGame
@@ -320,13 +349,14 @@ export default function WaitingRoom() {
           </div>
           <p className="text-[10px] text-center text-gray-500 dark:text-gray-400 pt-1">
             {!isHost 
-              ? "Only the host can start."
+              ? "Only the host can start or add bots."
               : (state.players.length < 2 
-                ? "Need 2+ players."
-                : "Click Start Game when ready.")}
+                ? "Need 2+ players to start. You can add bots if the room isn't full."
+                : (state.players.length < 4 ? "Click Start Game or Add Bot." : "Click Start Game when ready."))}
           </p>
         </CardFooter>
       </Card>
     </div>
   )
 }
+

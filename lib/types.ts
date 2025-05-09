@@ -16,6 +16,7 @@ export interface Player {
   avatarIndex: number
   saidUno?: boolean
   points?: number
+  isBot?: boolean
 }
 
 export interface MatchResult {

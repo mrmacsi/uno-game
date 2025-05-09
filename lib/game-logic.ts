@@ -1,42 +1,35 @@
-import type { GameState, Card, CardColor, CardType, MatchResult } from "./types"
-import { v4 as uuidv4 } from "uuid"
+import type { GameState, Card, CardColor, CardType, MatchResult } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
-// --- Deck Creation and Management ---
-
-// Creates a standard UNO deck
 function createDeck(): Card[] {
   const colors: CardColor[] = ["red", "blue", "green", "yellow"];
-  // Define number values and action types separately
   const numberValues = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   const actionTypes: CardType[] = ["skip", "reverse", "draw2"];
   const deck: Card[] = [];
 
   colors.forEach(color => {
-    // Add number cards (one 0, two of 1-9)
     numberValues.forEach(value => {
       const count = value === 0 ? 1 : 2;
       for (let i = 0; i < count; i++) {
         deck.push({ 
           id: uuidv4(), 
           color, 
-          type: "number", // Use the "number" type
-          value // Assign the numeric value
+          type: "number",
+          value
         });
       }
     });
-    // Add action cards (two of each)
     actionTypes.forEach(type => {
       for (let i = 0; i < 2; i++) {
         deck.push({ 
           id: uuidv4(), 
           color, 
-          type // Use the action type directly
+          type
         });
       }
     });
   });
 
-  // Add wild cards (four of each)
   for (let i = 0; i < 4; i++) {
     deck.push({ id: uuidv4(), color: "black", type: "wild" });
     deck.push({ id: uuidv4(), color: "black", type: "wild4" });
@@ -45,16 +38,14 @@ function createDeck(): Card[] {
   return deck;
 }
 
-// Shuffles an array using Fisher-Yates algorithm
 function shuffle<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+    [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
 }
 
-// Deals cards to players
 export function dealCards(numPlayers: number): { drawPile: Card[], hands: Card[][] } {
   if (numPlayers < 2 || numPlayers > 4) {
     throw new Error("Invalid number of players (must be 2-4)");
@@ -62,7 +53,6 @@ export function dealCards(numPlayers: number): { drawPile: Card[], hands: Card[]
   const deck = shuffle(createDeck());
   const hands: Card[][] = Array(numPlayers).fill(0).map(() => []);
   
-  // Deal 7 cards to each player
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j < numPlayers; j++) {
       const card = deck.pop();
@@ -76,7 +66,6 @@ export function dealCards(numPlayers: number): { drawPile: Card[], hands: Card[]
   return { drawPile: deck, hands };
 }
 
-// Reshuffles discard pile into draw pile if needed
 export function reshuffleIfNeeded(gameState: GameState): boolean {
   if (gameState.drawPile.length === 0 && gameState.discardPile.length > 1) {
     const topCard = gameState.discardPile.pop()!;
@@ -84,38 +73,29 @@ export function reshuffleIfNeeded(gameState: GameState): boolean {
     gameState.discardPile = [topCard];
     gameState.drawPileCount = gameState.drawPile.length;
     console.log("Reshuffled discard pile into draw pile.")
-    return true // Indicates reshuffle happened
+    return true 
   } 
   gameState.drawPileCount = gameState.drawPile.length;
-  return false // No reshuffle needed
+  return false 
 }
 
-// --- Game Progression --- 
-
-// Determines the index of the next player based on direction
 export function getNextPlayerIndex(gameState: GameState, currentIndex: number): number {
   const numPlayers = gameState.players.length;
-  // Ensure direction is either 1 or -1
   const validDirection = gameState.direction === -1 ? -1 : 1;
   const nextIndex = (currentIndex + validDirection + numPlayers) % numPlayers;
   return nextIndex;
 }
-
-// --- Card Effects and Validation ---
-
-// Applies effects of a played card (draws, skips, reverse)
 export function applyCardEffects(gameState: GameState, card: Card): void {
   const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
   const playerWhoPlayed = gameState.players[currentPlayerIndex];
   let nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
 
-  // Log the card play itself
-  if (!gameState.log) { gameState.log = []; } // Initialize log if it doesn't exist
+  if (!gameState.log) { gameState.log = []; } 
   let logMessage = `${playerWhoPlayed.name} played a ${card.color} ${card.type}`;
   if (card.type === "number" && card.value !== undefined) {
       logMessage += ` ${card.value}`;
   } else if (card.type === "wild" || card.type === "wild4") {
-      logMessage += ` (chose ${gameState.currentColor})`; // Assuming gameState.currentColor is updated *before* calling this
+      logMessage += ` (chose ${gameState.currentColor})`; 
   }
   gameState.log.push({
     id: uuidv4(),
@@ -125,7 +105,7 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
     player: playerWhoPlayed.name,
     cardType: card.type,
     cardColor: card.color,
-    cardValue: card.type === "number" ? card.value : undefined, // Add value if it's a number card
+    cardValue: card.type === "number" ? card.value : undefined,
     avatarIndex: playerWhoPlayed.avatarIndex
   });
 
@@ -141,15 +121,14 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
         cardColor: card.color,
         avatarIndex: gameState.players[nextPlayerIndex].avatarIndex
       })
-      nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); // Skip the next player
+      nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex); 
       break;
     case "reverse":
        gameState.direction *= -1;
        if (gameState.players.length === 2) {
-         // In a 2-player game, reverse acts like skip
          gameState.log.push({
            id: uuidv4(),
-           eventType: 'skip', // Treat as skip log for 2 players
+           eventType: 'skip', 
            message: `Direction reversed! ${gameState.players[nextPlayerIndex].name} was skipped!`,
            timestamp: Date.now(),
            player: gameState.players[nextPlayerIndex].name,
@@ -164,7 +143,7 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
             eventType: 'reverse',
             message: `Direction reversed!`,
             timestamp: Date.now(),
-            player: playerWhoPlayed.name, // Player who played the reverse
+            player: playerWhoPlayed.name, 
             cardType: card.type,
             cardColor: card.color,
             avatarIndex: playerWhoPlayed.avatarIndex
@@ -177,7 +156,6 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       const cardsToDraw2 = gameState.drawPile.splice(0, 2);
       gameState.players[nextPlayerIndex].cards.push(...cardsToDraw2);
       gameState.drawCardEffect = { playerId: gameState.players[nextPlayerIndex].id, count: 2 };
-      // Log is handled by the assumed 'play' event log now
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex);
       break;
     case "wild4":
@@ -185,12 +163,10 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
       const cardsToDraw4 = gameState.drawPile.splice(0, 4);
       gameState.players[nextPlayerIndex].cards.push(...cardsToDraw4);
       gameState.drawCardEffect = { playerId: gameState.players[nextPlayerIndex].id, count: 4 };
-      // Log is handled by the assumed 'play' event log now
       nextPlayerIndex = getNextPlayerIndex(gameState, nextPlayerIndex);
       break;
   }
 
-  // Check if the player who just played is down to one card
   if (playerWhoPlayed.cards.length === 1) {
     if (playerWhoPlayed.saidUno) {
         console.log(`${playerWhoPlayed.name} successfully declared UNO!`);
@@ -220,46 +196,51 @@ export function applyCardEffects(gameState: GameState, card: Card): void {
   gameState.drawPileCount = gameState.drawPile.length;
   gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
 
-  // Reset saidUno status for the player whose turn is *about to begin*
   const nextPlayer = gameState.players[nextPlayerIndex];
-  if (nextPlayer && nextPlayer.cards.length !== 1) { // Only reset if they don't currently have 1 card
+  if (nextPlayer && nextPlayer.cards.length !== 1) { 
       nextPlayer.saidUno = false;
   }
 }
 
-// Checks if a card play is valid based on game state
 export function checkPlayValidity(gameState: GameState, card: Card): boolean {
   const topCard = gameState.discardPile[gameState.discardPile.length - 1];
-  // If discard pile is empty (shouldn't happen mid-game, but safety check)
   if (!topCard) return true; 
 
-  // Wild cards are always valid (color choice handled separately)
   if (card.type === "wild" || card.type === "wild4") return true;
 
-  // Check for valid play conditions:
-  // 1. Card color matches the current color (set by previous card or a wild)
   if (card.color === gameState.currentColor) return true;
   
-  // 2. Card color matches the actual color of the top card (if not a wild)
   if (card.color === topCard.color) return true;
 
-  // 3. Card type is number and value matches top card's value (if it's a number card)
   if (card.type === "number" && topCard.type === "number" && card.value === topCard.value) return true;
   
-  // 4. Card type is action (skip, reverse, draw2) and type matches top card's type (if it's an action card)
   if (card.type !== "number" && card.type === topCard.type) return true; 
 
-  // If none of the above conditions are met, the play is invalid
   return false;
 }
 
-// --- Scoring ---
+export function getCardPointValue(card: Card): number {
+  if (card.type === "number" && card.value !== undefined) {
+    return card.value;
+  } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
+    return 20;
+  } else if (card.type === "wild" || card.type === "wild4") {
+    return 50;
+  }
+  return 0; 
+}
 
-// Calculates points at the end of a round
+export const calculateHandPoints = (cards: Card[]): number => {
+  let points = 0;
+  cards.forEach(card => {
+    points += getCardPointValue(card);
+  });
+  return points;
+};
+
 export function calculatePoints(gameState: GameState): void {
   if (gameState.status !== "finished" || !gameState.winner) return;
 
-  // Ensure matchHistory exists
   if (!gameState.matchHistory) gameState.matchHistory = [];
 
   const matchResult: MatchResult = {
@@ -279,23 +260,77 @@ export function calculatePoints(gameState: GameState): void {
   console.log(`Round finished. Winner: ${gameState.winner}. All losers' points summed: ${matchResult.finalScore}`);
 }
 
-// --- Scoring Utilities (Moved from GameOver component) ---
+type BotPlayDecision = 
+  | { action: 'play', card: Card, chosenColor?: CardColor, shouldDeclareUno?: boolean } 
+  | { action: 'draw' };
 
-/**
- * Calculates the point value of a single hand of cards.
- * @param cards Array of cards in a player's hand.
- * @returns Total point value of the hand.
- */
-export const calculateHandPoints = (cards: Card[]): number => {
-  let points = 0;
-  cards.forEach(card => {
-    if (card.type === "number" && card.value !== undefined) {
-      points += card.value;
-    } else if (card.type === "skip" || card.type === "reverse" || card.type === "draw2") {
-      points += 20;
-    } else if (card.type === "wild" || card.type === "wild4") { // Treat Wild Swap Hands (if any) same as Wild
-      points += 50;
+export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecision {
+  const botPlayer = gameState.players.find(p => p.id === playerId);
+  if (!botPlayer || botPlayer.cards.length === 0) return { action: 'draw' };
+
+  let playableCards: Card[] = botPlayer.cards.filter(card => checkPlayValidity(gameState, card));
+
+  if (playableCards.length === 0) return { action: 'draw' };
+
+  // Prioritize playing cards that don't make the bot declare UNO unnecessarily
+  // but still play aggressively. This is a simple heuristic.
+  playableCards.sort((a, b) => {
+    // If bot has 2 cards, it prefers to play a card that makes it win,
+    // otherwise, it plays the highest value card.
+    if (botPlayer.cards.length === 2) {
+      // This sorting doesn't directly relate to UNO declaration,
+      // The UNO declaration logic is separate.
+      // We just want to play the best card.
     }
+    return getCardPointValue(b) - getCardPointValue(a) // Play highest point card
   });
-  return points;
-}; 
+  
+  const bestCardToPlay = playableCards[0];
+  let shouldDeclareUno = false;
+
+  // Check if playing this card will result in having one card left.
+  // The bot should declare UNO if it has exactly two cards currently, AND a playable card.
+  if (botPlayer.cards.length === 2) {
+      shouldDeclareUno = true;
+  }
+  
+  let decision: BotPlayDecision;
+
+  if (bestCardToPlay.type === "wild" || bestCardToPlay.type === "wild4") {
+    const colorCounts: { [key in CardColor]?: number } = {};
+    const validColors: CardColor[] = ["red", "blue", "green", "yellow"];
+
+    botPlayer.cards.forEach(cardInHand => {
+      if (cardInHand.id === bestCardToPlay.id) return; 
+      if (cardInHand.color !== "black" && validColors.includes(cardInHand.color)) {
+        colorCounts[cardInHand.color] = (colorCounts[cardInHand.color] || 0) + 1;
+      }
+    });
+
+    let chosenColor: CardColor = "red"; 
+    let maxCount = 0;
+
+    if (Object.keys(colorCounts).length > 0) {
+      for (const color of validColors) {
+          const count = colorCounts[color] || 0;
+          if (count > maxCount) {
+              maxCount = count;
+              chosenColor = color;
+          }
+      }
+    } else {
+      // If no other colored cards, pick a random color
+      chosenColor = validColors[Math.floor(Math.random() * validColors.length)];
+    }
+    
+    decision = { action: 'play', card: bestCardToPlay, chosenColor };
+  } else {
+    decision = { action: 'play', card: bestCardToPlay };
+  }
+
+  if (decision.action === 'play' && shouldDeclareUno) {
+    decision.shouldDeclareUno = true;
+  }
+
+  return decision;
+}

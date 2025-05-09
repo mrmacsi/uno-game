@@ -582,35 +582,44 @@ export function GameProvider({
     if (isProcessingPlay) {
       console.log("Play blocked: Another play is already in progress.");
       toast.warning("Please wait", { description: "Processing previous action." });
-      return; // Prevent multiple plays if one is already processing
+      return; 
     }
     
-    setIsProcessingPlay(true); // Set processing state
+    setIsProcessingPlay(true); 
     setIsLoading(true)
     setError(null)
 
     const player = state.players.find(p => p.id === currentPlayerId)
-    if (!player) return;
+    if (!player) {
+        setIsProcessingPlay(false);
+        setIsLoading(false);
+        return;
+    }
 
     try {
       console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, stateCurrentColor: state.currentColor, turn: state.currentPlayer })
       if (state.currentPlayer !== currentPlayerId) {
         console.warn("[GameProvider] Attempted action when not current player's turn.")
         toast.error("Not Your Turn", { description: "Please wait for your turn." })
-        setIsProcessingPlay(false); // Reset processing state here
+        setIsProcessingPlay(false); 
         return
       }
-      const card = player?.cards.find(c => c.id === cardId)
-      if (!card) throw new Error("Card not in hand (client check)")
+      const card = player.cards.find(c => c.id === cardId) // Use player directly
+      if (!card) {
+        setIsProcessingPlay(false);
+        throw new Error("Card not in hand (client check)")
+      }
       if (!checkPlayValidityLogic(state, card)) {
+        setIsProcessingPlay(false);
         throw new Error("Invalid play (client check)")
       }
       if ((card.type === "wild" || card.type === "wild4") && !selectedColor) {
         setPendingWildCardId(cardId)
         setIsColorSelectionOpen(true)
-        setIsProcessingPlay(false); // Reset processing state here
+        setIsProcessingPlay(false); 
         return
       }
+      
       // Optimistic update for non-wild cards
       if (card.type !== "wild" && card.type !== "wild4") {
         const updatedPlayers = state.players.map(p =>
@@ -630,12 +639,12 @@ export function GameProvider({
           },
         })
       }
-      await playCard(roomId, currentPlayerId, cardId, selectedColor)
+      // ***FIX HERE***: Pass the full 'card' object instead of 'cardId'
+      await playCard(roomId, currentPlayerId, card, selectedColor)
       setPendingWildCardId(null)
       setIsColorSelectionOpen(false)
     } catch (err) {
       console.error("[handlePlayCard] Error playing card:", err)
-      // Show specific message if available, otherwise generic
       const specificErrors = ["Invalid play", "Card not in hand", "Not Your Turn"];
       const errorMessage = err instanceof Error && specificErrors.some(e => err.message.includes(e)) 
         ? err.message 
@@ -644,7 +653,7 @@ export function GameProvider({
       await refreshGameState()
     } finally {
       setIsLoading(false)
-      setIsProcessingPlay(false); // Reset processing state regardless of outcome
+      setIsProcessingPlay(false); 
     }
   }
 
@@ -674,15 +683,9 @@ export function GameProvider({
       setIsLoading(true)
       await drawCard(roomId, currentPlayerId)
       
-      // Remove toast for drawing card
-      // toast("Card Drawn", {
-      //   description: "You drew a card from the pile",
-      // })
-      
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to draw card:", error)
-      // Show specific message if available, otherwise generic
       const specificErrors = ["It's not your turn", "Already drawn"];
       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
@@ -705,7 +708,6 @@ export function GameProvider({
         return;
     }
 
-    // Optimistic UI update for smoother UX
     dispatch({ 
         type: "UPDATE_GAME_STATE", 
         payload: {
@@ -715,20 +717,13 @@ export function GameProvider({
             )
         }
     });
-    // Remove optimistic toast - rely on log event broadcast
-    // toast("UNO Declared!", { 
-    //   description: "Now you can play your second-to-last card!", 
-    //   duration: 1500,
-    // });
 
     setIsLoading(true)
     setError(null)
     try {
       await declareUno(roomId, currentPlayerId)
-      // State will be updated via Pusher, no need to manually dispatch here after await
     } catch (err) {
       console.error("[handleDeclareUno] Error declaring UNO:", err)
-      // Use a more generic error message unless it's a specific known issue
       const errorMessage = err instanceof Error && err.message.includes("Invalid Action") 
         ? err.message 
         : "Failed to declare UNO. Please try again.";
@@ -744,20 +739,36 @@ export function GameProvider({
       toast.error("Invalid Color", { description: "Please select Red, Blue, Green, or Yellow." })
       return
     }
+
+    const player = state.players.find(p => p.id === currentPlayerId);
+    if (!player) {
+        console.error("Player not found for wild card color selection");
+        toast.error("Action Failed", { description: "Player data not found." });
+        return;
+    }
+
+    const cardToPlay = player.cards.find(c => c.id === pendingWildCardId);
+    if (!cardToPlay) {
+        console.error(`Pending wild card with ID ${pendingWildCardId} not found in player's hand.`);
+        toast.error("Action Failed", { description: "Card not found. Please try again." });
+        await refreshGameState(); // Refresh to sync state
+        return;
+    }
+    
     console.log(`[GameProvider] Color selected: ${color} for card ${pendingWildCardId}`)
     setIsColorSelectionOpen(false)
     setIsLoading(true)
     try {
-      await playCard(roomId, currentPlayerId, pendingWildCardId, color)
+      // ***FIX HERE***: Pass the full 'cardToPlay' object
+      await playCard(roomId, currentPlayerId, cardToPlay, color)
       setPendingWildCardId(null)
     } catch (err) {
       console.error("Failed to play wild card after color selection:", err)
-      // Use a more generic error message
       toast.error("Action Failed", { description: "Could not play the wild card. Please try again." })
       await refreshGameState()
     } finally {
       setIsLoading(false)
-      setPendingWildCardId(null)
+      setPendingWildCardId(null) // Ensure this is cleared even on error
     }
   }
   
@@ -772,7 +783,6 @@ export function GameProvider({
       return
     }
     
-    // Check if the game is in playing status
     if (state.status !== "playing") {
       console.error("[GameProvider] Cannot pass turn: Game is not in progress")
       toast.error("Cannot Pass Turn", {
@@ -781,7 +791,6 @@ export function GameProvider({
       return
     }
     
-    // Check if it's the player's turn
     if (state.currentPlayer !== currentPlayerId) {
       console.error("[GameProvider] Cannot pass turn: Not your turn")
       toast.error("Cannot Pass Turn", {
@@ -793,12 +802,10 @@ export function GameProvider({
     try {
       setIsLoading(true)
       await passTurn(roomId, currentPlayerId, forcePass)
-      // State update will be handled by Pusher
       setIsLoading(false)
     } catch (error) {
       console.error("[GameProvider] Failed to pass turn:", error)
-       // Show specific message if available, otherwise generic
-      const specificErrors = ["It's not your turn", "Game is not in progress"];
+       const specificErrors = ["It's not your turn", "Game is not in progress"];
        const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
         : "Failed to pass turn. Please try again.";
