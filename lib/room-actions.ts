@@ -5,6 +5,7 @@ import type { GameState, Player } from "./types"
 import { pusherServer } from "@/lib/pusher-server"
 import { storeGameState, getGameState, updateGameState, deleteRoom as dbDeleteRoom, getAllRooms as dbGetAllRooms } from "./db-actions"
 import { stripFunctionsFromGameState } from "./utils"
+import { generateRandomName } from "@/lib/name-generator"
 
 function generateRoomCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -139,10 +140,7 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
     return { error: "Room is full" };
   }
 
-  let botNumber = 1;
-  while (gameState.players.some(p => p.name === `Bot ${botNumber}` || p.id === `bot-${botNumber}`)) {
-    botNumber++;
-  }
+  const botName = `${generateRandomName()} (Bot)`;
 
   const existingAvatarIndices = gameState.players.map(p => p.avatarIndex);
   let nextAvatarIndex = 0;
@@ -152,7 +150,7 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   
   const botPlayer: Player = {
     id: `bot-${uuidv4()}`,
-    name: `Bot ${botNumber}`,
+    name: botName,
     cards: [],
     isHost: false,
     isBot: true,
@@ -162,7 +160,7 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   gameState.players.push(botPlayer);
   gameState.log.push({
     id: uuidv4(),
-    message: `${botPlayer.name} (Bot) joined the room.`,
+    message: `${botPlayer.name} joined the room.`,
     timestamp: Date.now(),
     player: botPlayer.name,
     avatarIndex: botPlayer.avatarIndex,
