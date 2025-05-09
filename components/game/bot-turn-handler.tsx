@@ -5,7 +5,7 @@ import { useGame } from "@/components/providers/game-context";
 import { getBotPlay } from "@/lib/game-logic";
 import type { GameState, Card } from "@/lib/types";
 
-const BOT_TURN_DELAY_MS = 1500;
+const BOT_TURN_DELAY_MS = 500;
 
 export default function BotTurnHandler() {
   const { state: gameState } = useGame();
@@ -34,18 +34,41 @@ export default function BotTurnHandler() {
 
       try {
         if (botPlayResult.action === 'play') {
-          const cardToPlay: Card = botPlayResult.card;
-          console.log("BotTurnHandler: Card to play:", JSON.parse(JSON.stringify(cardToPlay)));
-
-          if (!cardToPlay || typeof cardToPlay.id !== 'string') {
-            console.error("BotTurnHandler: Invalid card object or missing/invalid card ID before sending to API.", cardToPlay);
+          const cardFromBotLogic = botPlayResult.card;
+          
+          if (!cardFromBotLogic || typeof cardFromBotLogic.id !== 'string') {
+            console.error("BotTurnHandler: Invalid card object or missing/invalid card ID from getBotPlay result.", JSON.parse(JSON.stringify(cardFromBotLogic)));
             return; 
           }
+
+          console.log("BotTurnHandler: Card suggested by getBotPlay logic:", JSON.parse(JSON.stringify(cardFromBotLogic)));
+
+          // Ensure botPlayer.cards exists and is an array before trying to find a card in it.
+          if (!botPlayer.cards || !Array.isArray(botPlayer.cards)) {
+             console.error("BotTurnHandler: botPlayer.cards is missing or not an array.", JSON.parse(JSON.stringify(botPlayer)));
+             return;
+          }
+
+          // Find the actual card object from the bot's current hand using the ID from botPlayResult
+          const actualCardInHand = botPlayer.cards.find(c => c.id === cardFromBotLogic.id);
+
+          if (!actualCardInHand) {
+            console.error(
+              `BotTurnHandler: Card with ID ${cardFromBotLogic.id} (suggested by bot logic) not found in bot's current hand. Bot logic might be flawed or using stale data.Aborting play action.`, 
+              "Bot's current hand:", JSON.parse(JSON.stringify(botPlayer.cards)),
+              "Card suggested by logic:", JSON.parse(JSON.stringify(cardFromBotLogic))
+            );
+            // If the card isn't in hand, the bot can't play it. Consider drawing or ending turn if applicable.
+            // For now, just aborting this play attempt.
+            return;
+          }
+          
+          console.log("BotTurnHandler: Actual card from hand to play (verified):", JSON.parse(JSON.stringify(actualCardInHand)));
 
           const body: any = {
             roomId: gameState.roomId,
             playerId: gameState.currentPlayer,
-            card: cardToPlay,
+            card: actualCardInHand, // Use the verified card object from the bot's hand
           };
           if (botPlayResult.chosenColor) {
             body.chosenColor = botPlayResult.chosenColor;
