@@ -261,7 +261,7 @@ export function calculatePoints(gameState: GameState): void {
 }
 
 type BotPlayDecision = 
-  | { action: 'play', card: Card, chosenColor?: CardColor } 
+  | { action: 'play', card: Card, chosenColor?: CardColor, shouldDeclareUno?: boolean } 
   | { action: 'draw' };
 
 export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecision {
@@ -272,9 +272,29 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
 
   if (playableCards.length === 0) return { action: 'draw' };
 
-  playableCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
+  // Prioritize playing cards that don't make the bot declare UNO unnecessarily
+  // but still play aggressively. This is a simple heuristic.
+  playableCards.sort((a, b) => {
+    // If bot has 2 cards, it prefers to play a card that makes it win,
+    // otherwise, it plays the highest value card.
+    if (botPlayer.cards.length === 2) {
+      // This sorting doesn't directly relate to UNO declaration,
+      // The UNO declaration logic is separate.
+      // We just want to play the best card.
+    }
+    return getCardPointValue(b) - getCardPointValue(a) // Play highest point card
+  });
   
   const bestCardToPlay = playableCards[0];
+  let shouldDeclareUno = false;
+
+  // Check if playing this card will result in having one card left.
+  // The bot should declare UNO if it has exactly two cards currently, AND a playable card.
+  if (botPlayer.cards.length === 2) {
+      shouldDeclareUno = true;
+  }
+  
+  let decision: BotPlayDecision;
 
   if (bestCardToPlay.type === "wild" || bestCardToPlay.type === "wild4") {
     const colorCounts: { [key in CardColor]?: number } = {};
@@ -299,11 +319,18 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
           }
       }
     } else {
+      // If no other colored cards, pick a random color
       chosenColor = validColors[Math.floor(Math.random() * validColors.length)];
     }
     
-    return { action: 'play', card: bestCardToPlay, chosenColor };
+    decision = { action: 'play', card: bestCardToPlay, chosenColor };
+  } else {
+    decision = { action: 'play', card: bestCardToPlay };
   }
 
-  return { action: 'play', card: bestCardToPlay };
+  if (decision.action === 'play' && shouldDeclareUno) {
+    decision.shouldDeclareUno = true;
+  }
+
+  return decision;
 }

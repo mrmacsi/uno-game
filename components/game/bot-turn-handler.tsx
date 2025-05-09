@@ -43,13 +43,11 @@ export default function BotTurnHandler() {
 
           console.log("BotTurnHandler: Card suggested by getBotPlay logic:", JSON.parse(JSON.stringify(cardFromBotLogic)));
 
-          // Ensure botPlayer.cards exists and is an array before trying to find a card in it.
           if (!botPlayer.cards || !Array.isArray(botPlayer.cards)) {
              console.error("BotTurnHandler: botPlayer.cards is missing or not an array.", JSON.parse(JSON.stringify(botPlayer)));
              return;
           }
 
-          // Find the actual card object from the bot's current hand using the ID from botPlayResult
           const actualCardInHand = botPlayer.cards.find(c => c.id === cardFromBotLogic.id);
 
           if (!actualCardInHand) {
@@ -58,17 +56,35 @@ export default function BotTurnHandler() {
               "Bot's current hand:", JSON.parse(JSON.stringify(botPlayer.cards)),
               "Card suggested by logic:", JSON.parse(JSON.stringify(cardFromBotLogic))
             );
-            // If the card isn't in hand, the bot can't play it. Consider drawing or ending turn if applicable.
-            // For now, just aborting this play attempt.
             return;
           }
           
           console.log("BotTurnHandler: Actual card from hand to play (verified):", JSON.parse(JSON.stringify(actualCardInHand)));
 
+          // Declare UNO if needed
+          if (botPlayResult.shouldDeclareUno) {
+            console.log(`BotTurnHandler: ${botPlayer.name} is declaring UNO.`);
+            const unoResponse = await fetch('/api/game/ring', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ roomId: gameState.roomId, playerId: gameState.currentPlayer }),
+            });
+            if (!unoResponse.ok) {
+              const errorData = await unoResponse.text();
+              console.error('Bot Action: Failed to declare UNO:', unoResponse.status, unoResponse.statusText, errorData);
+              // Optionally, decide if the bot should still attempt to play the card or abort the turn.
+              // For now, we'll let it try to play the card anyway.
+            } else {
+              console.log("Bot Action: Successfully declared UNO.");
+            }
+          }
+
           const body: any = {
             roomId: gameState.roomId,
             playerId: gameState.currentPlayer,
-            card: actualCardInHand, // Use the verified card object from the bot's hand
+            card: actualCardInHand, 
           };
           if (botPlayResult.chosenColor) {
             body.chosenColor = botPlayResult.chosenColor;
