@@ -108,6 +108,12 @@ export async function executeAutomatedTurnAction(
  * Handles the API call for a player to draw a card.
  */
 export async function executeAutomatedDraw(gameState: GameState, playerId: string) {
+  // Check if the player has already drawn a card this turn
+  if (gameState.hasDrawnThisTurn) {
+    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn. Skipping draw action.`);
+    return;
+  }
+
   console.log(`executeAutomatedDraw: Player ${playerId} is drawing a card.`);
   const response = await fetch('/api/game/draw-card', {
     method: 'POST',

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useGame } from "@/components/providers/game-context";
 import { getBotPlay } from "@/lib/game-logic";
 import type { GameState } from "@/lib/types";
@@ -10,13 +10,25 @@ const BOT_TURN_DELAY_MS = 500;
 
 export default function BotTurnHandler() {
   const { state: gameState } = useGame();
+  const isBotTurnInProgress = useRef(false);
 
   useEffect(() => {
     const currentPlayerInContext = gameState.players.find(player => player.id === gameState.currentPlayer);
 
     const handleBotTurn = async () => {
+      if (isBotTurnInProgress.current) {
+        console.log("BotTurnHandler: Bot turn already in progress. Skipping this execution.");
+        return;
+      }
+
       if (!gameState.currentPlayer) {
         console.error("BotTurnHandler: No current player ID in game state for bot turn.");
+        return;
+      }
+      
+      // Verify the current player is still the same when the timeout executes
+      if (gameState.currentPlayer !== currentPlayerInContext?.id) {
+        console.log(`BotTurnHandler: Current player changed from ${currentPlayerInContext?.id} to ${gameState.currentPlayer}. Aborting bot action.`);
         return;
       }
       
@@ -31,15 +43,20 @@ export default function BotTurnHandler() {
         return;
       }
 
-      console.log("BotTurnHandler: GameState at bot turn execution:", JSON.parse(JSON.stringify(gameState)));
-      console.log("BotTurnHandler: Bot player object:", JSON.parse(JSON.stringify(botPlayer)));
-      
-      // Get the bot's intended play
-      const botPlayResult = getBotPlay(gameState as GameState, gameState.currentPlayer);
-      console.log("BotTurnHandler: botPlayResult from getBotPlay:", JSON.parse(JSON.stringify(botPlayResult)));
+      try {
+        isBotTurnInProgress.current = true;
+        console.log("BotTurnHandler: GameState at bot turn execution:", JSON.parse(JSON.stringify(gameState)));
+        console.log("BotTurnHandler: Bot player object:", JSON.parse(JSON.stringify(botPlayer)));
+        
+        // Get the bot's intended play
+        const botPlayResult = getBotPlay(gameState as GameState, gameState.currentPlayer);
+        console.log("BotTurnHandler: botPlayResult from getBotPlay:", JSON.parse(JSON.stringify(botPlayResult)));
 
-      // Execute the determined action using the new utility function
-      await executeAutomatedTurnAction(gameState, gameState.currentPlayer, botPlayResult);
+        // Execute the determined action using the new utility function
+        await executeAutomatedTurnAction(gameState, gameState.currentPlayer, botPlayResult);
+      } finally {
+        isBotTurnInProgress.current = false;
+      }
     };
 
     let turnTimeoutId: NodeJS.Timeout | undefined;
