@@ -20,29 +20,73 @@ export default function GameBoard() {
     selectWildCardColor,
     isColorSelectionOpen,
     closeColorSelector,
-    currentPlayerId,
-    getGameDuration
+    currentPlayerId
   } = useGame()
   const router = useRouter()
   const [fullscreen, setFullscreen] = useState(false)
   const [gameTime, setGameTime] = useState("00:00")
   const [isMessagesOpen, setIsMessagesOpen] = useState(false)
-  const messagesPanelRef = useRef<HTMLDivElement>(null); // Ref for the messages panel
+  const messagesPanelRef = useRef<HTMLDivElement>(null)
+  const timerStartRef = useRef<number | null>(null)
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
   const currentPlayer = state.players.find(p => p.id === currentPlayerId)
   const isMyTurn = state.currentPlayer === currentPlayerId
 
-  // Update game timer every second
+  // Format seconds to MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Independent timer implementation
   useEffect(() => {
-    if (state.status !== "playing") return
-    
-    const interval = setInterval(() => {
-      setGameTime(getGameDuration())
-    }, 1000)
-    
-    return () => clearInterval(interval)
-  }, [state.status, getGameDuration])
+    // Clear any existing timer when component mounts or state.status changes
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    // If game is playing, start the timer
+    if (state.status === "playing") {
+      // Initialize timer start reference if it's not set
+      if (!timerStartRef.current) {
+        timerStartRef.current = Date.now();
+      }
+
+      // Function to update the timer
+      const updateTimer = () => {
+        if (timerStartRef.current) {
+          const elapsedSeconds = Math.floor((Date.now() - timerStartRef.current) / 1000);
+          setGameTime(formatTime(elapsedSeconds));
+        }
+      };
+
+      // Update immediately, then set interval
+      updateTimer();
+      timerIntervalRef.current = setInterval(updateTimer, 1000);
+    } else if (state.status === "waiting") {
+      // Reset timer when game is waiting
+      timerStartRef.current = null;
+      setGameTime("00:00");
+    }
+
+    // Cleanup function
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [state.status]);
+
+  // Reset timer when gameStartTime changes
+  useEffect(() => {
+    if (state.gameStartTime && state.status === "playing") {
+      timerStartRef.current = state.gameStartTime;
+    }
+  }, [state.gameStartTime, state.status]);
 
   // Effect to close message panel on outside click
   useEffect(() => {
