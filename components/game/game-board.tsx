@@ -184,7 +184,7 @@ export default function GameBoard() {
               )}
               {otherPlayers.length > 1 && (
                 <>
-                  <div className="absolute left-2 top-[100px] w-32">
+                  <div className="absolute left-2 top-[70px] w-32">
                     <PlayerInfo 
                       player={otherPlayers[0]}
                       isCurrentTurn={otherPlayers[0].id === state.currentPlayer}
@@ -200,7 +200,7 @@ export default function GameBoard() {
                       />
                     </div>
                   )}
-                  <div className="absolute right-2 top-[100px] w-32">
+                  <div className="absolute right-2 top-[70px] w-32">
                     <PlayerInfo 
                       player={otherPlayers[otherPlayers.length - 1]}
                       isCurrentTurn={otherPlayers[otherPlayers.length - 1].id === state.currentPlayer}
@@ -260,7 +260,7 @@ export default function GameBoard() {
           <div className="absolute top-1/2 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           
           {/* Card piles container - position them for better animation path */}
-          <div className="flex justify-center items-center gap-8 sm:gap-24 lg:gap-32 relative z-10 mt-8 sm:mt-12">
+          <div className="flex justify-center items-center gap-4 sm:gap-24 lg:gap-32 relative z-10 mt-4 sm:mt-12">
             {/* Draw pile positioned on the left for better animation path */}
             <div className="relative">
               <DrawPile count={state.drawPileCount || 0} />
@@ -279,7 +279,7 @@ export default function GameBoard() {
         {/* Current Player Info (Above Controls) */}
         <div className="w-full flex justify-center px-2 pb-1">
           {currentPlayer && (
-            <div className="w-44 sm:w-56">
+            <div className="w-40 sm:w-56">
               <PlayerInfo 
                 player={currentPlayer} 
                 isCurrentTurn={isMyTurn} 
@@ -294,7 +294,7 @@ export default function GameBoard() {
         </div>
         
         {/* Player hand - gets full focus with more space */}
-        <div className="relative w-full flex items-center justify-center min-h-[140px] sm:min-h-[150px] overflow-visible">
+        <div className="relative w-full flex items-center justify-center min-h-[110px] sm:min-h-[150px] overflow-visible">
           <PlayerHand />
         </div>
       </div>
