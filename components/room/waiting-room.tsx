@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react"
 import { useGame } from "../providers/game-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2, UserPlus } from "lucide-react"
+import { Copy, Play, RefreshCw, Home, Crown, AlertCircle, Users, Loader2, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import ResetRoomButton from "./reset-room-button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Player } from "@/lib/types"
 import { startGame } from "@/lib/game-actions"
-import { addBotToRoom } from "@/lib/room-actions"
+import { addBotToRoom, removeBotFromRoom } from "@/lib/room-actions"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -26,6 +26,7 @@ export default function WaitingRoom() {
   const [isStarting, setIsStarting] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isAddingBot, setIsAddingBot] = useState(false)
+  const [isRemovingBot, setIsRemovingBot] = useState<string | null>(null);
   
   const currentPlayer = state.players.find(player => player.id === currentPlayerId)
   const isHost = Boolean(currentPlayer?.isHost)
@@ -80,6 +81,27 @@ export default function WaitingRoom() {
       toast.error("Failed to add bot", { description: "An unexpected error occurred." });
     } finally {
       setIsAddingBot(false);
+    }
+  };
+
+  const handleRemoveBot = async (botId: string) => {
+    if (!isHost) {
+      toast.error("Only the host can remove bots.");
+      return;
+    }
+    setIsRemovingBot(botId);
+    try {
+      const result = await removeBotFromRoom(state.roomId, botId);
+      if (result && 'error' in result) {
+        toast.error("Failed to remove bot", { description: result.error });
+      } else {
+        toast.success("Bot removed from room!");
+      }
+    } catch (err: unknown) {
+      console.error("Failed to remove bot:", err);
+      toast.error("Failed to remove bot", { description: "An unexpected error occurred." });
+    } finally {
+      setIsRemovingBot(null);
     }
   };
 
@@ -263,6 +285,18 @@ export default function WaitingRoom() {
                         layout
                         transition={{ delay: index * 0.05, type: "spring", stiffness: 100, damping: 15 }}
                       >
+                        {isHost && player.isBot && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 z-20 h-6 w-6 rounded-full bg-red-500/80 text-white hover:bg-red-600/90"
+                            onClick={() => handleRemoveBot(player.id)}
+                            disabled={isRemovingBot === player.id}
+                            title="Remove Bot"
+                          >
+                            {isRemovingBot === player.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          </Button>
+                        )}
                         <div className="relative mb-1.5">
                           {player.isHost && (
                             <div className="absolute -top-1 -right-1 z-10 bg-gradient-to-r from-yellow-400 to-amber-500 p-0.5 rounded-full shadow-md">
