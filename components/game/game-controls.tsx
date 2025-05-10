@@ -51,6 +51,8 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
     declareUno,
     increaseCardSize,
     decreaseCardSize,
+    isAutoPlayActive,
+    toggleAutoPlay
   } = useGame();
   const isMobile = useIsMobile();
 
@@ -82,6 +84,16 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
     console.log("GameControls: Auto Play - getBotPlay result:", JSON.parse(JSON.stringify(botPlayResult)));
     
     await executeAutomatedTurnAction(state, state.currentPlayer, botPlayResult);
+  };
+
+  // Handle auto play button click
+  const handleAutoPlayButtonClick = () => {
+    toggleAutoPlay();
+    
+    // If it's the player's turn and we're turning auto play on, immediately execute a move
+    if (isMyTurn && isHumanPlayer && !isAutoPlayActive) {
+      handleAutoPlay();
+    }
   };
 
   const colorStyles = {
@@ -308,28 +320,30 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           </>
         )}
 
-        {/* Auto Play Button - New */}
-        {isMyTurn && isHumanPlayer && (
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleAutoPlay}
-                  size="sm"
-                  className={`bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs min-w-[70px] ${
-                    isMobile ? "w-[65px]" : ""
-                  }`}
-                >
-                  <Play className="h-3 w-3 mr-0.5 sm:mr-1" />
-                  Auto
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-                <p>Let the AI play this turn for you</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        {/* Auto Play Button - Always visible */}
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleAutoPlayButtonClick}
+                size="sm"
+                className={`bg-gradient-to-r ${
+                  isAutoPlayActive 
+                    ? "from-red-500 to-red-600 hover:from-red-600 hover:to-red-700" 
+                    : "from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700"
+                } text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs min-w-[70px] ${
+                  isMobile ? "w-[65px]" : ""
+                }`}
+              >
+                <Play className="h-3 w-3 mr-0.5 sm:mr-1" />
+                {isAutoPlayActive ? "Stop Auto" : "Auto"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+              <p>{isAutoPlayActive ? "Disable auto play" : "Let the AI play for you"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         {canSayUno && (
           <Button

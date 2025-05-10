@@ -1,4 +1,4 @@
-import type { GameState, Card, CardColor, Player } from "@/lib/types";
+import type { GameState, Card, CardColor } from "@/lib/types";
 import { getBotPlay } from "@/lib/game-logic"; // Used for type, and potentially directly if a wrapper is made
 
 interface PlayCardRequestBody {

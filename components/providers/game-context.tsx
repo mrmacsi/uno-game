@@ -1,61 +1,63 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react"
-import { useRouter } from 'next/navigation'
-import pusherClient from "@/lib/pusher-client"
-import type { GameState, GameAction, Card, CardColor, LogEntry } from "@/lib/types"
-import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction, rematchGame } from "@/lib/game-actions"
-import { getRoom, resetRoom } from "@/lib/room-actions"
-import { getPlayerIdFromLocalStorage } from "@/lib/client-utils"
-import type { Channel } from "pusher-js"
-import Pusher from 'pusher-js'
-import { checkPlayValidity as checkPlayValidityLogic } from '@/lib/game-logic'
-import { toast } from "sonner"
+import React, { createContext, useContext, useEffect, useReducer, useState, type ReactNode, useRef, useCallback } from "react";
+import { useRouter } from 'next/navigation';
+import pusherClient from "@/lib/pusher-client";
+import type { GameState, GameAction, Card, CardColor, LogEntry } from "@/lib/types";
+import { playCard, drawCard, declareUno, passTurn, startGame as startGameAction, rematchGame } from "@/lib/game-actions";
+import { getRoom, resetRoom } from "@/lib/room-actions";
+import { getPlayerIdFromLocalStorage } from "@/lib/client-utils";
+import type { Channel } from "pusher-js";
+import Pusher from 'pusher-js';
+import { checkPlayValidity as checkPlayValidityLogic, getBotPlay } from '@/lib/game-logic';
+import { executeAutomatedTurnAction } from '@/lib/auto-play-utils';
+import { toast } from "sonner";
 
 type GameContextType = {
-  state: GameState
-  playCard: (cardId: string, selectedColor?: CardColor) => Promise<void>
-  drawCard: () => Promise<void>
-  declareUno: () => Promise<void>
-  currentPlayerId: string | null
-  refreshGameState: () => Promise<void>
-  selectWildCardColor: (color: CardColor) => Promise<void>
-  isColorSelectionOpen: boolean
-  pendingWildCardId: string | null
-  closeColorSelector: () => void
-  passTurn: (forcePass?: boolean) => Promise<void>
-  hasPlayableCard: () => boolean
-  drawnCardPlayable: Card | null
-  roomId: string | null
-  isLoading: boolean
-  error: string | null
-  startGame: () => Promise<void>
-  resetGame: () => Promise<void>
-  rematch: () => Promise<void>
-  leaveRoom: () => void
-  promptColorSelection: (cardId: string) => void
-  cardScale: number
-  increaseCardSize: () => void
-  decreaseCardSize: () => void
-  sendGameMessage: (message: string) => Promise<void>
-  ringOpponent: (playerId: string) => Promise<void>
-  gameStartTime: number | null
-  getGameDuration: () => string
-  isProcessingPlay: boolean
-}
+  state: GameState;
+  playCard: (cardId: string, selectedColor?: CardColor) => Promise<void>;
+  drawCard: () => Promise<void>;
+  declareUno: () => Promise<void>;
+  currentPlayerId: string | null;
+  refreshGameState: () => Promise<void>;
+  selectWildCardColor: (color: CardColor) => Promise<void>;
+  isColorSelectionOpen: boolean;
+  pendingWildCardId: string | null;
+  closeColorSelector: () => void;
+  passTurn: (forcePass?: boolean) => Promise<void>;
+  hasPlayableCard: () => boolean;
+  drawnCardPlayable: Card | null;
+  roomId: string | null;
+  isLoading: boolean;
+  error: string | null;
+  startGame: () => Promise<void>;
+  resetGame: () => Promise<void>;
+  rematch: () => Promise<void>;
+  leaveRoom: () => void;
+  promptColorSelection: (cardId: string) => void;
+  cardScale: number;
+  increaseCardSize: () => void;
+  decreaseCardSize: () => void;
+  sendGameMessage: (message: string) => Promise<void>;
+  ringOpponent: (playerId: string) => Promise<void>;
+  gameStartTime: number | null;
+  getGameDuration: () => string;
+  isProcessingPlay: boolean;
+  isAutoPlayActive: boolean;
+  toggleAutoPlay: () => void;
+};
 
-const GameContext = createContext<GameContextType | undefined>(undefined)
+const GameContext = createContext<GameContextType | undefined>(undefined);
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "UPDATE_GAME_STATE":
-      return { ...action.payload }
+      return { ...action.payload };
     default:
-      return state
+      return state;
   }
 }
 
-// Add a type for the ring notification data
 interface RingNotificationData {
   from: {
     id: string;
@@ -70,84 +72,107 @@ export function GameProvider({
   initialState,
   roomId,
 }: {
-  children: ReactNode
-  initialState: GameState
-  roomId: string
+  children: ReactNode;
+  initialState: GameState;
+  roomId: string;
 }) {
-  const router = useRouter()
-  const [state, dispatch] = useReducer(gameReducer, initialState)
+  const router = useRouter();
+  const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
     typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
-  )
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isProcessingPlay, setIsProcessingPlay] = useState(false)
-  const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false)
-  const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null)
-  
-  const [cardScale, setCardScale] = useState(100)
-  
-  const previousLogRef = useRef<LogEntry[]>([])
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessingPlay, setIsProcessingPlay] = useState(false);
+  const [isColorSelectionOpen, setIsColorSelectionOpen] = useState(false);
+  const [pendingWildCardId, setPendingWildCardId] = useState<string | null>(null);
+  const [cardScale, setCardScale] = useState(100);
+  const previousLogRef = useRef<LogEntry[]>([]);
   const shownToastIds = useRef(new Set<string>());
-  
-  const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null)
-  
-  const [isResetting, setIsResetting] = useState(false)
-  
-  const [gameStartTime, setGameStartTime] = useState<number | null>(null)
-  
-  // Pre-load notification sound
-  const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
+  const [drawnCardPlayable, setDrawnCardPlayable] = useState<Card | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize notification sound on component mount
+  // Auto play state with localStorage persistence
+  const [isAutoPlayActive, setIsAutoPlayActive] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedAutoPlay = localStorage.getItem("uno_autoplay_enabled");
+      return savedAutoPlay === "true";
+    }
+    return false;
+  });
+
+  // Function to toggle Auto Play mode
+  const toggleAutoPlay = useCallback(() => {
+    setIsAutoPlayActive(prev => {
+      const newState = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("uno_autoplay_enabled", newState.toString());
+      }
+      toast.info(`Auto Play ${newState ? 'Enabled' : 'Disabled'}`);
+      return newState;
+    });
+  }, []);
+
+  // Auto play effect - when it's the player's turn and auto play is active
+  useEffect(() => {
+    if (!isAutoPlayActive || !currentPlayerId || !state.currentPlayer) return;
+    
+    const isMyTurn = state.currentPlayer === currentPlayerId;
+    if (!isMyTurn || state.status !== "playing") return;
+    
+    const currentPlayerDetails = state.players.find(p => p.id === currentPlayerId);
+    if (!currentPlayerDetails || currentPlayerDetails.isBot) return;
+    
+    // Add a slight delay to make it feel more natural
+    const autoPlayTimeout = setTimeout(async () => {
+      try {
+        console.log("Auto Play: Executing automated turn for human player");
+        const botPlayResult = getBotPlay(state as GameState, currentPlayerId);
+        await executeAutomatedTurnAction(state, currentPlayerId, botPlayResult);
+      } catch (error) {
+        console.error("Auto Play: Error during automated turn", error);
+      }
+    }, 800);
+    
+    return () => clearTimeout(autoPlayTimeout);
+  }, [isAutoPlayActive, currentPlayerId, state.currentPlayer, state.status, state]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        // Create audio element once and reuse it
-        const audio = new Audio()
-        audio.src = "/sounds/notification.wav"
-        audio.preload = "auto"
-        audio.volume = 0.8
-        
-        // Store in ref for later use
-        notificationSoundRef.current = audio
-        
-        // Load the audio immediately
-        audio.load()
-        
-        console.log("[GameProvider] Preloaded notification sound")
-        
-        // Clean up on unmount
+        const audio = new Audio();
+        audio.src = "/sounds/notification.wav";
+        audio.preload = "auto";
+        audio.volume = 0.8;
+        notificationSoundRef.current = audio;
+        audio.load();
+        console.log("[GameProvider] Preloaded notification sound");
         return () => {
           if (notificationSoundRef.current) {
-            notificationSoundRef.current.src = ""
-            notificationSoundRef.current = null
+            notificationSoundRef.current.src = "";
+            notificationSoundRef.current = null;
           }
-        }
+        };
       } catch (err) {
-        console.error("[GameProvider] Error preloading sound:", err)
+        console.error("[GameProvider] Error preloading sound:", err);
       }
     }
-  }, [])
-  
+  }, []);
+
   const getGameDuration = useCallback((): string => {
-    // Priority 1: If game is actively playing, use Date.now() against server start time for a live timer.
     if (state.status === "playing" && state.gameStartTime) {
       const durationMs = Date.now() - state.gameStartTime;
-      const safeDurationMs = Math.max(0, durationMs); // Ensure no negative duration
+      const safeDurationMs = Math.max(0, durationMs);
       const totalSeconds = Math.floor(safeDurationMs / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
-
-    // Priority 2: If game is not "playing" (e.g., finished, waiting) or state.gameStartTime is not available for "playing" state,
-    // try to calculate duration based on log entries. This is good for final game duration.
     if (state.log && state.log.length > 0) {
       const firstLogEntry = state.log[0];
       const lastLogEntry = state.log[state.log.length - 1];
-      
-      // Ensure timestamps are valid
       if (firstLogEntry.timestamp && lastLogEntry.timestamp && lastLogEntry.timestamp >= firstLogEntry.timestamp) {
         const durationMs = lastLogEntry.timestamp - firstLogEntry.timestamp;
         const totalSeconds = Math.floor(durationMs / 1000);
@@ -155,16 +180,10 @@ export function GameProvider({
         const seconds = totalSeconds % 60;
         return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
       } else {
-        // Log timestamps are invalid, proceed to further fallbacks
         console.warn("[getGameDuration] Invalid log timestamps. Proceeding to fallback.");
       }
     }
-
-    // Priority 3: Fallback if not "playing" with state.gameStartTime AND logs are unusable/empty.
-    // Use state.gameStartTime (server) or gameStartTime (local, which is set from state.gameStartTime)
-    // against Date.now(). This can serve as a timer for "waiting" states if gameStartTime is set,
-    // or a last-resort dynamic timer if logs failed for a finished game (though it will keep ticking).
-    const fallbackStartTime = state.gameStartTime || gameStartTime; // gameStartTime is the local state ref
+    const fallbackStartTime = state.gameStartTime || gameStartTime;
     if (fallbackStartTime) {
       const durationMs = Date.now() - fallbackStartTime;
       const safeDurationMs = Math.max(0, durationMs);
@@ -173,43 +192,34 @@ export function GameProvider({
       const seconds = totalSeconds % 60;
       return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
-
-    // Default: If no start time can be determined at all.
     return "00:00";
   }, [state.status, state.gameStartTime, state.log, gameStartTime]);
 
   const updateGameState = useCallback((newGameState: GameState) => {
     try {
-      dispatch({ type: "UPDATE_GAME_STATE", payload: newGameState })
-      setError(null)
+      dispatch({ type: "UPDATE_GAME_STATE", payload: newGameState });
+      setError(null);
     } catch (err) {
-      console.error("[GameProvider] Error updating game state:", err)
-      setError(err instanceof Error ? err.message : "Error updating game state")
+      console.error("[GameProvider] Error updating game state:", err);
+      setError(err instanceof Error ? err.message : "Error updating game state");
     }
-  }, [])
-  
+  }, []);
+
   useEffect(() => {
     if (!state.log) {
-      previousLogRef.current = []
-      return
+      previousLogRef.current = [];
+      return;
     }
-    
-    const prevLog = previousLogRef.current
-    const currentLog = state.log
-    
-    // Only show toast for entries added since the last check
+    const prevLog = previousLogRef.current;
+    const currentLog = state.log;
     const newEntries = currentLog.slice(prevLog.length);
 
     newEntries.forEach(newestEntry => {
-      // Skip if already shown or too old
       if (shownToastIds.current.has(newestEntry.id) || (Date.now() - newestEntry.timestamp > 5000)) {
-         console.log(`[GameProvider Toast] Skipping log entry: ${newestEntry.id} (already shown or too old)`);
-         return;
+        console.log(`[GameProvider Toast] Skipping log entry: ${newestEntry.id} (already shown or too old)`);
+        return;
       }
-
-      // Add to shown set immediately
       shownToastIds.current.add(newestEntry.id);
-      
       console.log(`[GameProvider Toast] Processing new log entry:`, newestEntry);
 
       let toastTitle = "Game Update";
@@ -218,28 +228,17 @@ export function GameProvider({
       let duration = 2000;
 
       switch (newestEntry.eventType) {
-        case 'play':
-          // toastTitle = `${newestEntry.player || 'Someone'} Played`;
-          // toastDescription = formatCardDescription(newestEntry);
-          // duration = 1500; // Shorter duration for play events
-          return; // Do not show toast for playing cards
-        case 'draw':
-          // toastTitle = `${newestEntry.player || 'Someone'} Drew`;
-          // message might contain count, keep it
-          return; // Do not show toast for drawing cards
-        case 'message':
-          return; // Do not show toast for player messages (handled optimistically)
+        case 'play': return;
+        case 'draw': return;
+        case 'message': return;
         case 'skip':
           toastTitle = `${newestEntry.player || 'Someone'} Skipped`;
-          // message explains who was skipped
           break;
         case 'reverse':
           toastTitle = `Direction Reversed`;
-          // message is generic
           break;
         case 'uno':
           toastTitle = `${newestEntry.player || 'Someone'} Declared UNO!`;
-          // message confirms
           break;
         case 'uno_fail':
           toastTitle = `UNO! Missed`;
@@ -255,392 +254,327 @@ export function GameProvider({
         case 'join':
           toastTitle = `Player Joined`;
           toastDescription = `${newestEntry.player || 'Someone'} joined the room.`;
-           duration = 1500;
+          duration = 1500;
           break;
-         case 'leave':
+        case 'leave':
           toastTitle = `Player Left`;
           toastDescription = `${newestEntry.player || 'Someone'} left the room.`;
           duration = 1500;
           break;
-        case 'system': // Explicitly handle system messages
+        case 'system':
           console.log("[GameProvider Toast] Matched 'system' event type.");
-          toastTitle = `${newestEntry.player || 'System'} Message`; // Maybe give it a specific title
-          // Use default description (the message itself)
-          toastVariant = "default"; // Ensure it's default
-          duration = 2500; // Slightly longer?
+          toastTitle = `${newestEntry.player || 'System'} Message`;
+          toastVariant = "default";
+          duration = 2500;
           break;
         default:
           console.log(`[GameProvider Toast] Matched '${newestEntry.eventType || 'default'}' event type.`);
-          // Use default title and message
           break;
       }
-      
       console.log(`[GameProvider Toast] Calling toast() with:`, { title: toastTitle, description: toastDescription, variant: toastVariant, duration });
       toast(toastTitle, {
         description: toastDescription,
         duration: duration,
       });
     });
-    
-    // Update the ref with the full current log
-    previousLogRef.current = currentLog
-  }, [state.log, getGameDuration])
+    previousLogRef.current = currentLog;
+  }, [state.log, getGameDuration]);
 
   useEffect(() => {
-    console.log("[GameProvider] Initial player ID:", currentPlayerId)
-  }, [currentPlayerId])
+    console.log("[GameProvider] Initial player ID:", currentPlayerId);
+  }, [currentPlayerId]);
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const storedPlayerId = getPlayerIdFromLocalStorage()
-      console.log("[GameProvider] Storage event detected, player ID:", storedPlayerId)
-      setCurrentPlayerId(storedPlayerId)
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    
-    const storedPlayerId = getPlayerIdFromLocalStorage()
+      const storedPlayerId = getPlayerIdFromLocalStorage();
+      console.log("[GameProvider] Storage event detected, player ID:", storedPlayerId);
+      setCurrentPlayerId(storedPlayerId);
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const storedPlayerId = getPlayerIdFromLocalStorage();
     if (storedPlayerId !== currentPlayerId) {
-      console.log("[GameProvider] Updated player ID on mount:", storedPlayerId)
-      setCurrentPlayerId(storedPlayerId)
+      console.log("[GameProvider] Updated player ID on mount:", storedPlayerId);
+      setCurrentPlayerId(storedPlayerId);
     }
-
     return () => {
-      window.removeEventListener("storage", handleStorageChange)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayerId]) // Acknowledging review of dependencies for this specific storage listener
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [currentPlayerId]);
 
-  // Define refreshGameState with useCallback before useEffect hooks that use it
   const refreshGameState = useCallback(async (): Promise<void> => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      console.log("[GameProvider] Manually refreshing game state for room:", roomId)
-      const gameState = await getRoom(roomId)
+      console.log("[GameProvider] Manually refreshing game state for room:", roomId);
+      const gameState = await getRoom(roomId);
       if (gameState) {
-        updateGameState(gameState)
+        updateGameState(gameState);
       } else {
-        console.error("[GameProvider] Failed to refresh: Room not found or error fetching state.")
-        setError("Room not found or invalid state")
+        console.error("[GameProvider] Failed to refresh: Room not found or error fetching state.");
+        setError("Room not found or invalid state");
       }
     } catch (err) {
-      console.error("[GameProvider] Error refreshing game state:", err)
-      setError(err instanceof Error ? err.message : "Failed to refresh game state")
+      console.error("[GameProvider] Error refreshing game state:", err);
+      setError(err instanceof Error ? err.message : "Failed to refresh game state");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [roomId, updateGameState])
+  }, [roomId, updateGameState]);
 
   useEffect(() => {
     if (currentPlayerId && state.players) {
-      const playerInGame = state.players.find(p => p.id === currentPlayerId)
-      console.log("[GameProvider] Current player ID:", currentPlayerId)
-      console.log("[GameProvider] Current player in game:", playerInGame)
-      console.log("[GameProvider] Players in room:", state.players)
-      console.log("[GameProvider] Is host:", playerInGame?.isHost)
-      console.log("[GameProvider] Total players:", state.players.length)
+      const playerInGame = state.players.find(p => p.id === currentPlayerId);
+      console.log("[GameProvider] Current player ID:", currentPlayerId);
+      console.log("[GameProvider] Current player in game:", playerInGame);
+      console.log("[GameProvider] Players in room:", state.players);
+      console.log("[GameProvider] Is host:", playerInGame?.isHost);
+      console.log("[GameProvider] Total players:", state.players.length);
     } else {
-      console.warn("[GameProvider] No player ID available or no players loaded")
+      console.warn("[GameProvider] No player ID available or no players loaded");
     }
-  }, [currentPlayerId, state.players])
+  }, [currentPlayerId, state.players]);
 
   useEffect(() => {
-    let channel: Channel | null = null
-    let pusher: Pusher | null = null
-    let playerChannel: Channel | null = null
-    
+    let channel: Channel | null = null;
+    let pusher: Pusher | null = null;
+    let playerChannel: Channel | null = null;
+
     const setupPusher = () => {
       if (!roomId) {
-        console.warn("[GameProvider] No room ID provided, can't subscribe to Pusher")
-        return
+        console.warn("[GameProvider] No room ID provided, can't subscribe to Pusher");
+        return;
       }
-
       try {
         if (pusherClient) {
-          console.log(`[GameProvider] Using existing Pusher client to subscribe to game-${roomId}`)
-          channel = pusherClient.subscribe(`game-${roomId}`)
+          console.log(`[GameProvider] Using existing Pusher client to subscribe to game-${roomId}`);
+          channel = pusherClient.subscribe(`game-${roomId}`);
         } else {
-          console.log(`[GameProvider] Creating new Pusher instance to subscribe to game-${roomId}`)
+          console.log(`[GameProvider] Creating new Pusher instance to subscribe to game-${roomId}`);
           pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
             cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
             forceTLS: true
-          })
-          channel = pusher.subscribe(`game-${roomId}`)
+          });
+          channel = pusher.subscribe(`game-${roomId}`);
         }
-        
         if (!channel) {
-          throw new Error("Failed to create Pusher channel")
+          throw new Error("Failed to create Pusher channel");
         }
-        
-        // Handler for main state updates (excluding logs)
-        channel.bind("game-updated", (data: Omit<GameState, 'log'>) => { 
+        channel.bind("game-updated", (data: Omit<GameState, 'log'>) => {
           console.log("[GameProvider] Received game-updated event (log excluded):", data?.players?.length, "players");
-          setDrawnCardPlayable(null)
-           if (data && typeof data === 'object' && data.roomId) {
-             // Prepare the payload for the reducer, merging received data but preserving logs
-             const currentState = state; // Get current state from the useReducer hook
-             const mergedPayload: GameState = {
-               ...currentState,         // Start with current full state (including logs)
-               ...data,                 // Overwrite with received data (which excludes logs)
-               drawPileCount: data.drawPileCount ?? currentState.drawPileCount, // Ensure drawPileCount update
-               // Log is implicitly preserved from currentState
-             };
-             dispatch({ type: "UPDATE_GAME_STATE", payload: mergedPayload });
-           } else {
-             console.error("[GameProvider] Invalid data received from game-updated event:", data)
-             refreshGameState(); // Fallback remains the same
-           }
-        });
-        
-        channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
-          console.log("[GameProvider] Received drawn-card-playable event for player:", data.playerId)
-          if (data.playerId === currentPlayerId) {
-            setDrawnCardPlayable(data.card)
+          setDrawnCardPlayable(null);
+          if (data && typeof data === 'object' && data.roomId) {
+            const currentState = state;
+            const mergedPayload: GameState = {
+              ...currentState,
+              ...data,
+              drawPileCount: data.drawPileCount ?? currentState.drawPileCount,
+            };
+            dispatch({ type: "UPDATE_GAME_STATE", payload: mergedPayload });
+          } else {
+            console.error("[GameProvider] Invalid data received from game-updated event:", data);
+            refreshGameState();
           }
-        })
-        
+        });
+        channel.bind("drawn-card-playable", (data: { playerId: string, card: Card }) => {
+          console.log("[GameProvider] Received drawn-card-playable event for player:", data.playerId);
+          if (data.playerId === currentPlayerId) {
+            setDrawnCardPlayable(data.card);
+          }
+        });
         channel.bind("room-deleted", (data: { message: string }) => {
-          console.log("[GameProvider] Received room-deleted event:", data.message)
+          console.log("[GameProvider] Received room-deleted event:", data.message);
           toast.error("Room Deleted", {
             description: data.message,
-          })
-        })
-        
-        // Subscribe to player-specific events if we have a player ID
+          });
+        });
         if (currentPlayerId) {
           console.log(`[GameProvider] Attempting private subscription for player ID: ${currentPlayerId}`);
           const channelName = `private-player-${currentPlayerId}`;
-          console.log(`[GameProvider] Subscribing to private channel: ${channelName}`)
-          
+          console.log(`[GameProvider] Subscribing to private channel: ${channelName}`);
           if (pusherClient) {
-            playerChannel = pusherClient.subscribe(channelName)
+            playerChannel = pusherClient.subscribe(channelName);
           } else if (pusher) {
-            playerChannel = pusher.subscribe(channelName)
+            playerChannel = pusher.subscribe(channelName);
           }
-          
           if (playerChannel) {
             console.log(`[GameProvider] playerChannel object obtained for ${channelName}`);
-            // Debug binding to check if channel is connected properly
             playerChannel.bind("pusher:subscription_succeeded", () => {
-              console.log(`[GameProvider] Successfully subscribed to private channel for player ${currentPlayerId}`)
-            })
-            
+              console.log(`[GameProvider] Successfully subscribed to private channel for player ${currentPlayerId}`);
+            });
             playerChannel.bind("pusher:subscription_error", (error: unknown) => {
-              console.error(`[GameProvider] Failed to subscribe to private channel:`, error)
-            })
-            
+              console.error(`[GameProvider] Failed to subscribe to private channel:`, error);
+            });
             playerChannel.bind("player-ringed", (data: RingNotificationData) => {
-              console.log("[GameProvider] Received ring notification from:", data.from.name)
-              
-              // Show a prominent toast notification
+              console.log("[GameProvider] Received ring notification from:", data.from.name);
               toast("Ring! Ring!", {
                 description: `${data.from.name} is trying to get your attention!`,
                 duration: 5000,
-              })
-              
-              // Play sound using the pre-loaded audio element
+              });
               const playSound = () => {
                 if (notificationSoundRef.current) {
-                  // Reset the audio to the beginning
-                  notificationSoundRef.current.currentTime = 0
-                  
-                  const playPromise = notificationSoundRef.current.play()
-                  
+                  notificationSoundRef.current.currentTime = 0;
+                  const playPromise = notificationSoundRef.current.play();
                   if (playPromise !== undefined) {
                     playPromise
                       .then(() => {
-                        console.log("[GameProvider] Notification sound played successfully")
+                        console.log("[GameProvider] Notification sound played successfully");
                       })
                       .catch(err => {
-                        console.error("[GameProvider] Audio play error:", err)
-                        
-                        // On error, try the user interaction approach
+                        console.error("[GameProvider] Audio play error:", err);
                         const handlePlayOnInteraction = () => {
                           if (notificationSoundRef.current) {
                             notificationSoundRef.current.play()
                               .then(() => {
-                                // Clean up only on success
-                                document.removeEventListener("click", handlePlayOnInteraction)
-                                document.removeEventListener("keydown", handlePlayOnInteraction)
-                                document.removeEventListener("touchstart", handlePlayOnInteraction)
+                                document.removeEventListener("click", handlePlayOnInteraction);
+                                document.removeEventListener("keydown", handlePlayOnInteraction);
+                                document.removeEventListener("touchstart", handlePlayOnInteraction);
                               })
                               .catch(innerErr => {
-                                console.error("[GameProvider] Retry play failed:", innerErr)
-                              })
+                                console.error("[GameProvider] Retry play failed:", innerErr);
+                              });
                           }
-                        }
-                        
-                        // Add user interaction listeners
-                        document.addEventListener("click", handlePlayOnInteraction, { once: false })
-                        document.addEventListener("keydown", handlePlayOnInteraction, { once: false })
-                        document.addEventListener("touchstart", handlePlayOnInteraction, { once: false })
-                        
-                        // Cleanup after 15 seconds if still not played
+                        };
+                        document.addEventListener("click", handlePlayOnInteraction, { once: false });
+                        document.addEventListener("keydown", handlePlayOnInteraction, { once: false });
+                        document.addEventListener("touchstart", handlePlayOnInteraction, { once: false });
                         setTimeout(() => {
-                          document.removeEventListener("click", handlePlayOnInteraction)
-                          document.removeEventListener("keydown", handlePlayOnInteraction)
-                          document.removeEventListener("touchstart", handlePlayOnInteraction)
-                        }, 15000)
-                      })
+                          document.removeEventListener("click", handlePlayOnInteraction);
+                          document.removeEventListener("keydown", handlePlayOnInteraction);
+                          document.removeEventListener("touchstart", handlePlayOnInteraction);
+                        }, 15000);
+                      });
                   }
                 } else {
-                  console.error("[GameProvider] No audio element available for notification")
-                  
-                  // Fallback to creating a new audio element if ref is somehow null
+                  console.error("[GameProvider] No audio element available for notification");
                   try {
-                    const fallbackAudio = new Audio("/sounds/notification.wav")
-                    fallbackAudio.volume = 0.8
-                    fallbackAudio.play().catch(err => console.error("[GameProvider] Fallback audio play failed:", err))
+                    const fallbackAudio = new Audio("/sounds/notification.wav");
+                    fallbackAudio.volume = 0.8;
+                    fallbackAudio.play().catch(err => console.error("[GameProvider] Fallback audio play failed:", err));
                   } catch (err) {
-                    console.error("[GameProvider] Could not create fallback audio:", err)
+                    console.error("[GameProvider] Could not create fallback audio:", err);
                   }
                 }
-              }
-              
-              // Try to play sound immediately
-              playSound()
-            })
+              };
+              playSound();
+            });
           }
         }
-        
-        // Handler for new log entries - triggers a full refresh
         channel.bind("new-log-entries", (data: { logs: LogEntry[] }) => {
           if (data && Array.isArray(data.logs) && data.logs.length > 0) {
-              console.log(`[GameProvider] Received ${data.logs.length} new log entries via Pusher. Triggering state refresh.`);
-              // Immediately refresh from Redis to get the full consistent state including new logs
-              refreshGameState(); 
+            console.log(`[GameProvider] Received ${data.logs.length} new log entries via Pusher. Triggering state refresh.`);
+            refreshGameState();
           } else {
-              console.warn("[GameProvider] Received empty or invalid 'new-log-entries' event:", data);
+            console.warn("[GameProvider] Received empty or invalid 'new-log-entries' event:", data);
           }
-        })
-        
-        console.log(`[GameProvider] Successfully subscribed to game-${roomId}`)
+        });
+        console.log(`[GameProvider] Successfully subscribed to game-${roomId}`);
       } catch (error) {
-        console.error("[GameProvider] Error setting up Pusher:", error)
-        setError("Failed to connect to game server. Please refresh the page.")
+        console.error("[GameProvider] Error setting up Pusher:", error);
+        setError("Failed to connect to game server. Please refresh the page.");
       }
-    }
-
-    setupPusher()
-    
+    };
+    setupPusher();
     return () => {
       if (channel) {
-        console.log(`[GameProvider] Cleaning up Pusher subscription for game-${roomId}`)
-        channel.unbind_all()
+        console.log(`[GameProvider] Cleaning up Pusher subscription for game-${roomId}`);
+        channel.unbind_all();
       }
-      
       if (playerChannel) {
-        console.log(`[GameProvider] Cleaning up private player channel subscription`)
-        playerChannel.unbind_all()
-        
+        console.log(`[GameProvider] Cleaning up private player channel subscription`);
+        playerChannel.unbind_all();
         if (pusherClient && currentPlayerId) {
-          pusherClient.unsubscribe(`private-player-${currentPlayerId}`)
+          pusherClient.unsubscribe(`private-player-${currentPlayerId}`);
         } else if (pusher && currentPlayerId) {
-          pusher.unsubscribe(`private-player-${currentPlayerId}`)
+          pusher.unsubscribe(`private-player-${currentPlayerId}`);
         }
       }
-      
       if (pusherClient && roomId) {
-        pusherClient.unsubscribe(`game-${roomId}`)
+        pusherClient.unsubscribe(`game-${roomId}`);
       } else if (pusher && roomId) {
-        pusher.unsubscribe(`game-${roomId}`)
-        pusher.disconnect()
+        pusher.unsubscribe(`game-${roomId}`);
+        pusher.disconnect();
       }
-    }
-  }, [roomId, currentPlayerId, updateGameState, refreshGameState, state])
+    };
+  }, [roomId, currentPlayerId, updateGameState, refreshGameState, state]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (state.status !== "playing") return
+    if (state.status !== "playing") return;
     const interval = setInterval(() => {
-      refreshGameState()
-    }, 1500)
-    return () => clearInterval(interval)
-  }, [state.status, roomId, refreshGameState])
+      refreshGameState();
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [state.status, roomId, refreshGameState]);
 
   useEffect(() => {
-    if (state.status !== "playing") return
-    
+    if (state.status !== "playing") return;
     const refreshTimeout = setTimeout(() => {
-      refreshGameState()
-    }, 300)
-    
-    return () => clearTimeout(refreshTimeout)
-  }, [state.status, refreshGameState, state.discardPile.length, state.currentColor])
+      refreshGameState();
+    }, 300);
+    return () => clearTimeout(refreshTimeout);
+  }, [state.status, refreshGameState, state.discardPile.length, state.currentColor]);
 
   useEffect(() => {
-    // Use game start time from game state instead of local state
     if (state.status === "playing" && state.gameStartTime) {
-      console.log("[GameProvider] Setting game start time from state:", state.gameStartTime)
-      setGameStartTime(state.gameStartTime)
+      console.log("[GameProvider] Setting game start time from state:", state.gameStartTime);
+      setGameStartTime(state.gameStartTime);
     }
-  }, [state.status, state.gameStartTime])
-  
+  }, [state.status, state.gameStartTime]);
+
   const hasPlayableCard = (): boolean => {
-    if (!currentPlayerId || currentPlayerId !== state.currentPlayer) return false
-    
-    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
-    if (!currentPlayer) return false
-    
-    return currentPlayer.cards.some(card => checkPlayValidityLogic(state, card))
-  }
+    if (!currentPlayerId || currentPlayerId !== state.currentPlayer) return false;
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId);
+    if (!currentPlayer) return false;
+    return currentPlayer.cards.some(card => checkPlayValidityLogic(state, card));
+  };
 
   const handlePlayCard = async (cardId: string, selectedColor?: CardColor) => {
     if (!state || !currentPlayerId) return;
-
     console.log("Attempting to play card:", { cardId, selectedColor });
-
     if (isProcessingPlay) {
       console.log("Play blocked: Another play is already in progress.");
       toast.warning("Please wait", { description: "Processing previous action." });
-      return; 
+      return;
     }
-    
-    setIsProcessingPlay(true); 
-    setIsLoading(true)
-    setError(null)
-
-    const player = state.players.find(p => p.id === currentPlayerId)
+    setIsProcessingPlay(true);
+    setIsLoading(true);
+    setError(null);
+    const player = state.players.find(p => p.id === currentPlayerId);
     if (!player) {
-        setIsProcessingPlay(false);
-        setIsLoading(false);
-        return;
+      setIsProcessingPlay(false);
+      setIsLoading(false);
+      return;
     }
-
     try {
-      console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, stateCurrentColor: state.currentColor, turn: state.currentPlayer })
+      console.log("[handlePlayCard] Attempting to play card:", { cardId, selectedColor, currentPlayerId, stateCurrentColor: state.currentColor, turn: state.currentPlayer });
       if (state.currentPlayer !== currentPlayerId) {
-        console.warn("[GameProvider] Attempted action when not current player's turn.")
-        toast.error("Not Your Turn", { description: "Please wait for your turn." })
-        setIsProcessingPlay(false); 
-        return
+        console.warn("[GameProvider] Attempted action when not current player's turn.");
+        toast.error("Not Your Turn", { description: "Please wait for your turn." });
+        setIsProcessingPlay(false);
+        return;
       }
-      const card = player.cards.find(c => c.id === cardId) // Use player directly
+      const card = player.cards.find(c => c.id === cardId);
       if (!card) {
         setIsProcessingPlay(false);
-        throw new Error("Card not in hand (client check)")
+        throw new Error("Card not in hand (client check)");
       }
       if (!checkPlayValidityLogic(state, card)) {
         setIsProcessingPlay(false);
-        throw new Error("Invalid play (client check)")
+        throw new Error("Invalid play (client check)");
       }
       if ((card.type === "wild" || card.type === "wild4") && !selectedColor) {
-        setPendingWildCardId(cardId)
-        setIsColorSelectionOpen(true)
-        setIsProcessingPlay(false); 
-        return
+        setPendingWildCardId(cardId);
+        setIsColorSelectionOpen(true);
+        setIsProcessingPlay(false);
+        return;
       }
-      
-      // Optimistic update for non-wild cards
       if (card.type !== "wild" && card.type !== "wild4") {
         const updatedPlayers = state.players.map(p =>
           p.id === currentPlayerId
             ? { ...p, cards: p.cards.filter(c => c.id !== cardId) }
             : p
-        )
-        const updatedDiscardPile = [...state.discardPile, card]
-        const updatedColor = card.color
+        );
+        const updatedDiscardPile = [...state.discardPile, card];
+        const updatedColor = card.color;
         dispatch({
           type: "UPDATE_GAME_STATE",
           payload: {
@@ -649,272 +583,247 @@ export function GameProvider({
             discardPile: updatedDiscardPile,
             currentColor: updatedColor,
           },
-        })
+        });
       }
-      // ***FIX HERE***: Pass the full 'card' object instead of 'cardId'
-      await playCard(roomId, currentPlayerId, card, selectedColor)
-      setPendingWildCardId(null)
-      setIsColorSelectionOpen(false)
+      await playCard(roomId, currentPlayerId, card, selectedColor);
+      setPendingWildCardId(null);
+      setIsColorSelectionOpen(false);
     } catch (err) {
-      console.error("[handlePlayCard] Error playing card:", err)
+      console.error("[handlePlayCard] Error playing card:", err);
       const specificErrors = ["Invalid play", "Card not in hand", "Not Your Turn"];
-      const errorMessage = err instanceof Error && specificErrors.some(e => err.message.includes(e)) 
-        ? err.message 
+      const errorMessage = err instanceof Error && specificErrors.some(e => err.message.includes(e))
+        ? err.message
         : "Could not play card. Please try again.";
-      toast.error("Action Failed", { description: errorMessage })
-      await refreshGameState()
+      toast.error("Action Failed", { description: errorMessage });
+      await refreshGameState();
     } finally {
-      setIsLoading(false)
-      setIsProcessingPlay(false); 
+      setIsLoading(false);
+      setIsProcessingPlay(false);
     }
-  }
+  };
 
   const handleDrawCard = async () => {
     if (!currentPlayerId) {
-      console.error("[GameProvider] Cannot draw card: No player ID")
-      return
+      console.error("[GameProvider] Cannot draw card: No player ID");
+      return;
     }
-    
     if (state.currentPlayer !== currentPlayerId) {
-      console.error("[GameProvider] Cannot draw card: Not your turn")
+      console.error("[GameProvider] Cannot draw card: Not your turn");
       toast.error("Cannot Draw Card", {
         description: "It's not your turn",
-      })
-      return
+      });
+      return;
     }
-    
     if (state.hasDrawnThisTurn) {
-      console.error("[GameProvider] Cannot draw card: Already drawn this turn")
+      console.error("[GameProvider] Cannot draw card: Already drawn this turn");
       toast.error("Cannot Draw Card", {
         description: "You've already drawn a card this turn",
-      })
-      return
+      });
+      return;
     }
-    
     try {
-      setIsLoading(true)
-      await drawCard(roomId, currentPlayerId)
-      
-      setIsLoading(false)
+      setIsLoading(true);
+      await drawCard(roomId, currentPlayerId);
+      setIsLoading(false);
     } catch (error) {
-      console.error("[GameProvider] Failed to draw card:", error)
+      console.error("[GameProvider] Failed to draw card:", error);
       const specificErrors = ["It's not your turn", "Already drawn"];
       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
         : "Failed to draw card. Please try again.";
       toast.error("Action Failed", { description: errorMessage });
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleDeclareUno = async () => {
-    if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID")
+    if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID");
     if (state.currentPlayer !== currentPlayerId) {
       toast("Not Your Turn", { description: "You can only declare UNO on your turn." });
       return;
     }
-    
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player || player.cards.length !== 2) {
-        toast("Invalid Action", { description: "You can only declare UNO when you have exactly two cards." });
-        return;
+      toast("Invalid Action", { description: "You can only declare UNO when you have exactly two cards." });
+      return;
     }
-
-    dispatch({ 
-        type: "UPDATE_GAME_STATE", 
-        payload: {
-            ...state,
-            players: state.players.map(p => 
-                p.id === currentPlayerId ? { ...p, saidUno: true } : p
-            )
-        }
+    dispatch({
+      type: "UPDATE_GAME_STATE",
+      payload: {
+        ...state,
+        players: state.players.map(p =>
+          p.id === currentPlayerId ? { ...p, saidUno: true } : p
+        )
+      }
     });
-
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      await declareUno(roomId, currentPlayerId)
+      await declareUno(roomId, currentPlayerId);
     } catch (err) {
-      console.error("[handleDeclareUno] Error declaring UNO:", err)
-      const errorMessage = err instanceof Error && err.message.includes("Invalid Action") 
-        ? err.message 
+      console.error("[handleDeclareUno] Error declaring UNO:", err);
+      const errorMessage = err instanceof Error && err.message.includes("Invalid Action")
+        ? err.message
         : "Failed to declare UNO. Please try again.";
       toast.error("Action Failed", { description: errorMessage });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleSelectWildCardColor = async (color: CardColor) => {
     if (!roomId || !currentPlayerId || !pendingWildCardId || color === 'black') {
-      setError("Invalid state or color for selecting wild color.")
-      toast.error("Invalid Color", { description: "Please select Red, Blue, Green, or Yellow." })
-      return
+      setError("Invalid state or color for selecting wild color.");
+      toast.error("Invalid Color", { description: "Please select Red, Blue, Green, or Yellow." });
+      return;
     }
-
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player) {
-        console.error("Player not found for wild card color selection");
-        toast.error("Action Failed", { description: "Player data not found." });
-        return;
+      console.error("Player not found for wild card color selection");
+      toast.error("Action Failed", { description: "Player data not found." });
+      return;
     }
-
     const cardToPlay = player.cards.find(c => c.id === pendingWildCardId);
     if (!cardToPlay) {
-        console.error(`Pending wild card with ID ${pendingWildCardId} not found in player's hand.`);
-        toast.error("Action Failed", { description: "Card not found. Please try again." });
-        await refreshGameState(); // Refresh to sync state
-        return;
+      console.error(`Pending wild card with ID ${pendingWildCardId} not found in player's hand.`);
+      toast.error("Action Failed", { description: "Card not found. Please try again." });
+      await refreshGameState();
+      return;
     }
-    
-    console.log(`[GameProvider] Color selected: ${color} for card ${pendingWildCardId}`)
-    setIsColorSelectionOpen(false)
-    setIsLoading(true)
+    console.log(`[GameProvider] Color selected: ${color} for card ${pendingWildCardId}`);
+    setIsColorSelectionOpen(false);
+    setIsLoading(true);
     try {
-      // ***FIX HERE***: Pass the full 'cardToPlay' object
-      await playCard(roomId, currentPlayerId, cardToPlay, color)
-      setPendingWildCardId(null)
+      await playCard(roomId, currentPlayerId, cardToPlay, color);
+      setPendingWildCardId(null);
     } catch (err) {
-      console.error("Failed to play wild card after color selection:", err)
-      toast.error("Action Failed", { description: "Could not play the wild card. Please try again." })
-      await refreshGameState()
+      console.error("Failed to play wild card after color selection:", err);
+      toast.error("Action Failed", { description: "Could not play the wild card. Please try again." });
+      await refreshGameState();
     } finally {
-      setIsLoading(false)
-      setPendingWildCardId(null) // Ensure this is cleared even on error
+      setIsLoading(false);
+      setPendingWildCardId(null);
     }
-  }
-  
+  };
+
   const handleCloseColorSelector = () => {
-    setIsColorSelectionOpen(false)
-    setPendingWildCardId(null)
-  }
+    setIsColorSelectionOpen(false);
+    setPendingWildCardId(null);
+  };
 
   const handlePassTurn = async (forcePass: boolean = false) => {
     if (!currentPlayerId) {
-      console.error("[GameProvider] Cannot pass turn: No player ID")
-      return
+      console.error("[GameProvider] Cannot pass turn: No player ID");
+      return;
     }
-    
     if (state.status !== "playing") {
-      console.error("[GameProvider] Cannot pass turn: Game is not in progress")
+      console.error("[GameProvider] Cannot pass turn: Game is not in progress");
       toast.error("Cannot Pass Turn", {
         description: "Game is not in progress yet",
-      })
-      return
+      });
+      return;
     }
-    
     if (state.currentPlayer !== currentPlayerId) {
-      console.error("[GameProvider] Cannot pass turn: Not your turn")
+      console.error("[GameProvider] Cannot pass turn: Not your turn");
       toast.error("Cannot Pass Turn", {
         description: "It's not your turn",
-      })
-      return
+      });
+      return;
     }
-    
     try {
-      setIsLoading(true)
-      await passTurn(roomId, currentPlayerId, forcePass)
-      setIsLoading(false)
+      setIsLoading(true);
+      await passTurn(roomId, currentPlayerId, forcePass);
+      setIsLoading(false);
     } catch (error) {
-      console.error("[GameProvider] Failed to pass turn:", error)
-       const specificErrors = ["It's not your turn", "Game is not in progress"];
-       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
+      console.error("[GameProvider] Failed to pass turn:", error);
+      const specificErrors = ["It's not your turn", "Game is not in progress"];
+      const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
         : "Failed to pass turn. Please try again.";
       toast.error("Action Failed", { description: errorMessage });
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-  
+  };
+
   const handleStartGame = async () => {
     if (!roomId || !currentPlayerId) {
-      console.error("[GameProvider] Cannot start game: Missing Room/Player ID")
-      return
+      console.error("[GameProvider] Cannot start game: Missing Room/Player ID");
+      return;
     }
-    
-    // Check if player is host
-    const currentPlayer = state.players.find(p => p.id === currentPlayerId)
+    const currentPlayer = state.players.find(p => p.id === currentPlayerId);
     if (!currentPlayer?.isHost) {
-      console.error("[GameProvider] Cannot start game: Not the host")
+      console.error("[GameProvider] Cannot start game: Not the host");
       toast.error("Cannot Start Game", {
         description: "Only the host can start the game",
-      })
-      return
+      });
+      return;
     }
-    
     try {
-      setIsLoading(true)
-      // Set game start time on the server when starting the game
-      const currentTime = Date.now()
-      setGameStartTime(currentTime)
-      await startGameAction(roomId, currentPlayerId!, currentTime)
-      // State update will be handled by Pusher
-      setIsLoading(false)
+      setIsLoading(true);
+      const currentTime = Date.now();
+      setGameStartTime(currentTime);
+      await startGameAction(roomId, currentPlayerId!, currentTime);
+      setIsLoading(false);
     } catch (error) {
-      console.error("[GameProvider] Failed to start game:", error)
-      // Use a more generic error message, unless it's "Not the host"
-       const errorMessage = error instanceof Error && error.message.includes("Not the host")
+      console.error("[GameProvider] Failed to start game:", error);
+      const errorMessage = error instanceof Error && error.message.includes("Not the host")
         ? error.message
         : "Failed to start game. Please try again.";
       toast.error("Action Failed", { description: errorMessage });
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-  
+  };
+
   const handleResetGame = async (): Promise<void> => {
     if (!roomId) {
-      setError("Room ID is missing, cannot reset.")
-      return
+      setError("Room ID is missing, cannot reset.");
+      return;
     }
-    setIsResetting(true)
-    setError(null)
-    console.log(`[GameProvider] Attempting to reset room: ${roomId}`)
+    setIsResetting(true);
+    setError(null);
+    console.log(`[GameProvider] Attempting to reset room: ${roomId}`);
     try {
-      await resetRoom(roomId)
-      console.log(`[GameProvider] Reset action called successfully for room: ${roomId}`)
-      toast("Room is resetting...", { duration: 2000 })
+      await resetRoom(roomId);
+      console.log(`[GameProvider] Reset action called successfully for room: ${roomId}`);
+      toast("Room is resetting...", { duration: 2000 });
     } catch (err) {
-      console.error("[GameProvider] Failed to reset game:", err)
-      setError(err instanceof Error ? err.message : "Failed to reset room")
-      // Generic error toast
-      toast.error("Action Failed", { description: "Could not reset the room. Please try again." })
+      console.error("[GameProvider] Failed to reset game:", err);
+      setError(err instanceof Error ? err.message : "Failed to reset room");
+      toast.error("Action Failed", { description: "Could not reset the room. Please try again." });
     } finally {
-      setIsResetting(false)
+      setIsResetting(false);
     }
-  }
+  };
 
   const handleRematch = async (): Promise<void> => {
     if (!roomId || !currentPlayerId) {
-        setError("Missing Room/Player ID for rematch.");
-        return;
+      setError("Missing Room/Player ID for rematch.");
+      return;
     }
-
     setIsLoading(true);
     setError(null);
     console.log(`[GameProvider] Attempting rematch for room: ${roomId} by host: ${currentPlayerId}`);
     try {
-        await rematchGame(roomId, currentPlayerId);
-        console.log(`[GameProvider] Rematch action called successfully for room: ${roomId}`);
-        toast("Starting Rematch!", { duration: 2000 });
-        // State updates will come via Pusher
+      await rematchGame(roomId, currentPlayerId);
+      console.log(`[GameProvider] Rematch action called successfully for room: ${roomId}`);
+      toast("Starting Rematch!", { duration: 2000 });
     } catch (err) {
-        console.error("[GameProvider] Failed to initiate rematch:", err);
-        setError(err instanceof Error ? err.message : "Failed to start rematch");
-        // Generic error toast
-        toast.error("Action Failed", { description: "Could not start rematch. Please try again." });
+      console.error("[GameProvider] Failed to initiate rematch:", err);
+      setError(err instanceof Error ? err.message : "Failed to start rematch");
+      toast.error("Action Failed", { description: "Could not start rematch. Please try again." });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleLeaveRoom = (): void => {
-    console.log("[GameProvider] Leaving room, navigating to home.")
-    router.push("/")
-  }
+    console.log("[GameProvider] Leaving room, navigating to home.");
+    router.push("/");
+  };
 
   const increaseCardSize = () => {
-    setCardScale(prev => Math.min(prev + 10, 150)) // Increase by 10%, max 150%
-  }
+    setCardScale(prev => Math.min(prev + 10, 150));
+  };
 
   const decreaseCardSize = () => {
     setCardScale(prev => Math.max(prev - 10, 70)) // Decrease by 10%, min 70%
@@ -1032,7 +941,9 @@ export function GameProvider({
     ringOpponent: handleRingOpponent,
     gameStartTime,
     getGameDuration,
-    isProcessingPlay
+    isProcessingPlay,
+    isAutoPlayActive,
+    toggleAutoPlay
   }
 
   return (
