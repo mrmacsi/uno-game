@@ -59,41 +59,59 @@ export async function executeAutomatedTurnAction(
       // Declare UNO if needed
       if (determinedAction.shouldDeclareUno) {
         console.log(`executeAutomatedTurnAction: ${player.name} is declaring UNO.`);
-        const unoResponse = await fetch('/api/game/ring', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId: gameState.roomId, playerId: playerId }),
-        });
-        if (!unoResponse.ok) {
-          const errorData = await unoResponse.text();
-          console.error('executeAutomatedTurnAction: Failed to declare UNO:', unoResponse.status, unoResponse.statusText, errorData);
-          // Even if UNO declaration fails, the bot/player might still try to play the card.
-        } else {
-          console.log("executeAutomatedTurnAction: Successfully declared UNO.");
+        try {
+          const unoResponse = await fetch('/api/game/ring', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              roomId: gameState.roomId, 
+              playerId: playerId 
+            }),
+          });
+          if (!unoResponse.ok) {
+            const errorData = await unoResponse.text();
+            console.error('executeAutomatedTurnAction: Failed to declare UNO:', unoResponse.status, unoResponse.statusText, errorData);
+            // Even if UNO declaration fails, the bot/player might still try to play the card.
+          } else {
+            console.log("executeAutomatedTurnAction: Successfully declared UNO.");
+          }
+        } catch (unoError) {
+          console.error('executeAutomatedTurnAction: Exception when declaring UNO:', unoError);
+          // Continue with card play even if UNO declaration fails
         }
       }
 
       const body: PlayCardRequestBody = {
         roomId: gameState.roomId,
         playerId: playerId,
-        card: actualCardInHand, // Use the verified card from hand
+        card: {
+          id: actualCardInHand.id,
+          type: actualCardInHand.type,
+          color: actualCardInHand.color,
+          value: actualCardInHand.value
+        }
       };
+      
       if (determinedAction.chosenColor) {
         body.chosenColor = determinedAction.chosenColor;
       }
 
-      console.log("executeAutomatedTurnAction: Request body for /api/game/play-card:", JSON.parse(JSON.stringify(body)));
-      const playResponse = await fetch('/api/game/play-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      console.log("executeAutomatedTurnAction: Playing card:", actualCardInHand.type, actualCardInHand.color);
+      try {
+        const playResponse = await fetch('/api/game/play-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
 
-      if (!playResponse.ok) {
-        const errorData = await playResponse.text();
-        console.error('executeAutomatedTurnAction: Failed to play card:', playResponse.status, playResponse.statusText, errorData);
-      } else {
-        console.log("executeAutomatedTurnAction: Successfully played card.");
+        if (!playResponse.ok) {
+          const errorData = await playResponse.text();
+          console.error('executeAutomatedTurnAction: Failed to play card:', playResponse.status, playResponse.statusText, errorData);
+        } else {
+          console.log("executeAutomatedTurnAction: Successfully played card.");
+        }
+      } catch (playError) {
+        console.error('executeAutomatedTurnAction: Exception when playing card:', playError);
       }
     } else if (determinedAction.action === 'draw') {
       console.log(`executeAutomatedTurnAction: Player ${playerId} is drawing a card as per determined action.`);
@@ -115,16 +133,23 @@ export async function executeAutomatedDraw(gameState: GameState, playerId: strin
   }
 
   console.log(`executeAutomatedDraw: Player ${playerId} is drawing a card.`);
-  const response = await fetch('/api/game/draw-card', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId: gameState.roomId, playerId: playerId }),
-  });
+  try {
+    const response = await fetch('/api/game/draw-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        roomId: gameState.roomId, 
+        playerId: playerId 
+      }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error('executeAutomatedDraw: Failed to draw card:', response.status, response.statusText, errorData);
-  } else {
-    console.log("executeAutomatedDraw: Successfully drew card.");
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('executeAutomatedDraw: Failed to draw card:', response.status, response.statusText, errorData);
+    } else {
+      console.log("executeAutomatedDraw: Successfully drew card.");
+    }
+  } catch (drawError) {
+    console.error('executeAutomatedDraw: Exception when drawing card:', drawError);
   }
 }

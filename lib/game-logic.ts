@@ -268,31 +268,97 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
   const botPlayer = gameState.players.find(p => p.id === playerId);
   if (!botPlayer || botPlayer.cards.length === 0) return { action: 'draw' };
 
+  const currentColor = gameState.currentColor;
   const playableCards: Card[] = botPlayer.cards.filter(card => checkPlayValidity(gameState, card));
 
   if (playableCards.length === 0) return { action: 'draw' };
 
-  // Prioritize playing cards that don't make the bot declare UNO unnecessarily
-  // but still play aggressively. This is a simple heuristic.
-  playableCards.sort((a, b) => {
-    // If bot has 2 cards, it prefers to play a card that makes it win,
-    // otherwise, it plays the highest value card.
-    if (botPlayer.cards.length === 2) {
-      // This sorting doesn't directly relate to UNO declaration,
-      // The UNO declaration logic is separate.
-      // We just want to play the best card.
-    }
-    return getCardPointValue(b) - getCardPointValue(a) // Play highest point card
-  });
-  
-  const bestCardToPlay = playableCards[0];
-  let shouldDeclareUno = false;
+  const nonWildPlayableCards = playableCards.filter(card => card.type !== "wild" && card.type !== "wild4");
+  const wildCards = playableCards.filter(card => card.type === "wild" || card.type === "wild4");
+  const currentColorCards = nonWildPlayableCards.filter(card => card.color === currentColor);
 
-  // Check if playing this card will result in having one card left.
-  // The bot should declare UNO if it has exactly two cards currently, AND a playable card.
-  if (botPlayer.cards.length === 2) {
-      shouldDeclareUno = true;
+  const hasPlayableNonWildCards = nonWildPlayableCards.length > 0;
+  const hasCurrentColorCards = currentColorCards.length > 0;
+
+  // Only use wild cards if necessary (no other playable cards) or strategic
+  if (hasCurrentColorCards) {
+    // We have cards matching the current color, prioritize those over wild cards
+    currentColorCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
+    const bestCardToPlay = currentColorCards[0];
+    const shouldDeclareUno = botPlayer.cards.length === 2;
+    
+    return { 
+      action: 'play', 
+      card: bestCardToPlay,
+      shouldDeclareUno
+    };
+  } else if (hasPlayableNonWildCards) {
+    // We have non-wild playable cards (but not current color)
+    nonWildPlayableCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
+    const bestCardToPlay = nonWildPlayableCards[0];
+    const shouldDeclareUno = botPlayer.cards.length === 2;
+    
+    return { 
+      action: 'play', 
+      card: bestCardToPlay,
+      shouldDeclareUno
+    };
+  } else if (wildCards.length > 0) {
+    // Use wild cards only when necessary
+    // Sort to prefer normal wild over wild+4 when possible
+    wildCards.sort((a, b) => {
+      // If both are the same type, doesn't matter
+      if ((a.type === "wild" && b.type === "wild") || 
+          (a.type === "wild4" && b.type === "wild4")) return 0;
+      
+      // Prefer regular wild over wild+4 when not urgent
+      return a.type === "wild" ? -1 : 1;
+    });
+    
+    const bestWildCard = wildCards[0];
+    const shouldDeclareUno = botPlayer.cards.length === 2;
+    
+    // For wild cards, choose the color strategically
+    const colorCounts: { [key in CardColor]?: number } = {};
+    const validColors: CardColor[] = ["red", "blue", "green", "yellow"];
+
+    // Count cards by color (excluding the wild card being played)
+    botPlayer.cards.forEach(cardInHand => {
+      if (cardInHand.id === bestWildCard.id) return; 
+      if (cardInHand.color !== "black" && validColors.includes(cardInHand.color)) {
+        colorCounts[cardInHand.color] = (colorCounts[cardInHand.color] || 0) + 1;
+      }
+    });
+
+    let chosenColor: CardColor = "red"; // Default
+    let maxCount = 0;
+
+    // Choose color with the most cards in hand
+    if (Object.keys(colorCounts).length > 0) {
+      for (const color of validColors) {
+        const count = colorCounts[color] || 0;
+        if (count > maxCount) {
+          maxCount = count;
+          chosenColor = color;
+        }
+      }
+    } else {
+      // If no other colored cards, pick a random color
+      chosenColor = validColors[Math.floor(Math.random() * validColors.length)];
+    }
+    
+    return { 
+      action: 'play', 
+      card: bestWildCard, 
+      chosenColor, 
+      shouldDeclareUno
+    };
   }
+
+  // Fallback - shouldn't reach here since we checked if playableCards is empty
+  playableCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
+  const bestCardToPlay = playableCards[0];
+  const shouldDeclareUno = botPlayer.cards.length === 2;
   
   let decision: BotPlayDecision;
 
@@ -312,14 +378,13 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
 
     if (Object.keys(colorCounts).length > 0) {
       for (const color of validColors) {
-          const count = colorCounts[color] || 0;
-          if (count > maxCount) {
-              maxCount = count;
-              chosenColor = color;
-          }
+        const count = colorCounts[color] || 0;
+        if (count > maxCount) {
+          maxCount = count;
+          chosenColor = color;
+        }
       }
     } else {
-      // If no other colored cards, pick a random color
       chosenColor = validColors[Math.floor(Math.random() * validColors.length)];
     }
     
