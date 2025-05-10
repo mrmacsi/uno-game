@@ -36,7 +36,7 @@ export interface LogEntry {
   message: string
   timestamp: number
   player?: string
-  eventType?: 'play' | 'draw' | 'skip' | 'reverse' | 'uno' | 'uno_fail' | 'system' | 'join' | 'leave' | 'win' | 'message' | 'join_bot'
+  eventType?: 'play' | 'draw' | 'skip' | 'reverse' | 'uno' | 'uno_fail' | 'system' | 'join' | 'leave' | 'win' | 'message' | 'join_bot' | 'leave_bot'
   cardType?: CardType
   cardValue?: number
   cardColor?: CardColor

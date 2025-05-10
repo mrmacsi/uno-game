@@ -177,6 +177,46 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   return strippedState;
 }
 
+export async function removeBotFromRoom(roomId: string, botId: string): Promise<GameState | { error: string }> {
+  console.log(`[removeBotFromRoom] Attempting to remove bot ${botId} from room ${roomId}`);
+  const gameState = await getGameState(roomId);
+
+  if (!gameState) {
+    console.error(`[removeBotFromRoom] Room ${roomId} not found.`);
+    return { error: "Room not found" };
+  }
+
+  if (gameState.status !== "waiting") {
+    console.warn(`[removeBotFromRoom] Cannot remove bot: Room ${roomId} is not in 'waiting' status.`);
+    return { error: "Can only remove bots in a waiting room" };
+  }
+
+  const botToRemove = gameState.players.find(p => p.id === botId && p.isBot);
+
+  if (!botToRemove) {
+    console.warn(`[removeBotFromRoom] Bot ${botId} not found in room ${roomId}.`);
+    return { error: "Bot not found" };
+  }
+
+  gameState.players = gameState.players.filter(p => p.id !== botId);
+  gameState.log.push({
+    id: uuidv4(),
+    message: `${botToRemove.name} was removed from the room.`,
+    timestamp: Date.now(),
+    player: botToRemove.name, 
+    eventType: 'leave_bot'
+  });
+
+  await updateGameState(roomId, gameState);
+  console.log(`[removeBotFromRoom] Bot ${botToRemove.name} removed from room ${roomId}.`);
+
+  const strippedState = stripFunctionsFromGameState(gameState);
+  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  console.log(`[removeBotFromRoom] Triggered Pusher update for room ${roomId}.`);
+
+  return strippedState;
+}
+
 export async function createDefaultRoom(): Promise<void> {
   const DEFAULT_ROOM_ID = "DEFAULT"
   const existingRoom = await getGameState(DEFAULT_ROOM_ID)

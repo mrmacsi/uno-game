@@ -3,6 +3,7 @@ import { pusherServer } from "@/lib/pusher-server";
 import { getGameState, updateGameState } from "@/lib/db-actions";
 import { GameState } from "@/lib/types"; // Assuming GameState is defined here
 import { v4 as uuidv4 } from "uuid";
+import { stripFunctionsFromGameState } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,10 +49,8 @@ export async function POST(req: NextRequest) {
       await updateGameState(roomId, gameState as GameState);
 
       // Trigger a Pusher event to update all clients
-      // It's often better to send the whole updated state if clients are set up to handle it
-      // Or send a specific event if clients listen for it to update just the player's saidUno status and log.
-      // For now, let's assume there's a general game update event.
-      await pusherServer.trigger(`presence-room-${roomId}`, "game-state-updated", gameState);
+      const strippedState = stripFunctionsFromGameState(gameState as GameState);
+      await pusherServer.trigger(`presence-room-${roomId}`, "game-state-updated", strippedState);
       
       return NextResponse.json({ success: true, message: "UNO declared successfully." });
 
@@ -95,7 +94,8 @@ export async function POST(req: NextRequest) {
             avatarIndex: fromPlayer.avatarIndex
         });
         await updateGameState(roomId, gameState as GameState); // Save state with new log
-        await pusherServer.trigger(`presence-room-${roomId}`, "game-state-updated", gameState); // Notify all about the log
+        const strippedStateForChallenge = stripFunctionsFromGameState(gameState as GameState);
+        await pusherServer.trigger(`presence-room-${roomId}`, "game-state-updated", strippedStateForChallenge); // Notify all about the log
 
 
         return NextResponse.json({ success: true, message: "Ring notification sent." });

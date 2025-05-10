@@ -32,6 +32,11 @@ export default function BotTurnHandler() {
         return;
       }
 
+      if (!botPlayer.isBot) {
+        console.log(`BotTurnHandler: Current player ${gameState.currentPlayer} (${botPlayer.name}) is not a bot. Aborting bot action.`);
+        return;
+      }
+
       console.log("BotTurnHandler: GameState at bot turn execution:", JSON.parse(JSON.stringify(gameState)));
       console.log("BotTurnHandler: Bot player object:", JSON.parse(JSON.stringify(botPlayer)));
       console.log("BotTurnHandler: Bot hand before getBotPlay:", JSON.parse(JSON.stringify(botPlayer.cards)));
@@ -138,6 +143,12 @@ export default function BotTurnHandler() {
     let turnTimeoutId: NodeJS.Timeout | undefined;
 
     if (currentPlayerInContext?.isBot && gameState.status === "playing") {
+      if (gameState.currentPlayer !== currentPlayerInContext.id) {
+        console.log(`BotTurnHandler: Stale timeout. Current player ${gameState.currentPlayer}, scheduled for ${currentPlayerInContext.id}. Clearing old timeout.`);
+        if (turnTimeoutId) clearTimeout(turnTimeoutId); 
+        return;
+      }
+
       console.log(`BotTurnHandler: Scheduling bot turn for ${currentPlayerInContext.name} in ${BOT_TURN_DELAY_MS}ms. Current player ID: ${gameState.currentPlayer}, Game status: ${gameState.status}`);
       turnTimeoutId = setTimeout(() => {
         console.log(`BotTurnHandler: Executing bot turn for ${currentPlayerInContext.name} (ID: ${gameState.currentPlayer})`);
