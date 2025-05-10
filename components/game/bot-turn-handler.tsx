@@ -3,9 +3,16 @@
 import { useEffect } from "react";
 import { useGame } from "@/components/providers/game-context";
 import { getBotPlay } from "@/lib/game-logic";
-import type { GameState, Card } from "@/lib/types";
+import type { GameState, Card, CardColor } from "@/lib/types";
 
 const BOT_TURN_DELAY_MS = 500;
+
+interface PlayCardRequestBody {
+  roomId: string;
+  playerId: string;
+  card: Card;
+  chosenColor?: CardColor;
+}
 
 export default function BotTurnHandler() {
   const { state: gameState } = useGame();
@@ -81,7 +88,7 @@ export default function BotTurnHandler() {
             }
           }
 
-          const body: any = {
+          const body: PlayCardRequestBody = {
             roomId: gameState.roomId,
             playerId: gameState.currentPlayer,
             card: actualCardInHand, 

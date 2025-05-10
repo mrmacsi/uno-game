@@ -130,41 +130,53 @@ export function GameProvider({
     }
   }, [])
   
-  // Format the game duration as mm:ss
   const getGameDuration = useCallback((): string => {
-    // Use log timestamps for duration
-    if (!state.log || state.log.length < 1) {
-      // Fallback if log is not ready or empty
-      const startTime = state.gameStartTime || gameStartTime
-      if (!startTime) return "00:00"
-      const durationMs = Date.now() - startTime;
-      if (durationMs < 0) return "00:00";
-      const totalSeconds = Math.floor(durationMs / 1000)
-      const minutes = Math.floor(totalSeconds / 60)
-      const seconds = totalSeconds % 60
-      return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-    }
-    
-    // Get the first and last log entries' timestamps
-    const firstLogEntry = state.log[0];
-    const lastLogEntry = state.log[state.log.length - 1];
-    
-    const startTime = firstLogEntry.timestamp;
-    const endTime = lastLogEntry.timestamp;
-
-    if (!startTime || !endTime || endTime < startTime) {
-      console.warn("[getGameDuration] Invalid log timestamps found.");
-      return "00:00";
+    // Priority 1: If game is actively playing, use Date.now() against server start time for a live timer.
+    if (state.status === "playing" && state.gameStartTime) {
+      const durationMs = Date.now() - state.gameStartTime;
+      const safeDurationMs = Math.max(0, durationMs); // Ensure no negative duration
+      const totalSeconds = Math.floor(safeDurationMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
 
-    const durationMs = endTime - startTime;
-    const totalSeconds = Math.floor(durationMs / 1000)
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
+    // Priority 2: If game is not "playing" (e.g., finished, waiting) or state.gameStartTime is not available for "playing" state,
+    // try to calculate duration based on log entries. This is good for final game duration.
+    if (state.log && state.log.length > 0) {
+      const firstLogEntry = state.log[0];
+      const lastLogEntry = state.log[state.log.length - 1];
+      
+      // Ensure timestamps are valid
+      if (firstLogEntry.timestamp && lastLogEntry.timestamp && lastLogEntry.timestamp >= firstLogEntry.timestamp) {
+        const durationMs = lastLogEntry.timestamp - firstLogEntry.timestamp;
+        const totalSeconds = Math.floor(durationMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      } else {
+        // Log timestamps are invalid, proceed to further fallbacks
+        console.warn("[getGameDuration] Invalid log timestamps. Proceeding to fallback.");
+      }
+    }
 
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+    // Priority 3: Fallback if not "playing" with state.gameStartTime AND logs are unusable/empty.
+    // Use state.gameStartTime (server) or gameStartTime (local, which is set from state.gameStartTime)
+    // against Date.now(). This can serve as a timer for "waiting" states if gameStartTime is set,
+    // or a last-resort dynamic timer if logs failed for a finished game (though it will keep ticking).
+    const fallbackStartTime = state.gameStartTime || gameStartTime; // gameStartTime is the local state ref
+    if (fallbackStartTime) {
+      const durationMs = Date.now() - fallbackStartTime;
+      const safeDurationMs = Math.max(0, durationMs);
+      const totalSeconds = Math.floor(safeDurationMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
 
-  }, [state.log, state.gameStartTime, gameStartTime])
+    // Default: If no start time can be determined at all.
+    return "00:00";
+  }, [state.status, state.gameStartTime, state.log, gameStartTime]);
 
   const updateGameState = useCallback((newGameState: GameState) => {
     try {

@@ -123,7 +123,7 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
 
 export async function addBotToRoom(roomId: string): Promise<GameState | { error: string }> {
   console.log(`[addBotToRoom] Attempting to add bot to room ${roomId}`);
-  let gameState = await getGameState(roomId);
+  const gameState = await getGameState(roomId);
 
   if (!gameState) {
     console.error(`[addBotToRoom] Room ${roomId} not found.`);

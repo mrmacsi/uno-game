@@ -268,7 +268,7 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
   const botPlayer = gameState.players.find(p => p.id === playerId);
   if (!botPlayer || botPlayer.cards.length === 0) return { action: 'draw' };
 
-  let playableCards: Card[] = botPlayer.cards.filter(card => checkPlayValidity(gameState, card));
+  const playableCards: Card[] = botPlayer.cards.filter(card => checkPlayValidity(gameState, card));
 
   if (playableCards.length === 0) return { action: 'draw' };
 

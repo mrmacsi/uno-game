@@ -19,6 +19,7 @@ async function validateRequestBody(request: NextRequest): Promise<{
       roomId: body.roomId, 
       playerId: body.playerId 
     };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return { error: "Invalid JSON body", status: 400 };
   }
