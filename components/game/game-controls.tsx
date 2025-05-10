@@ -1,15 +1,27 @@
-"use client"
+"use client";
 
-import React from "react"
-import { useGame } from "../providers/game-context"
-import { Button } from "@/components/ui/button"
-import { ArrowDown, Hand, HelpCircle, History, Info, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react"
-import { 
+import React from "react";
+import { useGame } from "../providers/game-context";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowDown,
+  Hand,
+  HelpCircle,
+  History,
+  Info,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  Play,
+} from "lucide-react";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 import {
   Drawer,
   DrawerClose,
@@ -19,9 +31,12 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import { useIsMobile } from "@/hooks/use-mobile"
-import GameLog from "./game-log"
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import GameLog from "./game-log";
+import { getBotPlay } from "@/lib/game-logic"; // For Auto Play
+import { executeAutomatedTurnAction } from "@/lib/auto-play-utils"; // For Auto Play
+import type { GameState } from "@/lib/types"; // For Auto Play
 
 interface GameControlsProps {
   onToggleMessages: () => void;
@@ -36,19 +51,39 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
     declareUno,
     increaseCardSize,
     decreaseCardSize,
-  } = useGame()
-  const isMobile = useIsMobile()
+  } = useGame();
+  const isMobile = useIsMobile();
 
-  const isMyTurn = state.currentPlayer === currentPlayerId
-  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn
-  const canEndTurn = isMyTurn && state.hasDrawnThisTurn
+  const isMyTurn = state.currentPlayer === currentPlayerId;
+  const currentPlayerDetails = state.players.find(p => p.id === state.currentPlayer);
+  const isHumanPlayer = currentPlayerDetails && !currentPlayerDetails.isBot;
 
-  // Find current player to check if they have few cards
-  const currentPlayer = state.players.find(p => p.id === currentPlayerId)
-  const canSayUno = isMyTurn && currentPlayer && currentPlayer.cards.length === 2 && !currentPlayer.saidUno
-  const hasAlreadySaidUno = isMyTurn && currentPlayer && currentPlayer.saidUno && currentPlayer.cards.length === 2
+  const canDraw = isMyTurn && (state.drawPileCount || 0) > 0 && !state.hasDrawnThisTurn;
+  const canEndTurn = isMyTurn && state.hasDrawnThisTurn;
 
-  // Define color mapping based on current color
+  const currentPlayer = state.players.find((p) => p.id === currentPlayerId);
+  const canSayUno =
+    isMyTurn &&
+    currentPlayer &&
+    currentPlayer.cards.length === 2 &&
+    !currentPlayer.saidUno;
+  const hasAlreadySaidUno =
+    isMyTurn &&
+    currentPlayer &&
+    currentPlayer.saidUno &&
+    currentPlayer.cards.length === 2;
+
+  // Auto Play Logic
+  const handleAutoPlay = async () => {
+    if (!isMyTurn || !isHumanPlayer || !state.currentPlayer) return;
+
+    console.log("GameControls: Initiating Auto Play for human player", state.currentPlayer);
+    const botPlayResult = getBotPlay(state as GameState, state.currentPlayer);
+    console.log("GameControls: Auto Play - getBotPlay result:", JSON.parse(JSON.stringify(botPlayResult)));
+    
+    await executeAutomatedTurnAction(state, state.currentPlayer, botPlayResult);
+  };
+
   const colorStyles = {
     red: "from-red-500 to-red-600 text-white",
     blue: "from-blue-500 to-blue-600 text-white",
@@ -60,13 +95,12 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
 
   return (
     <div className="flex flex-row items-center justify-between gap-1 sm:gap-2 w-full">
-      {/* Quick Messages Toggle Button (New) */}
       <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
               onClick={onToggleMessages}
             >
@@ -79,7 +113,6 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Moved Left Scroll Button to the start */}
       <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -87,7 +120,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
               variant="outline"
               size="icon"
               className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20 flex-shrink-0"
-              onClick={() => window.dispatchEvent(new CustomEvent('player-hand-scroll-left'))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("player-hand-scroll-left"))
+              }
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -98,14 +133,13 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Original Left Section: Rules Icon (Mobile Only) & Size Controls */}
       <div className="flex items-center gap-1 sm:gap-2 ml-1 flex-shrink-0">
         {isMobile && (
           <Drawer>
             <DrawerTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
               >
                 <Info className="h-4 w-4" />
@@ -114,7 +148,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             <DrawerContent className="bg-black/90 border-white/10 text-white">
               <DrawerHeader>
                 <DrawerTitle>UNO Rules</DrawerTitle>
-                <DrawerDescription className="text-white/70">Quick reference for game rules</DrawerDescription>
+                <DrawerDescription className="text-white/70">
+                  Quick reference for game rules
+                </DrawerDescription>
               </DrawerHeader>
               <div className="px-4 space-y-2 text-sm">
                 <p>• Play a card matching the discard pile's color, number, or symbol.</p>
@@ -140,12 +176,12 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           </Drawer>
         )}
         {!isMobile && (
-           <TooltipProvider delayDuration={100}>
+          <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
                 >
                   <HelpCircle className="h-4 w-4" />
@@ -158,13 +194,13 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                   <li>Click the draw pile (deck icon) if you can't play.</li>
                   <li>Play the drawn card if possible, otherwise click 'End Turn'.</li>
                   <li>Special Cards:</li>
-                    <ul className="list-[circle] pl-3">
-                      <li>Wild: Choose next color.</li>
-                      <li>Wild Draw 4: Choose color, next player draws 4.</li>
-                      <li>Draw 2: Next player draws 2.</li>
-                      <li>Reverse: Change play direction.</li>
-                      <li>Skip: Next player loses turn.</li>
-                    </ul>
+                  <ul className="list-[circle] pl-3">
+                    <li>Wild: Choose next color.</li>
+                    <li>Wild Draw 4: Choose color, next player draws 4.</li>
+                    <li>Draw 2: Next player draws 2.</li>
+                    <li>Reverse: Change play direction.</li>
+                    <li>Skip: Next player loses turn.</li>
+                  </ul>
                   <li>Click "UNO!" button when you have one card left.</li>
                   <li>First to play all cards wins!</li>
                 </ul>
@@ -173,13 +209,12 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           </TooltipProvider>
         )}
 
-        {/* Card Size Controls */}
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
                 onClick={decreaseCardSize}
               >
@@ -194,9 +229,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
                 onClick={increaseCardSize}
               >
@@ -210,12 +245,11 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </TooltipProvider>
       </div>
 
-      {/* Game Log Drawer Button (Added) */}
       <Drawer>
         <DrawerTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
           >
             <History className="h-4 w-4" />
@@ -224,7 +258,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         <DrawerContent className="bg-black/90 border-white/10 text-white">
           <DrawerHeader>
             <DrawerTitle>Game Log</DrawerTitle>
-            <DrawerDescription className="text-white/70">Recent game events</DrawerDescription>
+            <DrawerDescription className="text-white/70">
+              Recent game events
+            </DrawerDescription>
           </DrawerHeader>
           <div className="px-2">
             <GameLog logs={state.log} />
@@ -239,28 +275,32 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </DrawerContent>
       </Drawer>
 
-      {/* Mobile optimized action buttons */}
       <div className="flex flex-wrap justify-end items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
-        {/* Direction and Color indicators in one element on mobile */}
         {isMobile ? (
           <div className="flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r from-gray-700 to-gray-800 text-white">
-            <span className="mr-1">{state.direction === 1 ? '➡️' : '⬅️'}</span>
-            <span className={`inline-block px-1.5 py-0.5 rounded-full bg-gradient-to-r ${colorStyles}`}>
+            <span className="mr-1">{state.direction === 1 ? "➡️" : "⬅️"}</span>
+            <span
+              className={`inline-block px-1.5 py-0.5 rounded-full bg-gradient-to-r ${colorStyles}`}
+            >
               {state.currentColor.charAt(0).toUpperCase()}
             </span>
           </div>
         ) : (
           <>
-            {/* Direction Indicator */}
-            <span 
-              className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${state.direction === 1 ? 'from-green-400 to-emerald-500 text-green-900' : 'from-yellow-300 to-yellow-500 text-yellow-900'}`} 
-              title={state.direction === 1 ? "Clockwise" : "Counter-Clockwise"}
+            <span
+              className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-md bg-gradient-to-r ${
+                state.direction === 1
+                  ? "from-green-400 to-emerald-500 text-green-900"
+                  : "from-yellow-300 to-yellow-500 text-yellow-900"
+              }`}
+              title={
+                state.direction === 1 ? "Clockwise" : "Counter-Clockwise"
+              }
             >
-              {state.direction === 1 ? '➡️' : '⬅️'}
+              {state.direction === 1 ? "➡️" : "⬅️"}
             </span>
-            {/* Color Indicator */}
-            <span 
-              className={`inline-block px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r ${colorStyles} shadow-md`} 
+            <span
+              className={`inline-block px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r ${colorStyles} shadow-md`}
               title={`Current color: ${state.currentColor}`}
             >
               {state.currentColor.toUpperCase()}
@@ -268,38 +308,67 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           </>
         )}
 
-        {/* UNO button - made more compact on mobile */}
+        {/* Auto Play Button - New */}
+        {isMyTurn && isHumanPlayer && (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleAutoPlay}
+                  size="sm"
+                  className={`bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs min-w-[70px] ${
+                    isMobile ? "w-[65px]" : ""
+                  }`}
+                >
+                  <Play className="h-3 w-3 mr-0.5 sm:mr-1" />
+                  Auto
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+                <p>Let the AI play this turn for you</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
         {canSayUno && (
-          <Button 
+          <Button
             onClick={declareUno}
             size="sm"
-            className={`bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse min-w-[70px] ${isMobile ? 'w-[65px]' : ''}`}
+            className={`bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse min-w-[70px] ${
+              isMobile ? "w-[65px]" : ""
+            }`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
             UNO!
           </Button>
         )}
-        
+
         {hasAlreadySaidUno && (
-          <Button 
+          <Button
             disabled
             size="sm"
-            className={`bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 h-7 text-[10px] sm:text-xs opacity-70 min-w-[70px] ${isMobile ? 'w-[65px]' : ''}`}
+            className={`bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 h-7 text-[10px] sm:text-xs opacity-70 min-w-[70px] ${
+              isMobile ? "w-[65px]" : ""
+            }`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
             UNO!
           </Button>
         )}
-        
-        {/* Draw Button */} 
+
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className={`text-sm font-bold border-2 rounded-lg px-3 py-1.5 shadow-md transition-all duration-150 ${canDraw ? 'bg-blue-600 hover:bg-blue-500 border-blue-700 text-white cursor-pointer' : 'bg-gray-500 border-gray-600 text-gray-300 opacity-50 cursor-not-allowed'}`}
-                onClick={drawCard} 
+                className={`text-sm font-bold border-2 rounded-lg px-3 py-1.5 shadow-md transition-all duration-150 ${
+                  canDraw
+                    ? "bg-blue-600 hover:bg-blue-500 border-blue-700 text-white cursor-pointer"
+                    : "bg-gray-500 border-gray-600 text-gray-300 opacity-50 cursor-not-allowed"
+                }`}
+                onClick={drawCard}
                 disabled={!canDraw}
               >
                 <ArrowDown className="w-4 h-4 mr-1.5" />
@@ -311,8 +380,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-          
-        {/* Pass turn button */}
+
         {canEndTurn && (
           <Button
             onClick={() => passTurn()}
@@ -320,12 +388,11 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse"
           >
             <ArrowDown className="h-3 w-3 mr-0.5 sm:mr-1" />
-            {isMobile ? 'End' : 'End Turn'}
+            {isMobile ? "End" : "End Turn"}
           </Button>
         )}
       </div>
-      
-      {/* Moved Right Scroll Button to the end */}
+
       <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -333,7 +400,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
               variant="outline"
               size="icon"
               className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20 flex-shrink-0"
-              onClick={() => window.dispatchEvent(new CustomEvent('player-hand-scroll-right'))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("player-hand-scroll-right"))
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -344,5 +413,5 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </Tooltip>
       </TooltipProvider>
     </div>
-  )
+  );
 }
