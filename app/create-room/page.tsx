@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client"
 import { motion } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 
 export default function CreateRoom() {
   const router = useRouter()
@@ -23,7 +24,7 @@ export default function CreateRoom() {
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [submitError, setSubmitError] = useState("")
-  
+
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError("")
@@ -110,6 +111,18 @@ export default function CreateRoom() {
     fetchProfile()
   }, [fetchProfile])
 
+  const isButtonDisabled = isCreating || !playerDisplayName || avatarIndexState === null;
+  let tooltipMessage = "";
+  if (!isCreating) {
+    if (!playerDisplayName && avatarIndexState === null) {
+      tooltipMessage = "Please ensure your profile is complete (display name and avatar) to create a room.";
+    } else if (!playerDisplayName) {
+      tooltipMessage = "Please ensure your display name is set in your profile.";
+    } else if (avatarIndexState === null) {
+      tooltipMessage = "Please ensure your avatar is selected in your profile.";
+    }
+  }
+
   if (loadingProfile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-500 via-orange-400 to-yellow-300 dark:from-red-800 dark:via-orange-700 dark:to-yellow-600 p-4">
@@ -120,68 +133,83 @@ export default function CreateRoom() {
   }
 
   return (
-    <motion.div 
-      className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-500 via-orange-400 to-yellow-300 dark:from-red-800 dark:via-orange-700 dark:to-yellow-600 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
-        <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
-          <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">Create a New Game Room</CardTitle>
-          <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
-            Set up a private room and invite your friends!
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleCreateRoom}>
-          <CardContent className="p-5 sm:p-6">
-            <motion.div 
-              className="space-y-4"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                {avatarIndexState !== null ? (
-                   <AvatarDisplay index={avatarIndexState} size="sm" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
-                )}
-                <div className="flex-grow min-w-0">
-                  <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
-                    Playing as:
-                  </Label>
-                  <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
-                    {playerDisplayName} 
-                  </p>
+    <TooltipProvider>
+      <motion.div 
+        className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-500 via-orange-400 to-yellow-300 dark:from-red-800 dark:via-orange-700 dark:to-yellow-600 p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
+          <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
+            <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">Create a New Game Room</CardTitle>
+            <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
+              Set up a private room and invite your friends!
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleCreateRoom}>
+            <CardContent className="p-5 sm:p-6">
+              <motion.div 
+                className="space-y-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  {avatarIndexState !== null ? (
+                     <AvatarDisplay index={avatarIndexState} size="sm" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
+                  )}
+                  <div className="flex-grow min-w-0">
+                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
+                      Playing as:
+                    </Label>
+                    <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
+                      {playerDisplayName} 
+                    </p>
+                  </div>
                 </div>
-              </div>
-              {submitError && (
-                 <p className="text-red-500 text-xs mt-2 ml-1">{submitError}</p>
-              )}
-            </motion.div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3 p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-800">
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70"
-              disabled={isCreating || !playerDisplayName || avatarIndexState === null}
-            >
-              {isCreating ? "Creating Room..." : "Create Room"}
-              {!isCreating && <ArrowRight className="ml-2 h-4 w-4" />}
-            </Button>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              className="w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-              onClick={() => router.push('/')}
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </motion.div>
+                {submitError && (
+                   <p className="text-red-500 text-xs mt-2 ml-1">{submitError}</p>
+                )}
+              </motion.div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3 p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-800">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* The button itself needs to be a direct child or wrapped in a simple element like span for TooltipTrigger to work correctly when disabled */}
+                  <span tabIndex={isButtonDisabled && tooltipMessage ? 0 : undefined}>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70"
+                      disabled={isButtonDisabled}
+                      aria-describedby={isButtonDisabled && tooltipMessage ? "create-room-tooltip" : undefined}
+                    >
+                      {isCreating ? "Creating Room..." : "Create Room"}
+                      {!isCreating && <ArrowRight className="ml-2 h-4 w-4" />}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {isButtonDisabled && tooltipMessage && (
+                  <TooltipContent id="create-room-tooltip">
+                    <p>{tooltipMessage}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                className="w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                onClick={() => router.push('/')}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </motion.div>
+    </TooltipProvider>
   )
 }

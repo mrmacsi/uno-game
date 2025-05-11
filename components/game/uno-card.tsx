@@ -1,6 +1,7 @@
 "use client"
 
 import type { Card as CardType } from "@/lib/types"
+import { cn } from "@/lib/utils";
 
 interface UnoCardProps {
   card: CardType
@@ -8,9 +9,10 @@ interface UnoCardProps {
   disabled?: boolean
   faceDown?: boolean
   isMobile?: boolean
+  className?: string; // Allow parent to pass additional classes
 }
 
-export default function UnoCard({ card, onClick, disabled = false, faceDown = false, animationClass = "", isMobile = false }: UnoCardProps & { animationClass?: string }) {
+export default function UnoCard({ card, onClick, disabled = false, faceDown = false, animationClass = "", isMobile = false, className }: UnoCardProps & { animationClass?: string }) {
   const getCardColor = () => {
     if (faceDown) return "bg-gradient-to-br from-blue-900 to-blue-700"
 
@@ -102,9 +104,14 @@ export default function UnoCard({ card, onClick, disabled = false, faceDown = fa
 
   return (
     <div
-      className={`w-20 sm:w-24 h-32 sm:h-36 rounded-xl shadow-xl flex items-center justify-center ${getCardColor()} ${
-        !disabled && !faceDown ? "cursor-pointer card-hover-effect" : "opacity-90"
-      } card-transition ${animationClass} relative overflow-hidden select-none max-w-[6rem] max-h-[9.5rem]`}
+      className={cn(
+        "w-20 sm:w-24 h-32 sm:h-36 rounded-xl shadow-xl flex items-center justify-center",
+        getCardColor(),
+        !disabled && !faceDown ? "cursor-pointer" : "opacity-90", // Removed card-hover-effect
+        "card-transition relative overflow-hidden select-none max-w-[6rem] max-h-[9.5rem]",
+        animationClass,
+        className // Allow parent to pass classes like card-playable-indicator
+      )}
       style={{ maxWidth: '6rem', maxHeight: '9.5rem' }}
       onClick={!disabled && !faceDown ? onClick : undefined}
     >

@@ -162,6 +162,28 @@
   }
 }
 
+@keyframes myTurnPulse {
+  0% {
+    box-shadow: 0 0 0 0px rgba(250, 204, 21, 0.6); /* yellow-400 with opacity */
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.2); /* yellow-400 with less opacity */
+  }
+  100% {
+    box-shadow: 0 0 0 0px rgba(250, 204, 21, 0.6);
+  }
+}
+
+/* New animation for current player highlight */
+@keyframes subtleBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .animate-deal-card {
   animation: dealCard 0.5s ease-out forwards;
 }
@@ -194,9 +216,30 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-hover-effect:hover {
-  transform: translateY(-20px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+/* Updated card hover effect for hand interactivity */
+.card-in-hand:hover {
+  transform: translateY(-15px) scale(1.05);
+  box-shadow: 0 15px 20px -5px rgba(0, 0, 0, 0.25), 0 8px 8px -5px rgba(0, 0, 0, 0.08);
+  z-index: 10; /* Ensure hovered card is on top */
+}
+
+.card-playable-indicator {
+  box-shadow: 0 0 8px 2px rgba(74, 222, 128, 0.7); /* green-400 glow */
+  border: 1px solid rgba(74, 222, 128, 0.9); /* Slightly stronger border */
+}
+
+.current-player-info-highlight {
+  box-shadow: 0 0 12px 3px rgba(59, 130, 246, 0.6); /* blue-500 glow */
+  border: 1px solid rgba(59, 130, 246, 0.8);
+  transform: scale(1.03);
+  animation: subtleBounce 1.5s infinite ease-in-out;
+}
+
+.my-turn-highlight {
+  /* Uses existing myTurnPulse animation, but we can define a class for easier application */
+  animation: myTurnPulse 1.5s infinite ease-in-out;
+  /* Add a more prominent border or background for 'my turn' specifically */
+  border: 2px solid rgba(250, 204, 21, 0.8); /* yellow-400 */
 }
 
 .card-stack {
@@ -276,4 +319,8 @@
 
 .animation-delay-2000 {
   animation-delay: 2000ms;
+}
+
+.animate-my-turn-pulse {
+  animation: myTurnPulse 1.5s infinite ease-in-out;
 }

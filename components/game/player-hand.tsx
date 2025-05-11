@@ -5,6 +5,7 @@ import { useGame } from "../providers/game-context"
 import UnoCard from "./uno-card"
 import { toast } from "sonner"
 import { checkPlayValidity } from "@/lib/game-logic"
+import { cn } from "@/lib/utils"
 
 export default function PlayerHand() {
   const { 
@@ -64,7 +65,6 @@ export default function PlayerHand() {
     }
   }, [hasEverUserScrolled]);
 
-  // Derive currentPlayer and cardCount just before the useEffect that needs cardCount
   const currentPlayerForEffect = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
   const cardCountForEffect = currentPlayerForEffect ? currentPlayerForEffect.cards.length : 0
 
@@ -119,7 +119,6 @@ export default function PlayerHand() {
     }
   }, [scrollLeft, scrollRight])
 
-  // Use the main currentPlayer and cardCount for rendering logic later
   const currentPlayer = currentPlayerId && state && state.players ? state.players.find((p: { id: string }) => p.id === currentPlayerId) : null
   const cardCount = currentPlayer ? currentPlayer.cards.length : 0
   const isMyTurn = currentPlayer ? state.currentPlayer === currentPlayerId : false
@@ -135,12 +134,6 @@ export default function PlayerHand() {
           ref={scrollContainerRef}
           className={`w-full h-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent px-3 ${isScrollableWidth ? 'overflow-x-auto' : 'overflow-x-hidden'} overflow-y-visible`}
           style={{ scrollbarWidth: 'thin' }}
-          onScroll={() => { 
-            // Optional: Update scrollability check on scroll, but might be intensive
-            // checkScrollability(); 
-            // We might want to prevent auto-centering once the user manually scrolls
-            // setInitialScrollSet(true); // Uncomment if manual scroll should stop auto-centering
-          }}
         >
           <div 
             className="flex justify-center items-center h-full min-w-max mx-auto"
@@ -157,6 +150,7 @@ export default function PlayerHand() {
             <div className="flex items-stretch h-full">
               {currentPlayer.cards.map((card: import("@/lib/types").Card, index: number) => {
                 const isPlayable = isMyTurn && checkPlayValidity(state, card);
+                const canInteract = isPlayable && !isLoading && !isProcessingPlay;
                 
                 const animationDelay = `${index * 0.05}s`;
                 const rotationDeg = Math.min(5, cardCount > 1 ? (index - (cardCount-1)/2) * (10/cardCount) : 0);
@@ -164,7 +158,11 @@ export default function PlayerHand() {
                 return (
                   <div 
                     key={card.id} 
-                    className={`transform transition-all duration-300 ease-out relative group h-full card-wrapper ${isProcessingPlay ? 'pointer-events-none' : ''}`}
+                    className={cn(
+                        "transform transition-all duration-300 ease-out relative group h-full card-wrapper",
+                        isProcessingPlay ? 'pointer-events-none' : '',
+                        canInteract ? 'card-in-hand cursor-pointer' : '' // Apply card-in-hand for hover if interactive
+                    )}
                     style={{ 
                       marginLeft: index > 0 ? `-${Math.min(20, 45 - Math.min(45, cardCount * 1.5))}px` : undefined,
                       zIndex: isPlayable ? 50 + index : index,
@@ -176,8 +174,11 @@ export default function PlayerHand() {
                       <div className="absolute -inset-2 rounded-xl bg-yellow-400/30 animate-pulse-subtle z-0"></div>
                     )}
                     <div 
-                      className={`z-10 relative h-full ${isPlayable && !isLoading && !isProcessingPlay ? 'hover:translate-y-[-8px] sm:hover:translate-y-[-10px] hover:scale-105 sm:hover:scale-110 group cursor-pointer' : ''
-                      } ${isRecentlyDrawn ? 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]' : ''}`}
+                      className={cn(
+                        "z-10 relative h-full",
+                        // Removed hover effects from here, handled by parent with card-in-hand
+                        isRecentlyDrawn && 'scale-105 translate-y-[-12px] sm:translate-y-[-20px]'
+                      )}
                       style={{ animationDelay }}
                       onAnimationEnd={() => {
                         if (animatingCard === card.id) setAnimatingCard(null)
@@ -196,24 +197,6 @@ export default function PlayerHand() {
                            console.log('--> Click blocked by stricter guard (card became unplayable)');
                            return;
                         }
-
-                        const topCard = state.discardPile[state.discardPile.length - 1];
-                        const currentPlayable = isMyTurn && checkPlayValidity(state, card);
-                        const blockConditionMet = animatingCard || !currentPlayable || isLoading;
-
-                        console.log('PlayerHand onClick:', {
-                          cardId: card.id,
-                          isPlayableRender: isPlayable,
-                          isPlayableClick: currentPlayable,
-                          isMyTurn,
-                          isLoading,
-                          animatingCard,
-                          stateCurrentColor: state.currentColor,
-                          stateTopCardId: topCard?.id,
-                          stateTopCardColor: topCard?.color,
-                          stateTopCardType: topCard?.type,
-                          blockConditionMet: blockConditionMet
-                        });
 
                         setAnimatingCard(card.id);
 
@@ -238,13 +221,13 @@ export default function PlayerHand() {
                         }
                       }}
                     >
-                      <div className={isPlayable ? 'animate-pulse-subtle' : ''}>
-                        <UnoCard
-                          card={card}
-                          disabled={!isPlayable || isProcessingPlay}
-                          animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
-                        />
-                      </div>
+                      {/* Apply card-playable-indicator directly to UnoCard if it's playable */}
+                      <UnoCard
+                        card={card}
+                        disabled={!isPlayable || isProcessingPlay}
+                        animationClass={animatingCard === card.id ? 'animate-play-card' : isRecentlyDrawn ? 'animate-float-in' : ''}
+                        className={cn(isPlayable && "card-playable-indicator", isPlayable && !isRecentlyDrawn && "animate-pulse-subtle")}
+                      />
                     </div>
                     
                     {isRecentlyDrawn && (
@@ -255,7 +238,8 @@ export default function PlayerHand() {
                       </div>
                     )}
                     
-                    {isPlayable && !isLoading && !isProcessingPlay && (
+                    {/* This blurred background effect can remain as it is, triggered by parent group hover */}
+                    {canInteract && (
                       <div className="absolute inset-0 rounded-xl bg-green-500/10 filter blur-md opacity-0 group-hover:opacity-80 transition-opacity duration-300 z-0"></div>
                     )}
                   </div>

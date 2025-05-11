@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GameState, Player } from "@/lib/types"
 import { AvatarDisplay } from "@/components/game/avatar-display"
-import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play } from "lucide-react"
+import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play, PlusCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
@@ -199,7 +199,16 @@ export default function RoomList() {
           <Search className="h-8 w-8 text-gray-400" />
         </div>
         <p className="text-gray-600 text-lg font-medium mb-2">No rooms available</p>
-        <p className="text-gray-500 mb-4">Create a new room to get started!</p>
+        <p className="text-gray-500 mb-6">Create a new room to get started!</p>
+        <Link href="/create-room" passHref>
+          <Button 
+            size="lg"
+            className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all px-8 py-3 text-base"
+          >
+            <PlusCircle className="h-5 w-5 mr-2.5" />
+            Create a Room
+          </Button>
+        </Link>
       </div>
     )
   }
