@@ -60,25 +60,39 @@ export async function executeAutomatedTurnAction(
       if (determinedAction.shouldDeclareUno) {
         console.log(`executeAutomatedTurnAction: ${player.name} is declaring UNO.`);
         try {
+          // Add a small delay before UNO declaration
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Use minimal payload and ensure we're using the correct URL format
+          const minimalPayload = { 
+            roomId: gameState.roomId.toString(), 
+            playerId: playerId.toString() 
+          };
+          
           const unoResponse = await fetch('/api/game/ring', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              roomId: gameState.roomId, 
-              playerId: playerId 
-            }),
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(minimalPayload),
+            // Ensure we don't send cookies or other potential large payloads
+            credentials: 'omit'
           });
+          
           if (!unoResponse.ok) {
-            const errorData = await unoResponse.text();
-            console.error('executeAutomatedTurnAction: Failed to declare UNO:', unoResponse.status, unoResponse.statusText, errorData);
-            // Even if UNO declaration fails, the bot/player might still try to play the card.
+            console.error(`executeAutomatedTurnAction: Failed to declare UNO: ${unoResponse.status} ${unoResponse.statusText}`);
+            // Even if UNO declaration fails, continue with the card play
           } else {
             console.log("executeAutomatedTurnAction: Successfully declared UNO.");
           }
         } catch (unoError) {
-          console.error('executeAutomatedTurnAction: Exception when declaring UNO:', unoError);
+          console.error('executeAutomatedTurnAction: Exception when declaring UNO:', unoError instanceof Error ? unoError.message : String(unoError));
           // Continue with card play even if UNO declaration fails
         }
+        
+        // Add a small delay after UNO declaration before playing the card
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       const body: PlayCardRequestBody = {

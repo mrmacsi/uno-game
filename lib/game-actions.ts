@@ -508,18 +508,24 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   const gameState = await fetchAndValidateGameState(roomId, playerId);
 
   const player = gameState.players.find((p: Player) => p.id === playerId);
-  if (player) {
-      player.saidUno = false; 
+  if (!player) {
+    throw new Error("Player not found");
   }
+  
+  // Clear UNO status when passing
+  player.saidUno = false;
 
   if (gameState.status !== "playing") {
     throw new Error("Game is not active");
   }
+  
   if (gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn");
   }
-  if (!forcePass && !gameState.hasDrawnThisTurn) {
-     throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
+  
+  // Only check if forcePass is false and player is not a bot
+  if (!forcePass && !player.isBot && !gameState.hasDrawnThisTurn) {
+    throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
   }
 
   const originalLogLength = gameState.log ? gameState.log.length : 0;
@@ -533,24 +539,25 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   
   const nextPlayer = gameState.players[nextPlayerIndex];
   if (nextPlayer && nextPlayer.cards.length !== 1) {
-      nextPlayer.saidUno = false;
+    nextPlayer.saidUno = false;
   }
 
+  const passReason = gameState.hasDrawnThisTurn ? " after drawing" : "";
   gameState.log.push({
     id: uuidv4(),
-    message: `${gameState.players[currentPlayerIndex].name} passed their turn after drawing.`,
+    message: `${player.name} passed their turn${passReason}.`,
     timestamp: Date.now(),
-    player: gameState.players[currentPlayerIndex].name,
-    avatarIndex: gameState.players[currentPlayerIndex].avatarIndex,
+    player: player.name,
+    avatarIndex: player.avatarIndex,
     eventType: 'system'
   });
 
+  console.log(`Player ${playerId} (${player.name}) passed turn. Next player: ${gameState.currentPlayer}`);
   await updateGameState(roomId, gameState);
 
   const newLogs = gameState.log.slice(originalLogLength);
   await broadcastUpdate(roomId, gameState, newLogs);
   
-  console.log(`Player ${playerId} passed turn. Next player: ${gameState.currentPlayer}`);
   return gameState;
 }
 

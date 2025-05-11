@@ -45,15 +45,67 @@ export default function BotTurnHandler() {
 
       try {
         isBotTurnInProgress.current = true;
-        console.log("BotTurnHandler: GameState at bot turn execution:", JSON.parse(JSON.stringify(gameState)));
-        console.log("BotTurnHandler: Bot player object:", JSON.parse(JSON.stringify(botPlayer)));
+        
+        // Create a minimal game state to avoid payload size issues
+        const minimalGameState: Partial<GameState> = {
+          roomId: gameState.roomId,
+          players: gameState.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            cards: p.cards,
+            avatarIndex: p.avatarIndex,
+            isBot: p.isBot || false,
+            saidUno: p.saidUno || false,
+            isHost: p.isHost || false
+          })),
+          currentPlayer: gameState.currentPlayer,
+          direction: gameState.direction,
+          drawPile: [],  // We don't need the full draw pile for the bot decision
+          drawPileCount: gameState.drawPileCount,
+          discardPile: gameState.discardPile.slice(-1), // Only need the top card
+          currentColor: gameState.currentColor,
+          status: gameState.status,
+          hasDrawnThisTurn: gameState.hasDrawnThisTurn,
+          winner: gameState.winner,
+          log: []  // We don't need the logs for the bot decision
+        };
+        
+        console.log("BotTurnHandler: Processing bot turn with minimal state");
+        
+        // Check if bot has already drawn and needs to pass
+        if (gameState.hasDrawnThisTurn) {
+          console.log(`BotTurnHandler: Bot ${botPlayer.name} has already drawn this turn, checking if pass is needed`);
+          
+          // Try to directly call the pass API if bot is stuck
+          try {
+            console.log(`BotTurnHandler: Bot ${botPlayer.name} is stuck after drawing, calling pass turn API`);
+            const response = await fetch('/api/pass-turn', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                roomId: gameState.roomId,
+                playerId: gameState.currentPlayer
+              }),
+            });
+            
+            if (response.ok) {
+              console.log(`BotTurnHandler: Successfully passed turn for bot ${botPlayer.name}`);
+              return; // Exit early, we've handled the turn by passing
+            } else {
+              console.error(`BotTurnHandler: Failed to pass turn, status: ${response.status}`);
+              // Continue with normal flow in case pass failed
+            }
+          } catch (passError) {
+            console.error("BotTurnHandler: Error passing turn:", passError);
+            // Continue with normal flow in case pass failed
+          }
+        }
         
         // Get the bot's intended play
-        const botPlayResult = getBotPlay(gameState as GameState, gameState.currentPlayer);
-        console.log("BotTurnHandler: botPlayResult from getBotPlay:", JSON.parse(JSON.stringify(botPlayResult)));
-
-        // Execute the determined action using the new utility function
-        await executeAutomatedTurnAction(gameState, gameState.currentPlayer, botPlayResult);
+        const botPlayResult = getBotPlay(minimalGameState as GameState, gameState.currentPlayer);
+        
+        // Execute the determined action with the minimal state
+        await executeAutomatedTurnAction(minimalGameState as GameState, gameState.currentPlayer, botPlayResult);
       } finally {
         isBotTurnInProgress.current = false;
       }

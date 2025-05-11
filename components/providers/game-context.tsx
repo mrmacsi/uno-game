@@ -115,7 +115,7 @@ export function GameProvider({
     });
   }, []);
 
-  // Auto play effect - when it's the player's turn and auto play is active
+  // Handle auto play for human player if enabled
   useEffect(() => {
     if (!isAutoPlayActive || !currentPlayerId || !state.currentPlayer) return;
     
@@ -129,8 +129,32 @@ export function GameProvider({
     const autoPlayTimeout = setTimeout(async () => {
       try {
         console.log("Auto Play: Executing automated turn for human player");
-        const botPlayResult = getBotPlay(state as GameState, currentPlayerId);
-        await executeAutomatedTurnAction(state, currentPlayerId, botPlayResult);
+        // Create a minimal game state to avoid large payload issues
+        const minimalGameState: Partial<GameState> = {
+          roomId: state.roomId,
+          players: state.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            cards: p.cards,
+            avatarIndex: p.avatarIndex,
+            isBot: p.isBot || false,
+            saidUno: p.saidUno || false,
+            isHost: p.isHost || false
+          })),
+          currentPlayer: state.currentPlayer,
+          direction: state.direction,
+          drawPile: [],  // We don't need the draw pile for bot decision
+          drawPileCount: state.drawPileCount,
+          discardPile: state.discardPile.slice(-1), // Only need the top card
+          currentColor: state.currentColor,
+          status: state.status,
+          hasDrawnThisTurn: state.hasDrawnThisTurn,
+          winner: state.winner,
+          log: []  // We don't need the logs for the bot decision
+        };
+        
+        const botPlayResult = getBotPlay(minimalGameState as GameState, currentPlayerId);
+        await executeAutomatedTurnAction(minimalGameState as GameState, currentPlayerId, botPlayResult);
       } catch (error) {
         console.error("Auto Play: Error during automated turn", error);
       }
