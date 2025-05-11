@@ -48,7 +48,7 @@ export async function executeAutomatedTurnAction(
     
     // Check if player has already drawn this turn
     if (gameState.hasDrawnThisTurn) {
-      console.log(`executeAutomatedTurnAction: Player ${playerId} has already drawn this turn. Attempting to pass turn.`);
+      console.log(`executeAutomatedTurnAction: Player ${playerId} has already drawn this turn. Passing turn.`);
       await executeAutomatedPassTurn(gameState, playerId);
       return;
     }
@@ -164,7 +164,8 @@ export async function executeAutomatedDraw(
   }
   
   if (gameState.hasDrawnThisTurn) {
-    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn`);
+    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn. Passing turn.`);
+    await executeAutomatedPassTurn(gameState, playerId);
     return;
   }
 
