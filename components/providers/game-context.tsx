@@ -831,6 +831,14 @@ export function GameProvider({
       await rematchGame(roomId, currentPlayerId);
       console.log(`[GameProvider] Rematch action called successfully for room: ${roomId}`);
       toast("Starting Rematch!", { duration: 2000 });
+      
+      // For DEFAULT room, refresh the page after a short delay to ensure state is properly reloaded
+      if (roomId === "DEFAULT") {
+        setTimeout(() => {
+          console.log("[GameProvider] DEFAULT room detected, refreshing page to reload game state");
+          window.location.reload();
+        }, 500);
+      }
     } catch (err) {
       console.error("[GameProvider] Failed to initiate rematch:", err);
       setError(err instanceof Error ? err.message : "Failed to start rematch");

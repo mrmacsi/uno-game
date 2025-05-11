@@ -525,7 +525,7 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   
   // Only check if forcePass is false and player is not a bot
   if (!forcePass && !player.isBot && !gameState.hasDrawnThisTurn) {
-    throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
+     throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
   }
 
   const originalLogLength = gameState.log ? gameState.log.length : 0;
@@ -539,7 +539,7 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
   
   const nextPlayer = gameState.players[nextPlayerIndex];
   if (nextPlayer && nextPlayer.cards.length !== 1) {
-    nextPlayer.saidUno = false;
+      nextPlayer.saidUno = false;
   }
 
   const passReason = gameState.hasDrawnThisTurn ? " after drawing" : "";

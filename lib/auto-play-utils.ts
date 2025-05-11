@@ -1,4 +1,5 @@
 import type { GameState, Card, CardColor, BotPlayDecision } from "./types";
+import { declareUno as declareUnoAction } from "@/lib/game-actions"; // Import the server action
 
 /**
  * Executes an automated turn for a given player based on a pre-determined action.
@@ -94,22 +95,26 @@ export async function executeAutomatedCardPlay(
   if (shouldDeclareUno && player.cards.length === 2) {
     try {
       console.log(`executeAutomatedCardPlay: Declaring UNO for player ${player.name}`);
-      const unoResponse = await fetch('/api/game/declare-uno', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          roomId: gameState.roomId,
-          playerId: playerId,
-        }),
-      });
+      // const unoResponse = await fetch('/api/game/declare-uno', { // Old fetch call
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     roomId: gameState.roomId,
+      //     playerId: playerId,
+      //   }),
+      // });
 
-      if (!unoResponse.ok) {
-        const unoErrorText = await unoResponse.text();
-        console.error(`executeAutomatedCardPlay: Failed to declare UNO:`, unoErrorText);
-        // Continue with play, as UNO is not essential
-      }
+      // Call the server action directly
+      await declareUnoAction(gameState.roomId, playerId);
+      console.log(`executeAutomatedCardPlay: Successfully called declareUnoAction for player ${playerId}`);
+
+      // if (!unoResponse.ok) { // This check is no longer needed as server actions throw on error
+      //   const unoErrorText = await unoResponse.text();
+      //   console.error(`executeAutomatedCardPlay: Failed to declare UNO:`, unoErrorText);
+      //   // Continue with play, as UNO is not essential
+      // }
     } catch (unoError) {
       console.error(`executeAutomatedCardPlay: Error declaring UNO:`, unoError);
       // Continue with play, as UNO is not essential
@@ -134,7 +139,7 @@ export async function executeAutomatedCardPlay(
       body: JSON.stringify({
         roomId: gameState.roomId,
         playerId: playerId,
-        cardDetails: actualCard,
+        card: actualCard,
         chosenColor: chosenColor || actualCard.color,
       }),
     });

@@ -425,7 +425,7 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
       console.log(`[getBotPlay] Playing Wild Draw 4, next player has ${nextPlayer.cards.length} cards`);
       const chosenColor = _chooseBestColorForBot(botPlayer.cards, cardToPlay.id);
       return { action: 'play', card: cardToPlay, chosenColor, shouldDeclareUno };
-    }
+  }
   }
 
   // Fallback - this should rarely happen, but we need to handle the case
