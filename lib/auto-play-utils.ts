@@ -1,12 +1,4 @@
-import type { GameState, Card, CardColor } from "@/lib/types";
-import { getBotPlay } from "@/lib/game-logic"; // Used for type, and potentially directly if a wrapper is made
-
-interface PlayCardRequestBody {
-  roomId: string;
-  playerId: string;
-  card: Card;
-  chosenColor?: CardColor;
-}
+import type { GameState, Card, CardColor, BotPlayDecision } from "./types";
 
 /**
  * Executes an automated turn for a given player based on a pre-determined action.
@@ -14,135 +6,160 @@ interface PlayCardRequestBody {
  *
  * @param gameState The current state of the game.
  * @param playerId The ID of the player for whom the turn is being executed.
- * @param determinedAction The action determined by bot logic (e.g., from getBotPlay).
+ * @param botPlayDecision The decision made by the bot for the player's turn.
  */
 export async function executeAutomatedTurnAction(
   gameState: GameState,
   playerId: string,
-  determinedAction: ReturnType<typeof getBotPlay>
-) {
-  const player = gameState.players.find(p => p.id === playerId);
-  if (!player) {
-    console.error(`executeAutomatedTurnAction: Player with ID ${playerId} not found in game state.`);
+  botPlayDecision: BotPlayDecision
+): Promise<void> {
+  console.log(`executeAutomatedTurnAction: Executing for player ${gameState.players.find(p => p.id === playerId)?.name} (ID: ${playerId})`);
+  console.log(`executeAutomatedTurnAction: Action determined:`, botPlayDecision);
+
+  // First verify it's still this player's turn
+  if (gameState.currentPlayer !== playerId) {
+    console.log(`executeAutomatedTurnAction: Aborting - player ${playerId} is no longer the current player (current: ${gameState.currentPlayer})`);
     return;
   }
 
-  console.log(`executeAutomatedTurnAction: Executing for player ${player.name} (ID: ${playerId})`);
-  console.log(`executeAutomatedTurnAction: Action determined:`, JSON.parse(JSON.stringify(determinedAction)));
-
-  try {
-    if (determinedAction.action === 'play') {
-      const cardToPlay = determinedAction.card;
-
-      if (!cardToPlay || typeof cardToPlay.id !== 'string') {
-        console.error("executeAutomatedTurnAction: Invalid card object or missing/invalid card ID from determinedAction.", JSON.parse(JSON.stringify(cardToPlay)));
-        return;
-      }
-
-      // Verify the card is actually in the player's hand. This is crucial.
-      const actualCardInHand = player.cards?.find(c => c.id === cardToPlay.id);
-      if (!actualCardInHand) {
-        console.error(
-          `executeAutomatedTurnAction: Card with ID ${cardToPlay.id} (suggested by logic) not found in player's current hand. Player ID: ${playerId}. Aborting play action.`,
-          "Player's current hand:", JSON.parse(JSON.stringify(player.cards)),
-          "Card suggested by logic:", JSON.parse(JSON.stringify(cardToPlay))
-        );
-        // Optionally, you might want to force a draw action here if the bot logic was flawed for a human player.
-        // For now, we'll just abort the play action.
-        // Consider notifying the user or attempting a draw as a fallback.
-        // await executeAutomatedDraw(gameState, playerId); // Example fallback
-        return;
-      }
-
-      console.log("executeAutomatedTurnAction: Actual card from hand to play (verified):", JSON.parse(JSON.stringify(actualCardInHand)));
-
-      // Declare UNO if needed
-      if (determinedAction.shouldDeclareUno) {
-        console.log(`executeAutomatedTurnAction: ${player.name} is declaring UNO.`);
-        try {
-          // Add a small delay before UNO declaration
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Use minimal payload and ensure we're using the correct URL format
-          const minimalPayload = { 
-            roomId: gameState.roomId.toString(), 
-            playerId: playerId.toString() 
-          };
-          
-          const unoResponse = await fetch('/api/game/ring', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(minimalPayload),
-            // Ensure we don't send cookies or other potential large payloads
-            credentials: 'omit'
-          });
-          
-          if (!unoResponse.ok) {
-            console.error(`executeAutomatedTurnAction: Failed to declare UNO: ${unoResponse.status} ${unoResponse.statusText}`);
-            // Even if UNO declaration fails, continue with the card play
-          } else {
-            console.log("executeAutomatedTurnAction: Successfully declared UNO.");
-          }
-        } catch (unoError) {
-          console.error('executeAutomatedTurnAction: Exception when declaring UNO:', unoError instanceof Error ? unoError.message : String(unoError));
-          // Continue with card play even if UNO declaration fails
-        }
-        
-        // Add a small delay after UNO declaration before playing the card
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      const body: PlayCardRequestBody = {
-        roomId: gameState.roomId,
-        playerId: playerId,
-        card: {
-          id: actualCardInHand.id,
-          type: actualCardInHand.type,
-          color: actualCardInHand.color,
-          value: actualCardInHand.value
-        }
-      };
-      
-      if (determinedAction.chosenColor) {
-        body.chosenColor = determinedAction.chosenColor;
-      }
-
-      console.log("executeAutomatedTurnAction: Playing card:", actualCardInHand.type, actualCardInHand.color);
-      try {
-        const playResponse = await fetch('/api/game/play-card', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-
-        if (!playResponse.ok) {
-          const errorData = await playResponse.text();
-          console.error('executeAutomatedTurnAction: Failed to play card:', playResponse.status, playResponse.statusText, errorData);
-        } else {
-          console.log("executeAutomatedTurnAction: Successfully played card.");
-        }
-      } catch (playError) {
-        console.error('executeAutomatedTurnAction: Exception when playing card:', playError);
-      }
-    } else if (determinedAction.action === 'draw') {
-      console.log(`executeAutomatedTurnAction: Player ${playerId} is drawing a card as per determined action.`);
-      await executeAutomatedDraw(gameState, playerId);
+  if (gameState.status !== "playing") {
+    console.log(`executeAutomatedTurnAction: Aborting - game is no longer in playing status (current: ${gameState.status})`);
+    return;
+  }
+  
+  if (botPlayDecision.action === "play") {
+    if (!botPlayDecision.card) {
+      console.error("executeAutomatedTurnAction: Card missing from bot play decision");
+      return;
     }
-  } catch (error) {
-    console.error('executeAutomatedTurnAction: Error during turn execution:', error);
+
+    // Bot has decided to play a card
+    await executeAutomatedCardPlay(
+      gameState,
+      playerId,
+      botPlayDecision.card,
+      botPlayDecision.chosenColor,
+      botPlayDecision.shouldDeclareUno
+    );
+  } else if (botPlayDecision.action === "draw") {
+    // Bot has decided to draw a card
+    console.log(`executeAutomatedTurnAction: Player ${playerId} is drawing a card as per determined action.`);
+    
+    // Check if player has already drawn this turn
+    if (gameState.hasDrawnThisTurn) {
+      console.log(`executeAutomatedTurnAction: Player ${playerId} has already drawn this turn. Attempting to pass turn.`);
+      await executeAutomatedPassTurn(gameState, playerId);
+      return;
+    }
+    
+    await executeAutomatedDraw(gameState, playerId);
   }
 }
 
-/**
- * Handles the API call for a player to draw a card.
- */
-export async function executeAutomatedDraw(gameState: GameState, playerId: string) {
-  // Check if the player has already drawn a card this turn
+export async function executeAutomatedCardPlay(
+  gameState: GameState,
+  playerId: string,
+  cardToPlay: Card,
+  chosenColor?: CardColor,
+  shouldDeclareUno?: boolean
+): Promise<void> {
+  // Double-check it's still this player's turn
+  if (gameState.currentPlayer !== playerId) {
+    console.log(`executeAutomatedCardPlay: Aborting - no longer ${playerId}'s turn`);
+    return;
+  }
+
+  // Find the actual card from the player's hand that matches the chosen card
+  const player = gameState.players.find(p => p.id === playerId);
+  if (!player) {
+    console.error(`executeAutomatedCardPlay: Player ${playerId} not found in game state`);
+    return;
+  }
+
+  const actualCard = player.cards.find(c => 
+    c.color === cardToPlay.color && 
+    c.type === cardToPlay.type && 
+    (c.type === 'number' ? c.value === cardToPlay.value : true)
+  );
+
+  if (!actualCard) {
+    console.error(`executeAutomatedCardPlay: Could not find matching card in player's hand`, 
+      {cardToPlay, playerCards: player.cards});
+    return;
+  }
+
+  console.log(`executeAutomatedCardPlay: Actual card from hand to play (verified):`, actualCard);
+  
+  // If the bot should declare UNO first, do that before playing the card
+  if (shouldDeclareUno && player.cards.length === 2) {
+    try {
+      console.log(`executeAutomatedCardPlay: Declaring UNO for player ${player.name}`);
+      const unoResponse = await fetch('/api/game/declare-uno', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: gameState.roomId,
+          playerId: playerId,
+        }),
+      });
+
+      if (!unoResponse.ok) {
+        const unoErrorText = await unoResponse.text();
+        console.error(`executeAutomatedCardPlay: Failed to declare UNO:`, unoErrorText);
+        // Continue with play, as UNO is not essential
+      }
+    } catch (unoError) {
+      console.error(`executeAutomatedCardPlay: Error declaring UNO:`, unoError);
+      // Continue with play, as UNO is not essential
+    }
+  }
+
+  // Now play the card
+  try {
+    console.log(`executeAutomatedTurnAction: Playing card: ${actualCard.type} ${actualCard.color}`);
+    
+    // Final verification before API call
+    if (gameState.currentPlayer !== playerId) {
+      console.log(`executeAutomatedCardPlay: Aborting card play - no longer ${playerId}'s turn`);
+      return;
+    }
+    
+    const response = await fetch('/api/game/play-card', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        roomId: gameState.roomId,
+        playerId: playerId,
+        cardDetails: actualCard,
+        chosenColor: chosenColor || actualCard.color,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`executeAutomatedTurnAction: Failed to play card: ${response.status} ${response.statusText}`, errorText);
+    }
+  } catch (error) {
+    console.error(`executeAutomatedTurnAction: Error playing card:`, error);
+  }
+}
+
+export async function executeAutomatedDraw(
+  gameState: GameState,
+  playerId: string
+): Promise<void> {
+  // Verify it's still this player's turn
+  if (gameState.currentPlayer !== playerId) {
+    console.log(`executeAutomatedDraw: Aborting - no longer ${playerId}'s turn`);
+    return;
+  }
+  
   if (gameState.hasDrawnThisTurn) {
-    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn. Skipping draw action.`);
+    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn`);
     return;
   }
 
@@ -150,20 +167,57 @@ export async function executeAutomatedDraw(gameState: GameState, playerId: strin
   try {
     const response = await fetch('/api/game/draw-card', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        roomId: gameState.roomId, 
-        playerId: playerId 
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        roomId: gameState.roomId,
+        playerId: playerId,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('executeAutomatedDraw: Failed to draw card:', response.status, response.statusText, errorData);
+      const errorText = await response.text();
+      console.error(`executeAutomatedDraw: Failed to draw card: ${response.status} ${response.statusText}`, errorText);
     } else {
-      console.log("executeAutomatedDraw: Successfully drew card.");
+      console.log(`executeAutomatedDraw: Successfully drew card.`);
     }
-  } catch (drawError) {
-    console.error('executeAutomatedDraw: Exception when drawing card:', drawError);
+  } catch (error) {
+    console.error(`executeAutomatedDraw: Error drawing card:`, error);
+  }
+}
+
+export async function executeAutomatedPassTurn(
+  gameState: GameState,
+  playerId: string
+): Promise<void> {
+  // Verify it's still this player's turn
+  if (gameState.currentPlayer !== playerId) {
+    console.log(`executeAutomatedPassTurn: Aborting - no longer ${playerId}'s turn`);
+    return;
+  }
+
+  console.log(`executeAutomatedPassTurn: Player ${playerId} is passing turn.`);
+  try {
+    const response = await fetch('/api/game/pass-turn', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        roomId: gameState.roomId,
+        playerId: playerId,
+        forcePass: true, // Force the pass for bots
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`executeAutomatedPassTurn: Failed to pass turn: ${response.status} ${response.statusText}`, errorText);
+    } else {
+      console.log(`executeAutomatedPassTurn: Successfully passed turn.`);
+    }
+  } catch (error) {
+    console.error(`executeAutomatedPassTurn: Error passing turn:`, error);
   }
 }
