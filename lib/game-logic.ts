@@ -268,9 +268,6 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
   const botPlayer = gameState.players.find(p => p.id === playerId);
   if (!botPlayer || botPlayer.cards.length === 0) return { action: 'draw' };
 
-  console.log(`[getBotPlay] Bot ${botPlayer.name} has ${botPlayer.cards.length} cards, current color: ${gameState.currentColor}`);
-  console.log(`[getBotPlay] Top card:`, gameState.discardPile.length > 0 ? gameState.discardPile[gameState.discardPile.length - 1] : 'none');
-  
   const _chooseBestColorForBot = (cardsInHand: Card[], cardToExcludeId: string): CardColor => {
     const relevantCards = cardsInHand.filter(c => c.id !== cardToExcludeId);
     const colorCounts: { [key in CardColor]?: number } = {};
@@ -298,17 +295,14 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
       }
     }
     
-    console.log(`[getBotPlay] Chosen color for wild card: ${chosenColor}`);
     return chosenColor;
   };
   
   if (gameState.hasDrawnThisTurn) {
-    console.log(`[getBotPlay] Bot ${botPlayer.name} has already drawn this turn, must pass or play drawn card`);
     const lastCard = botPlayer.cards[botPlayer.cards.length - 1];
     const isLastCardPlayable = checkPlayValidity(gameState, lastCard);
     
     if (isLastCardPlayable) {
-      console.log(`[getBotPlay] Last card is playable, playing: ${lastCard.type} ${lastCard.color}`);
       const shouldDeclareUno = botPlayer.cards.length === 2;
       if (lastCard.type === "wild" || lastCard.type === "wild4") {
         const chosenColor = _chooseBestColorForBot(botPlayer.cards, lastCard.id);
@@ -316,18 +310,12 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
       }
       return { action: 'play', card: lastCard, shouldDeclareUno };
     }
-    console.log(`[getBotPlay] Bot ${botPlayer.name} has drawn and can't play, passing turn`);
     return { action: 'draw' }; 
   }
 
   const allPlayableCards: Card[] = botPlayer.cards.filter(card => checkPlayValidity(gameState, card));
-  console.log(`[getBotPlay] Bot ${botPlayer.name} has ${allPlayableCards.length} playable cards out of ${botPlayer.cards.length} total`);
-  allPlayableCards.forEach(card => {
-    console.log(`[getBotPlay] Playable card: ${card.type} ${card.color}`);
-  });
   
   if (allPlayableCards.length === 0) {
-    console.log(`[getBotPlay] Bot ${botPlayer.name} has no playable cards, will draw`);
     return { action: 'draw' };
   }
 
@@ -337,13 +325,92 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
   if (botPlayer.cards.length === 2) {
     const wildDraw4 = botPlayer.cards.find(card => card.type === "wild4" && checkPlayValidity(gameState, card));
     if (wildDraw4) {
-      console.log(`[getBotPlay] Strategic play: Bot has 2 cards, playing Wild Draw 4`);
       const chosenColor = _chooseBestColorForBot(botPlayer.cards, wildDraw4.id);
       return { action: 'play', card: wildDraw4, chosenColor, shouldDeclareUno: true };
     }
   }
 
+  // ---- Enhanced strategy for optimizing card removal ----
+  // Group playable cards by type (action cards vs number cards)
+  const actionTypes: CardType[] = ["skip", "reverse", "draw2"];
   const nonWildPlayableCards = allPlayableCards.filter(card => card.type !== "wild" && card.type !== "wild4");
+  const regularWildPlayable = allPlayableCards.filter(card => card.type === "wild");
+  const wild4Playable = allPlayableCards.filter(card => card.type === "wild4");
+  
+  // Group cards by their types and colors
+  const cardsByTypeAndColor: {[key: string]: Card[]} = {};
+  
+  nonWildPlayableCards.forEach(card => {
+    const key = `${card.type}_${card.color}`;
+    if (!cardsByTypeAndColor[key]) {
+      cardsByTypeAndColor[key] = [];
+    }
+    cardsByTypeAndColor[key].push(card);
+  });
+  
+  // Check if we have same type cards with different colors
+  // These are good candidates for a sequence (like red skip, blue skip, yellow skip)
+  const typeGroups: {[key in CardType]?: Card[]} = {};
+  nonWildPlayableCards.forEach(card => {
+    if (!typeGroups[card.type]) {
+      typeGroups[card.type] = [];
+    }
+    typeGroups[card.type]!.push(card);
+  });
+  
+  // Find types with multiple color cards (good for sequences)
+  const typesWithMultipleColors = Object.entries(typeGroups)
+    .filter(([, cards]) => {
+      const uniqueColors = new Set(cards.map(c => c.color));
+      return uniqueColors.size > 1;
+    })
+    .sort((a, b) => b[1].length - a[1].length); // Sort by number of cards
+
+  // If we have action cards (skip, reverse, draw2) of different colors, prioritize them for sequence play
+  if (typesWithMultipleColors.length > 0 && actionTypes.includes(typesWithMultipleColors[0][0] as CardType)) {
+    const [, cards] = typesWithMultipleColors[0];
+    
+    // First look for a card matching the current color - best for starting a sequence
+    const matchingCurrentColor = cards.find(c => c.color === gameState.currentColor);
+    if (matchingCurrentColor) {
+      return { action: 'play', card: matchingCurrentColor, shouldDeclareUno };
+    }
+    
+    // Otherwise play any card of this type
+    return { action: 'play', card: cards[0], shouldDeclareUno };
+  }
+  
+  // Check if we have number cards with the same value but different colors
+  const numberValues: {[key: number]: Card[]} = {};
+  nonWildPlayableCards.forEach(card => {
+    if (card.type === "number" && card.value !== undefined) {
+      if (!numberValues[card.value]) {
+        numberValues[card.value] = [];
+      }
+      numberValues[card.value].push(card);
+    }
+  });
+  
+  const numbersWithMultipleColors = Object.entries(numberValues)
+    .filter(([, cards]) => {
+      const uniqueColors = new Set(cards.map(c => c.color));
+      return uniqueColors.size > 1;
+    })
+    .sort((a, b) => b[1].length - a[1].length); // Sort by number of cards
+  
+  if (numbersWithMultipleColors.length > 0) {
+    const [, cards] = numbersWithMultipleColors[0];
+    
+    // First look for a card matching the current color
+    const matchingCurrentColor = cards.find(c => c.color === gameState.currentColor);
+    if (matchingCurrentColor) {
+      return { action: 'play', card: matchingCurrentColor, shouldDeclareUno };
+    }
+    
+    return { action: 'play', card: cards[0], shouldDeclareUno };
+  }
+  
+  // If no good sequence opportunities, fall back to the standard strategy
   const currentColorPlayableNonWildCards = nonWildPlayableCards.filter(card => card.color === gameState.currentColor);
   const matchingNumberCards = nonWildPlayableCards.filter(card => {
     const topCard = gameState.discardPile[gameState.discardPile.length - 1];
@@ -353,37 +420,31 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
     const topCard = gameState.discardPile[gameState.discardPile.length - 1];
     return card.type !== "number" && card.type === topCard.type;
   });
-  const regularWildPlayable = allPlayableCards.filter(card => card.type === "wild");
-  const wild4Playable = allPlayableCards.filter(card => card.type === "wild4");
 
   if (currentColorPlayableNonWildCards.length > 0) {
-    console.log(`[getBotPlay] Playing card matching current color ${gameState.currentColor}`);
+    // Prioritize higher point value cards
     currentColorPlayableNonWildCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
     return { action: 'play', card: currentColorPlayableNonWildCards[0], shouldDeclareUno };
   }
 
   const matchingCards = [...matchingNumberCards, ...matchingTypeCards];
   if (matchingCards.length > 0) {
-    console.log(`[getBotPlay] Playing card matching number or type of top card`);
     matchingCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
     return { action: 'play', card: matchingCards[0], shouldDeclareUno };
   }
 
   if (nonWildPlayableCards.length > 0) {
-    console.log(`[getBotPlay] Playing best non-wild card available`);
     nonWildPlayableCards.sort((a, b) => getCardPointValue(b) - getCardPointValue(a));
     return { action: 'play', card: nonWildPlayableCards[0], shouldDeclareUno };
   }
 
   if (regularWildPlayable.length > 0) {
-    console.log(`[getBotPlay] Playing regular wild card`);
     const cardToPlay = regularWildPlayable[0];
     const chosenColor = _chooseBestColorForBot(botPlayer.cards, cardToPlay.id);
     return { action: 'play', card: cardToPlay, chosenColor, shouldDeclareUno };
   }
 
   if (wild4Playable.length > 0) {
-    console.log(`[getBotPlay] Considering Wild Draw 4 card`);
     const cardToPlay = wild4Playable[0];
     
     const currentPlayerIndex = gameState.players.findIndex(p => p.id === playerId);
@@ -401,19 +462,15 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
     }
 
     if (nextPlayer.cards.length < 3 && botPlayer.cards.length > 2) {
-      console.log(`[getBotPlay] Next player has only ${nextPlayer.cards.length} cards, playing Wild Draw 4 strategically`);
       const chosenColor = _chooseBestColorForBot(botPlayer.cards, cardToPlay.id);
       return { action: 'play', card: cardToPlay, chosenColor, shouldDeclareUno };
     } else if (nextPlayer.cards.length < 3) {
-      console.log(`[getBotPlay] Next player has only ${nextPlayer.cards.length} cards, our bot has ${botPlayer.cards.length} - too risky for Wild Draw 4`);
       return { action: 'draw' };
     } else {
-      console.log(`[getBotPlay] Playing Wild Draw 4, next player has ${nextPlayer.cards.length} cards`);
       const chosenColor = _chooseBestColorForBot(botPlayer.cards, cardToPlay.id);
       return { action: 'play', card: cardToPlay, chosenColor, shouldDeclareUno };
-  }
+    }
   }
 
-  console.log(`[getBotPlay] No good strategy found, defaulting to draw`);
   return { action: 'draw' };
 }

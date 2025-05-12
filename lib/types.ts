@@ -61,6 +61,8 @@ export interface GameState {
   rematchRequestedBy?: string | null
   rematchConfirmedBy?: string[]
   socket?: unknown // Use unknown instead of any
+  drawCardEffect?: { playerId: string; count: number }
+  matchHistory?: MatchResult[]
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }

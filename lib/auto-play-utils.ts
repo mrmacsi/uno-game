@@ -14,17 +14,12 @@ export async function executeAutomatedTurnAction(
   playerId: string,
   botPlayDecision: BotPlayDecision
 ): Promise<void> {
-  console.log(`executeAutomatedTurnAction: Executing for player ${gameState.players.find(p => p.id === playerId)?.name} (ID: ${playerId})`);
-  console.log(`executeAutomatedTurnAction: Action determined:`, botPlayDecision);
-
   // First verify it's still this player's turn
   if (gameState.currentPlayer !== playerId) {
-    console.log(`executeAutomatedTurnAction: Aborting - player ${playerId} is no longer the current player (current: ${gameState.currentPlayer})`);
     return;
   }
 
   if (gameState.status !== "playing") {
-    console.log(`executeAutomatedTurnAction: Aborting - game is no longer in playing status (current: ${gameState.status})`);
     return;
   }
   
@@ -44,11 +39,9 @@ export async function executeAutomatedTurnAction(
     );
   } else if (botPlayDecision.action === "draw") {
     // Bot has decided to draw a card
-    console.log(`executeAutomatedTurnAction: Player ${playerId} is drawing a card as per determined action.`);
     
     // Check if player has already drawn this turn
     if (gameState.hasDrawnThisTurn) {
-      console.log(`executeAutomatedTurnAction: Player ${playerId} has already drawn this turn. Passing turn.`);
       await executeAutomatedPassTurn(gameState, playerId);
       return;
     }
@@ -66,7 +59,6 @@ export async function executeAutomatedCardPlay(
 ): Promise<void> {
   // Double-check it's still this player's turn
   if (gameState.currentPlayer !== playerId) {
-    console.log(`executeAutomatedCardPlay: Aborting - no longer ${playerId}'s turn`);
     return;
   }
 
@@ -88,33 +80,12 @@ export async function executeAutomatedCardPlay(
       {cardToPlay, playerCards: player.cards});
     return;
   }
-
-  console.log(`executeAutomatedCardPlay: Actual card from hand to play (verified):`, actualCard);
   
   // If the bot should declare UNO first, do that before playing the card
   if (shouldDeclareUno && player.cards.length === 2) {
     try {
-      console.log(`executeAutomatedCardPlay: Declaring UNO for player ${player.name}`);
-      // const unoResponse = await fetch('/api/game/declare-uno', { // Old fetch call
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     roomId: gameState.roomId,
-      //     playerId: playerId,
-      //   }),
-      // });
-
       // Call the server action directly
       await declareUnoAction(gameState.roomId, playerId);
-      console.log(`executeAutomatedCardPlay: Successfully called declareUnoAction for player ${playerId}`);
-
-      // if (!unoResponse.ok) { // This check is no longer needed as server actions throw on error
-      //   const unoErrorText = await unoResponse.text();
-      //   console.error(`executeAutomatedCardPlay: Failed to declare UNO:`, unoErrorText);
-      //   // Continue with play, as UNO is not essential
-      // }
     } catch (unoError) {
       console.error(`executeAutomatedCardPlay: Error declaring UNO:`, unoError);
       // Continue with play, as UNO is not essential
@@ -123,11 +94,8 @@ export async function executeAutomatedCardPlay(
 
   // Now play the card
   try {
-    console.log(`executeAutomatedTurnAction: Playing card: ${actualCard.type} ${actualCard.color}`);
-    
     // Final verification before API call
     if (gameState.currentPlayer !== playerId) {
-      console.log(`executeAutomatedCardPlay: Aborting card play - no longer ${playerId}'s turn`);
       return;
     }
     
@@ -159,17 +127,14 @@ export async function executeAutomatedDraw(
 ): Promise<void> {
   // Verify it's still this player's turn
   if (gameState.currentPlayer !== playerId) {
-    console.log(`executeAutomatedDraw: Aborting - no longer ${playerId}'s turn`);
     return;
   }
   
   if (gameState.hasDrawnThisTurn) {
-    console.log(`executeAutomatedDraw: Player ${playerId} has already drawn a card this turn. Passing turn.`);
     await executeAutomatedPassTurn(gameState, playerId);
     return;
   }
 
-  console.log(`executeAutomatedDraw: Player ${playerId} is drawing a card.`);
   try {
     const response = await fetch('/api/game/draw-card', {
       method: 'POST',
@@ -185,8 +150,6 @@ export async function executeAutomatedDraw(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`executeAutomatedDraw: Failed to draw card: ${response.status} ${response.statusText}`, errorText);
-    } else {
-      console.log(`executeAutomatedDraw: Successfully drew card.`);
     }
   } catch (error) {
     console.error(`executeAutomatedDraw: Error drawing card:`, error);
@@ -199,11 +162,9 @@ export async function executeAutomatedPassTurn(
 ): Promise<void> {
   // Verify it's still this player's turn
   if (gameState.currentPlayer !== playerId) {
-    console.log(`executeAutomatedPassTurn: Aborting - no longer ${playerId}'s turn`);
     return;
   }
 
-  console.log(`executeAutomatedPassTurn: Player ${playerId} is passing turn.`);
   try {
     const response = await fetch('/api/game/pass-turn', {
       method: 'POST',
@@ -220,8 +181,6 @@ export async function executeAutomatedPassTurn(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`executeAutomatedPassTurn: Failed to pass turn: ${response.status} ${response.statusText}`, errorText);
-    } else {
-      console.log(`executeAutomatedPassTurn: Successfully passed turn.`);
     }
   } catch (error) {
     console.error(`executeAutomatedPassTurn: Error passing turn:`, error);
