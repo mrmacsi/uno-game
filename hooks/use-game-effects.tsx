@@ -36,7 +36,7 @@ export function useGameEffects({
             notificationSoundRef.current = null;
           }
         };
-      } catch (err) { }
+      } catch {}
     }
   }, [notificationSoundRef]);
 

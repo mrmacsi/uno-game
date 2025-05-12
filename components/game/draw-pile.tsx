@@ -18,9 +18,45 @@ export default function DrawPile({ count }: DrawPileProps) {
   const [showFlyingCard, setShowFlyingCard] = useState(false)
   const [recentDrawCount, setRecentDrawCount] = useState(0)
   const [showDrawCount, setShowDrawCount] = useState(false)
+  const [flyAnimation, setFlyAnimation] = useState("animate-fly-to-hand-bottom")
   
   const isMyTurn = state.currentPlayer === currentPlayerId
   const canDraw = isMyTurn && count > 0 && !state.hasDrawnThisTurn && !isDrawing
+
+  // Determine player position for animation
+  useEffect(() => {
+    if (!state?.players || !state.currentPlayer) return
+
+    const currentPlayer = state.players.find(p => p.id === state.currentPlayer)
+    if (!currentPlayer) return
+
+    // If it's my turn, card should fly toward bottom (current user)
+    if (isMyTurn) {
+      setFlyAnimation("animate-fly-to-hand-bottom")
+      return
+    }
+
+    // Find the index of the current player in the players array
+    const otherPlayers = state.players.filter(p => p.id !== currentPlayerId)
+    const currentPlayerIndex = otherPlayers.findIndex(p => p.id === state.currentPlayer)
+
+    if (otherPlayers.length === 1) {
+      // Only one opponent, should be at the top
+      setFlyAnimation("animate-fly-to-hand-top")
+    } else if (otherPlayers.length === 2) {
+      // Two opponents (left and right)
+      setFlyAnimation(currentPlayerIndex === 0 ? "animate-fly-to-hand-left" : "animate-fly-to-hand-right")
+    } else if (otherPlayers.length === 3) {
+      // Three opponents (top, left, right)
+      if (currentPlayerIndex === 0) {
+        setFlyAnimation("animate-fly-to-hand-left")
+      } else if (currentPlayerIndex === 1) {
+        setFlyAnimation("animate-fly-to-hand-top")
+      } else {
+        setFlyAnimation("animate-fly-to-hand-right")
+      }
+    }
+  }, [state.currentPlayer, state.players, currentPlayerId, isMyTurn])
   
   // Detect when cards are drawn
   useEffect(() => {
@@ -100,7 +136,7 @@ export default function DrawPile({ count }: DrawPileProps) {
         style={{ cursor: canDraw ? 'pointer' : 'default' }}
       >
         {showFlyingCard && (
-          <div className="absolute top-0 left-0 z-50 animate-fly-to-hand pointer-events-none">
+          <div className={`absolute top-0 left-0 z-50 ${flyAnimation} pointer-events-none`}>
             <UnoCard card={dummyCard} faceDown={true} disabled={true} />
           </div>
         )}

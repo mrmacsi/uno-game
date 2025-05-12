@@ -18,7 +18,7 @@ export default function PlayerInfo({ player, isCurrentTurn, showRingButton = fal
   // const isGloballyCurrentTurnPlayer = state.currentPlayer === player.id;
 
   // This determines if the PlayerInfo card being rendered is for the user viewing the page AND it's their turn.
-  const isMySpecificTurn = state.currentPlayer === player.id && player.id === currentPlayerId;
+  // const isMySpecificTurn = state.currentPlayer === player.id && player.id === currentPlayerId;
   
   const handleRing = (e: React.MouseEvent) => {
     e.stopPropagation()

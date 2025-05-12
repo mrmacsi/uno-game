@@ -147,6 +147,67 @@
   }
 }
 
+/* Fly to hand animations for different positions */
+@keyframes flyToHandBottom {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(180px) translateX(-180px) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(250px) translateX(-250px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes flyToHandTop {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-180px) translateX(0) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-250px) translateX(0) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes flyToHandLeft {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(0) translateX(-180px) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0) translateX(-250px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes flyToHandRight {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(0) translateX(180px) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0) translateX(250px) scale(0.5);
+    opacity: 0;
+  }
+}
+
 @keyframes flyToHand {
   0% {
     transform: translateY(0) translateX(0) scale(1);
@@ -210,6 +271,22 @@
 
 .animate-fly-to-hand {
   animation: flyToHand 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fly-to-hand-bottom {
+  animation: flyToHandBottom 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fly-to-hand-top {
+  animation: flyToHandTop 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fly-to-hand-left {
+  animation: flyToHandLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fly-to-hand-right {
+  animation: flyToHandRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .card-transition {

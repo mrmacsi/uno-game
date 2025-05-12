@@ -121,6 +121,62 @@ module.exports = {
             opacity: '0'
           }
         },
+        flyToHandTop: {
+          '0%': {
+            transform: 'translateY(0) translateX(0) scale(1)',
+            opacity: '1'
+          },
+          '75%': {
+            transform: 'translateY(-180px) translateX(0) scale(0.8)',
+            opacity: '0.7'
+          },
+          '100%': {
+            transform: 'translateY(-250px) translateX(0) scale(0.5)',
+            opacity: '0'
+          }
+        },
+        flyToHandLeft: {
+          '0%': {
+            transform: 'translateY(0) translateX(0) scale(1)',
+            opacity: '1'
+          },
+          '75%': {
+            transform: 'translateY(0) translateX(-180px) scale(0.8)',
+            opacity: '0.7'
+          },
+          '100%': {
+            transform: 'translateY(0) translateX(-250px) scale(0.5)',
+            opacity: '0'
+          }
+        },
+        flyToHandRight: {
+          '0%': {
+            transform: 'translateY(0) translateX(0) scale(1)',
+            opacity: '1'
+          },
+          '75%': {
+            transform: 'translateY(0) translateX(180px) scale(0.8)',
+            opacity: '0.7'
+          },
+          '100%': {
+            transform: 'translateY(0) translateX(250px) scale(0.5)',
+            opacity: '0'
+          }
+        },
+        flyToHandBottom: {
+          '0%': {
+            transform: 'translateY(0) translateX(0) scale(1)',
+            opacity: '1'
+          },
+          '75%': {
+            transform: 'translateY(180px) translateX(-180px) scale(0.8)',
+            opacity: '0.7'
+          },
+          '100%': {
+            transform: 'translateY(250px) translateX(-250px) scale(0.5)',
+            opacity: '0'
+          }
+        },
         // Modern UI animations
         fadeInUpModern: {
           '0%': {
@@ -214,6 +270,10 @@ module.exports = {
         'float-in': 'floatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both',
         'discard': 'discard 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         'fly-to-hand': 'flyToHand 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+        'fly-to-hand-top': 'flyToHandTop 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+        'fly-to-hand-left': 'flyToHandLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+        'fly-to-hand-right': 'flyToHandRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+        'fly-to-hand-bottom': 'flyToHandBottom 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         'fade-in-up': 'fadeInUpModern 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
         'scale-fade-in': 'scaleFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
         'slide-in-right': 'slideInRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',

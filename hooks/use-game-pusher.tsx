@@ -109,7 +109,7 @@ export function useGamePusher({
                   const playPromise = notificationSoundRef.current.play();
                   if (playPromise !== undefined) {
                     playPromise
-                      .catch(err => {
+                      .catch(() => {
                         const handlePlayOnInteraction = () => {
                           if (notificationSoundRef.current) {
                             notificationSoundRef.current.play()
@@ -135,7 +135,7 @@ export function useGamePusher({
                     const fallbackAudio = new Audio("/sounds/notification.wav");
                     fallbackAudio.volume = 0.8;
                     fallbackAudio.play();
-                  } catch (err) { }
+                  } catch {}
                 }
               };
               playSound();
@@ -148,7 +148,7 @@ export function useGamePusher({
             refreshGameState();
           }
         });
-      } catch (error) { }
+      } catch {};
     };
     
     setupPusher();
