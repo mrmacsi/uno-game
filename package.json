@@ -54,7 +54,7 @@
     "pusher": "^5.2.0",
     "pusher-js": "^8.4.0",
     "react": "^19.1.0",
-    "react-content-loader": "^7.0.0",
+    "react-content-loader": "^7.0.2",
     "react-day-picker": "^9.6.7",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.55.0",

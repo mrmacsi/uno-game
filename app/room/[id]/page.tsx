@@ -1,7 +1,7 @@
 import React from "react";
 import { getRoom } from "@/lib/room-actions";
 import type { GameState } from "@/lib/types";
-import { AlertCircle, Home, Loader2 } from "lucide-react";
+import { AlertCircle, Home } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import RoomClientContent from "./room-client";
