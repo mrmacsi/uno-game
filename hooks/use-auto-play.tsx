@@ -78,7 +78,7 @@ export function useAutoPlayLogic({ isAutoPlayActive, currentPlayerId, state }: A
       } catch (error) {
         console.error("Auto Play: Error during automated turn", error);
       }
-    }, 800);
+    }, 400);
     
     return () => clearTimeout(autoPlayTimeout);
   }, [isAutoPlayActive, currentPlayerId, state.currentPlayer, state.status, state]);
