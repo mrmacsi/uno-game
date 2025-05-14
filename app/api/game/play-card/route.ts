@@ -15,7 +15,6 @@ async function validateRequestBody(request: NextRequest): Promise<{
   let body;
   try {
     body = await request.json();
-    console.log("[API /play-card] Received body:", body);
   } catch (e) {
     console.error("[API /play-card] Invalid JSON body:", e);
     return { error: "Invalid JSON body", status: 400 };
@@ -57,7 +56,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { roomId, playerId, card, chosenColor } = validation;
-  console.log("[API /play-card] Validation successful, calling playCard action with:", { roomId, playerId, card, chosenColor });
 
   try {
     if (!card) {
