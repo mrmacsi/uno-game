@@ -270,30 +270,38 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
 
   const _chooseBestColorForBot = (cardsInHand: Card[], cardToExcludeId: string): CardColor => {
     const relevantCards = cardsInHand.filter(c => c.id !== cardToExcludeId);
-    const colorCounts: { [key in CardColor]?: number } = {};
+    const colorPoints: { [key in CardColor]?: number } = {};
     const validColors: CardColor[] = ["red", "blue", "green", "yellow"];
 
     relevantCards.forEach(cardInHand => {
       if (cardInHand.color !== "black" && validColors.includes(cardInHand.color)) {
-        colorCounts[cardInHand.color] = (colorCounts[cardInHand.color] || 0) + 1;
+        colorPoints[cardInHand.color] = (colorPoints[cardInHand.color] || 0) + getCardPointValue(cardInHand);
       }
     });
 
-    let chosenColor: CardColor = validColors[Math.floor(Math.random() * validColors.length)];
-    let maxCount = 0;
+    let chosenColor: CardColor = validColors[Math.floor(Math.random() * validColors.length)]; // Default random choice
+    let maxPoints = -1; // Start with -1 to ensure any positive points take precedence
 
-    const sortedColorEntries = Object.entries(colorCounts).sort(([, countA], [, countB]) => countB - countA);
+    const sortedColorEntriesByPoints = Object.entries(colorPoints)
+      .filter(([, points]) => points !== undefined && points > 0) // Consider only colors with points
+      .sort(([, pointsA], [, pointsB]) => (pointsB as number) - (pointsA as number));
 
-    if (sortedColorEntries.length > 0) {
-      maxCount = sortedColorEntries[0][1];
-      const topColors = sortedColorEntries.filter(([, count]) => count === maxCount).map(([color]) => color as CardColor);
+    if (sortedColorEntriesByPoints.length > 0) {
+      maxPoints = sortedColorEntriesByPoints[0][1] as number;
+      const topColors = sortedColorEntriesByPoints
+        .filter(([, points]) => points === maxPoints)
+        .map(([color]) => color as CardColor);
       
+      // Prioritize current game color if it's among the top point colors
       if (topColors.includes(gameState.currentColor)) {
         chosenColor = gameState.currentColor;
       } else {
+        // Otherwise, pick randomly from the top point colors
         chosenColor = topColors[Math.floor(Math.random() * topColors.length)];
       }
     }
+    // If no colors have points (e.g. hand has only wild cards left, or is empty after excluding),
+    // chosenColor remains the default random choice from all validColors.
     
     return chosenColor;
   };
@@ -318,6 +326,28 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
   if (allPlayableCards.length === 0) {
     return { action: 'draw' };
   }
+
+  // Rule 2: Offensive Wild Draw 4
+  // If the AI has a Wild Draw 4 card and the next player has less than 3 cards, use it immediately.
+  const offensiveWildDraw4 = botPlayer.cards.find(card => card.type === "wild4" && checkPlayValidity(gameState, card));
+  if (offensiveWildDraw4) {
+    const currentPlayerIndex = gameState.players.findIndex(p => p.id === playerId);
+    if (currentPlayerIndex !== -1) {
+        const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
+        const nextPlayer = gameState.players[nextPlayerIndex];
+
+        if (nextPlayer && nextPlayer.cards.length < 3) {
+            const chosenColor = _chooseBestColorForBot(botPlayer.cards, offensiveWildDraw4.id);
+            // If playing this W+4 card leaves the bot with 1 card, it should declare Uno.
+            // This happens if the bot currently has 2 cards.
+            const shouldDeclareUnoForThisPlay = botPlayer.cards.length === 2;
+            return { action: 'play', card: offensiveWildDraw4, chosenColor, shouldDeclareUno: shouldDeclareUnoForThisPlay };
+        }
+    } else {
+        console.error(`[getBotPlay] Offensive W+4: Bot player ${playerId} not found.`);
+    }
+  }
+  // End of Rule 2
 
   const shouldDeclareUno = botPlayer.cards.length === 2;
 
