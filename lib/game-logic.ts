@@ -280,28 +280,25 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
     });
 
     let chosenColor: CardColor = validColors[Math.floor(Math.random() * validColors.length)]; // Default random choice
-    let maxPoints = -1; // Start with -1 to ensure any positive points take precedence
 
     const sortedColorEntriesByPoints = Object.entries(colorPoints)
       .filter(([, points]) => points !== undefined && points > 0) // Consider only colors with points
       .sort(([, pointsA], [, pointsB]) => (pointsB as number) - (pointsA as number));
 
     if (sortedColorEntriesByPoints.length > 0) {
-      maxPoints = sortedColorEntriesByPoints[0][1] as number;
+      const maxPoints = sortedColorEntriesByPoints[0][1] as number;
       const topColors = sortedColorEntriesByPoints
         .filter(([, points]) => points === maxPoints)
         .map(([color]) => color as CardColor);
       
-      // Prioritize current game color if it's among the top point colors
+      // If we have multiple colors with the same (max) points, prioritize current game color
       if (topColors.includes(gameState.currentColor)) {
         chosenColor = gameState.currentColor;
       } else {
-        // Otherwise, pick randomly from the top point colors
-        chosenColor = topColors[Math.floor(Math.random() * topColors.length)];
+        // Otherwise, pick the first one (highest points) from the sorted array
+        chosenColor = topColors[0];
       }
     }
-    // If no colors have points (e.g. hand has only wild cards left, or is empty after excluding),
-    // chosenColor remains the default random choice from all validColors.
     
     return chosenColor;
   };
@@ -327,8 +324,7 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
     return { action: 'draw' };
   }
 
-  // Rule 2: Offensive Wild Draw 4
-  // If the AI has a Wild Draw 4 card and the next player has less than 3 cards, use it immediately.
+  // Rule: Offensive Wild Draw 4 when next player has less than 3 cards
   const offensiveWildDraw4 = botPlayer.cards.find(card => card.type === "wild4" && checkPlayValidity(gameState, card));
   if (offensiveWildDraw4) {
     const currentPlayerIndex = gameState.players.findIndex(p => p.id === playerId);
@@ -338,8 +334,6 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
 
         if (nextPlayer && nextPlayer.cards.length < 3) {
             const chosenColor = _chooseBestColorForBot(botPlayer.cards, offensiveWildDraw4.id);
-            // If playing this W+4 card leaves the bot with 1 card, it should declare Uno.
-            // This happens if the bot currently has 2 cards.
             const shouldDeclareUnoForThisPlay = botPlayer.cards.length === 2;
             return { action: 'play', card: offensiveWildDraw4, chosenColor, shouldDeclareUno: shouldDeclareUnoForThisPlay };
         }
@@ -347,7 +341,6 @@ export function getBotPlay(gameState: GameState, playerId: string): BotPlayDecis
         console.error(`[getBotPlay] Offensive W+4: Bot player ${playerId} not found.`);
     }
   }
-  // End of Rule 2
 
   const shouldDeclareUno = botPlayer.cards.length === 2;
 

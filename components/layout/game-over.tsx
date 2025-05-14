@@ -117,7 +117,13 @@ export default function GameOver() {
                       ...player,
                       points: calculateHandPoints(player.cards)
                     }))
-                    .sort((a, b) => a.cards.length - b.cards.length || b.points - a.points)
+                    .sort((a, b) => {
+                      // Winner always comes first
+                      if (a.id === state.winner) return -1;
+                      if (b.id === state.winner) return 1;
+                      // Then sort by points (lowest to highest)
+                      return a.points - b.points;
+                    })
                     .map((player, index) => (
                       <div
                         key={player.id}
@@ -347,28 +353,36 @@ export default function GameOver() {
                             <div className="p-3">
                               <h4 className="text-sm font-medium text-gray-700 mb-2">Player Points:</h4>
                               <div className="space-y-1">
-                                {match.playerResults.map(player => (
-                                  <div key={player.playerId} className="flex justify-between items-center text-sm px-1 py-1">
-                                    <div className="flex items-center gap-2">
-                                      <AvatarDisplay 
-                                        index={player.avatar_index ?? 0}
-                                        size="xs"
-                                        className="flex-shrink-0"
-                                      />
-                                      <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
-                                        {player.playerName}
-                                        {player.playerId === match.winner && (
-                                          <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                                            Winner
-                                          </span>
-                                        )}
+                                {match.playerResults
+                                  .sort((a, b) => {
+                                    // Winner always comes first
+                                    if (a.playerId === match.winner) return -1;
+                                    if (b.playerId === match.winner) return 1;
+                                    // Then sort by points (lowest to highest)
+                                    return a.points - b.points;
+                                  })
+                                  .map(player => (
+                                    <div key={player.playerId} className="flex justify-between items-center text-sm px-1 py-1">
+                                      <div className="flex items-center gap-2">
+                                        <AvatarDisplay 
+                                          index={player.avatar_index ?? 0}
+                                          size="xs"
+                                          className="flex-shrink-0"
+                                        />
+                                        <span className={player.playerId === match.winner ? "font-medium text-indigo-600" : "text-gray-600"}>
+                                          {player.playerName}
+                                          {player.playerId === match.winner && (
+                                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
+                                              Winner
+                                            </span>
+                                          )}
+                                        </span>
+                                      </div>
+                                      <span className={`font-medium ${player.playerId === match.winner ? "text-indigo-600" : "text-gray-700"}`}>
+                                        {player.points} points
                                       </span>
                                     </div>
-                                    <span className={`font-medium ${player.playerId === match.winner ? "text-indigo-600" : "text-gray-700"}`}>
-                                      {player.points} points
-                                    </span>
-                                  </div>
-                                ))}
+                                  ))}
                               </div>
                             </div>
                           </div>
