@@ -17,7 +17,6 @@ function generateRoomCode(): string {
 }
 
 export async function createRoom(hostPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<{ roomId: string; playerId: string }> {
-  console.log("[createRoom] Received input:", hostPlayerInput);
   const roomId = generateRoomCode()
 
   const hostPlayer: Player = {
@@ -28,7 +27,6 @@ export async function createRoom(hostPlayerInput: { id: string; name: string; av
     avatarIndex: hostPlayerInput.avatarIndex,
     isBot: false,
   }
-  console.log("[createRoom] Created hostPlayer object:", hostPlayer);
 
   const gameState: Partial<GameState> = {
     roomId,
@@ -50,12 +48,10 @@ export async function createRoom(hostPlayerInput: { id: string; name: string; av
   }
 
   await storeGameState(roomId, gameState)
-  console.log(`[createRoom] Stored initial GameState for room ${roomId}`);
   return { roomId, playerId: hostPlayer.id } 
 }
 
 export async function joinRoom(roomId: string, joiningPlayerInput: { id: string; name: string; avatarIndex: number }): Promise<string> {
-  console.log(`[joinRoom] Received input for room ${roomId}:`, joiningPlayerInput);
   if (roomId === "DEFAULT") {
      const defaultRoomExists = await getGameState("DEFAULT")
      if (!defaultRoomExists) {
@@ -84,7 +80,6 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
   }
 
   if (gameState.players.some(p => p.id === joiningPlayerInput.id)) {
-    console.warn(`[joinRoom] Player ${joiningPlayerInput.id} already in room ${roomId}.`);
     return joiningPlayerInput.id; 
   }
 
@@ -96,7 +91,6 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
     avatarIndex: joiningPlayerInput.avatarIndex,
     isBot: false,
   }
-  console.log("[joinRoom] Created joining player object:", player);
 
   gameState.players.push(player)
   gameState.log.push({ 
@@ -109,20 +103,13 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
   });
 
   await updateGameState(roomId, gameState)
-  console.log(`[joinRoom] Updated GameState in DB for room ${roomId}.`);
-
-  console.log("[joinRoom] GameState BEFORE stripping:", JSON.stringify(gameState, null, 2));
   
   const strippedState = stripFunctionsFromGameState(gameState);
-  console.log("[joinRoom] GameState AFTER stripping (for Pusher):", JSON.stringify(strippedState, null, 2));
-  
   await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
-  console.log(`[joinRoom] Triggered Pusher update for room ${roomId}.`);
   return player.id
 }
 
 export async function addBotToRoom(roomId: string): Promise<GameState | { error: string }> {
-  console.log(`[addBotToRoom] Attempting to add bot to room ${roomId}`);
   const gameState = await getGameState(roomId);
 
   if (!gameState) {
@@ -172,17 +159,14 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   });
 
   await updateGameState(roomId, gameState);
-  console.log(`[addBotToRoom] Bot ${botPlayer.name} added to room ${roomId}.`);
 
   const strippedState = stripFunctionsFromGameState(gameState);
   await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
-  console.log(`[addBotToRoom] Triggered Pusher update for room ${roomId}.`);
 
   return strippedState;
 }
 
 export async function removeBotFromRoom(roomId: string, botId: string): Promise<GameState | { error: string }> {
-  console.log(`[removeBotFromRoom] Attempting to remove bot ${botId} from room ${roomId}`);
   const gameState = await getGameState(roomId);
 
   if (!gameState) {
@@ -212,11 +196,9 @@ export async function removeBotFromRoom(roomId: string, botId: string): Promise<
   });
 
   await updateGameState(roomId, gameState);
-  console.log(`[removeBotFromRoom] Bot ${botToRemove.name} removed from room ${roomId}.`);
 
   const strippedState = stripFunctionsFromGameState(gameState);
   await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
-  console.log(`[removeBotFromRoom] Triggered Pusher update for room ${roomId}.`);
 
   return strippedState;
 }
@@ -225,7 +207,6 @@ export async function createDefaultRoom(): Promise<void> {
   const DEFAULT_ROOM_ID = "DEFAULT"
   const existingRoom = await getGameState(DEFAULT_ROOM_ID)
   if (existingRoom) {
-    console.log("Default room already exists")
     return
   }
 
@@ -243,7 +224,6 @@ export async function createDefaultRoom(): Promise<void> {
   }
 
   await storeGameState(DEFAULT_ROOM_ID, gameState)
-  console.log("Created default public room")
 }
 
 export const resetRoom = async (roomId: string) => {
@@ -301,7 +281,6 @@ export const resetRoom = async (roomId: string) => {
   if (finalState) {
     const strippedState = stripFunctionsFromGameState(finalState);
     await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
-    console.log(`[resetRoom] Triggered Pusher update for room ${roomId} after reset.`);
   }
 };
 
@@ -320,11 +299,9 @@ export async function deleteRoom(roomId: string): Promise<void> {
     }
     await dbDeleteRoom(roomId)
     await pusherServer.trigger(`lobby`, "room-deleted", { roomId })
-    console.log(`Deleted room ${roomId}`)
 }
 
 export async function clearMatchHistory(roomId: string): Promise<void> {
-  console.log(`Clearing match history for room: ${roomId}`)
   const gameState = await getGameState(roomId);
 
   if (!gameState) {
@@ -333,8 +310,5 @@ export async function clearMatchHistory(roomId: string): Promise<void> {
   }
 
   gameState.matchHistory = [];
-
   await storeGameState(roomId, gameState);
-
-  console.log(`Match history cleared for room ${roomId}.`);
 }
