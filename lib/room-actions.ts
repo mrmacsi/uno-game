@@ -143,10 +143,14 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   const botName = `${generateRandomName()} (Bot)`;
 
   const existingAvatarIndices = gameState.players.map(p => p.avatarIndex);
-  let nextAvatarIndex = 0;
-  while(existingAvatarIndices.includes(nextAvatarIndex)){
-    nextAvatarIndex = (nextAvatarIndex + 1) % 12; // Assuming 12 avatars 0-11
-  }
+  const totalAvatarCount = 24; // There are 24 avatars in the avatar-config.ts
+  let randomAvatarIndex: number;
+  
+  let attempts = 0;
+  do {
+    randomAvatarIndex = Math.floor(Math.random() * totalAvatarCount);
+    attempts++;
+  } while (existingAvatarIndices.includes(randomAvatarIndex) && attempts < 10);
   
   const botPlayer: Player = {
     id: `bot-${uuidv4()}`,
@@ -154,7 +158,7 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
     cards: [],
     isHost: false,
     isBot: true,
-    avatarIndex: nextAvatarIndex, 
+    avatarIndex: randomAvatarIndex, 
   };
 
   gameState.players.push(botPlayer);
@@ -164,7 +168,7 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
     timestamp: Date.now(),
     player: botPlayer.name,
     avatarIndex: botPlayer.avatarIndex,
-    eventType: 'join_bot'
+    eventType: 'bot'
   });
 
   await updateGameState(roomId, gameState);
@@ -204,7 +208,7 @@ export async function removeBotFromRoom(roomId: string, botId: string): Promise<
     message: `${botToRemove.name} was removed from the room.`,
     timestamp: Date.now(),
     player: botToRemove.name, 
-    eventType: 'leave_bot'
+    eventType: 'leave'
   });
 
   await updateGameState(roomId, gameState);
@@ -265,7 +269,6 @@ export const resetRoom = async (roomId: string) => {
       drawCardEffect: undefined,
       hasDrawnThisTurn: false,
       matchHistory: [], 
-      isDrawing: false,
       rematchRequestedBy: null,
       rematchConfirmedBy: []
     };
@@ -282,11 +285,10 @@ export const resetRoom = async (roomId: string) => {
         currentColor: "red",
         winner: null,
         drawPileCount: 0,
-        log: currentGameState.log.filter(l => l.eventType === 'join' || l.eventType === 'system' || l.eventType === 'join_bot'),
+        log: currentGameState.log.filter(l => l.eventType === 'join' || l.eventType === 'system' || l.eventType === 'bot'),
         gameStartTime: undefined,
         drawCardEffect: undefined,
         hasDrawnThisTurn: false,
-        isDrawing: false,
         rematchRequestedBy: null,
         rematchConfirmedBy: []
       };
