@@ -38,7 +38,6 @@ export default function GameOver() {
     { type: "Draw Two", value: "20 points" },
     { type: "Wild", value: "50 points" },
     { type: "Wild Draw Four", value: "50 points" },
-    { type: "Wild Swap Hands", value: "50 points" },
   ]
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
