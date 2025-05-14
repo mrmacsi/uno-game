@@ -214,7 +214,6 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
 }
 
 export async function playCard(roomId: string, playerId: string, cardDetails: Card, chosenColor?: CardColor): Promise<GameState> {
-  console.log("[playCard Action] Received cardDetails:", JSON.stringify(cardDetails, null, 2));
   console.log("[playCard Action] Received chosenColor:", chosenColor);
 
   const cardId = cardDetails?.id;
