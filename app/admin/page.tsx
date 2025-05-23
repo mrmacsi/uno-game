@@ -17,7 +17,7 @@ import { AvatarDisplay } from '@/components/game/avatar-display'
 import { Badge } from '@/components/ui/badge'
 import { toast } from "sonner"
 import { avatars } from "@/lib/avatar-config"
-import { getAllUsers, deleteUser, User } from "@/lib/user-actions"
+import { getAllUsers, deleteUser, UserProfile } from "@/lib/user-actions"
 
 const ROOM_PREFIX = "room:"
 
@@ -103,7 +103,7 @@ const AvatarManagementSection = () => {
 
 // --- User Management Section --- (Moved from app/admin/users/page.tsx)
 const UserManagementSection = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingUserAction, setLoadingUserAction] = useState<string | null>(null);
 

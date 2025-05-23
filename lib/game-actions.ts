@@ -1,6 +1,6 @@
 "use server"
 
-import type { GameState, Card, CardColor, Player, LogEntry } from "./types"
+import type { GameState, Card, CardColor, Player, LogEntry, BotPlayDecision } from "./types" 
 import { getGameState, updateGameState } from "./db-actions"
 import { 
   dealCards,
@@ -100,7 +100,7 @@ export async function createGame(hostId: string, hostName: string, hostAvatarInd
     direction: 1,
     drawPile: [],
     discardPile: [],
-    currentColor: "black",
+    currentColor: "black", // Initial color, will be set by first card
     winner: null,
     log: [{
       id: uuidv4(),
@@ -109,6 +109,7 @@ export async function createGame(hostId: string, hostName: string, hostAvatarInd
       player: hostName,
       avatarIndex: hostAvatarIndex
     }],
+    pendingDrawStack: null, // Initialize pendingDrawStack
   };
   await updateGameState(roomId, initialState);
   console.log(`Game created successfully: ${roomId}`);
@@ -185,6 +186,7 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
   gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id;
   gameState.status = "playing";
   gameState.gameStartTime = gameStartTime || Date.now();
+  gameState.pendingDrawStack = null; // Ensure stack is clear at game start
   
   const originalLogLength = gameState.log ? gameState.log.length : 0;
   
@@ -214,7 +216,7 @@ export async function startGame(roomId: string, playerId: string, gameStartTime?
 }
 
 export async function playCard(roomId: string, playerId: string, cardDetails: Card, chosenColor?: CardColor): Promise<GameState> {
-  console.log("[playCard Action] Received chosenColor:", chosenColor);
+  console.log("[playCard Action] Received cardDetails:", JSON.stringify(cardDetails), "chosenColor:", chosenColor);
 
   const cardId = cardDetails?.id;
   if (typeof cardId !== 'string') {
@@ -236,21 +238,23 @@ export async function playCard(roomId: string, playerId: string, cardDetails: Ca
 
   if (!gameState.log) gameState.log = [];
 
-  const checkingPlayer = gameState.players.find((p: Player) => p.id === playerId);
-  if (checkingPlayer && checkingPlayer.cards.length === 2 && !checkingPlayer.saidUno) {
-    console.log(`${checkingPlayer.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
+  const playerForCard = gameState.players.find((p: Player) => p.id === playerId);
+  if (!playerForCard) throw new Error("Player not found when finding card");
+  
+  if (playerForCard.cards.length === 2 && !playerForCard.saidUno) {
+    console.log(`${playerForCard.name} attempted to play second-to-last card without declaring UNO. Turn passed.`);
     gameState.log.push({
       id: uuidv4(),
-      message: `${checkingPlayer.name} forgot to declare UNO! Turn passed.`,
+      message: `${playerForCard.name} forgot to declare UNO! Turn passed.`,
       timestamp: Date.now(),
-      player: checkingPlayer.name,
-      avatarIndex: checkingPlayer.avatarIndex,
+      player: playerForCard.name,
+      avatarIndex: playerForCard.avatarIndex,
       eventType: 'uno_fail'
     });
     
-    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
-    const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
-    gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
+    const currentPlayerIndexVal = gameState.players.findIndex((p) => p.id === playerId);
+    const nextPlayerIndexVal = getNextPlayerIndex(gameState, currentPlayerIndexVal);
+    gameState.currentPlayer = gameState.players[nextPlayerIndexVal].id;
     gameState.hasDrawnThisTurn = false;
     
     await updateGameState(roomId, gameState);
@@ -261,68 +265,67 @@ export async function playCard(roomId: string, playerId: string, cardDetails: Ca
     throw new Error("You must declare UNO before playing your second-to-last card!");
   }
 
-  const playerForCard = gameState.players.find((p: Player) => p.id === playerId);
-  if (!playerForCard) throw new Error("Player not found when finding card");
   const cardIndex = playerForCard.cards.findIndex((c: Card) => c.id === cardId);
   if (cardIndex === -1) {
     throw new Error("Card not found in player's hand")
   }
   
-  const cardToPlay = playerForCard.cards[cardIndex];
+  const cardToPlay = { ...playerForCard.cards[cardIndex] }; 
 
-  if (!checkPlayValidity(gameState, cardToPlay)) {
-     const topCard = gameState.discardPile[gameState.discardPile.length - 1];
-     console.error(
-       `Invalid Play Attempt: Player ${playerId}, Card ${cardToPlay.color} ${cardToPlay.type} ${cardToPlay.value ?? ''} on Top Card ${topCard?.color} ${topCard?.type} ${topCard?.value ?? ''}, Current Color: ${gameState.currentColor}`
-     );
-    throw new Error("Invalid card play")
-  }
-
+  // Assign chosenColor to the card object itself if it's a wild card.
   if (cardToPlay.type === "wild" || cardToPlay.type === "wild4") {
     if (!chosenColor || chosenColor === "black" || chosenColor === "wild") {
-      throw new Error("Must choose a color for wild card")
+      throw new Error("Must choose a valid color for wild card (Red, Yellow, Green, or Blue).");
     }
-    gameState.currentColor = chosenColor;
-    console.log(`[playCard:Log] About to add log for wild card play. Player: ${playerForCard.name}, Card: ${cardToPlay.type}, Chosen: ${chosenColor}, Log count: ${gameState.log.length}`);
-    gameState.log.push({ 
-      id: uuidv4(),
-      message: `${playerForCard.name} played a ${cardToPlay.type} and chose ${chosenColor}`,
-      timestamp: Date.now(),
-      player: playerForCard.name,
-      avatarIndex: playerForCard.avatarIndex,
-      eventType: 'play',
-      cardType: cardToPlay.type,
-      cardValue: undefined,
-      cardColor: chosenColor
-    });
+    cardToPlay.chosenColor = chosenColor; 
+  }
+  
+  const isValidForPlay = checkPlayValidity(gameState, cardToPlay);
+  
+  if (!isValidForPlay) {
+    // If a stack is active, and the card is not playable on the stack (e.g. different type),
+    // this implies the player is "breaking" the stack and will be forced to draw.
+    // The card is still "played" (added to discard pile), and then applyCardEffects handles the drawing.
+    if (gameState.pendingDrawStack && cardToPlay.type !== gameState.pendingDrawStack.type) {
+      console.log(`[playCard Action] Player ${playerId} is breaking an active draw stack with card ${cardToPlay.color} ${cardToPlay.type}. They will draw the stack.`);
+      // Allow execution to continue. applyCardEffects will handle the drawing consequence.
+    } else {
+      // No stack active, or card is of same type as stack but still invalid (e.g. Wild Draw 4 illegal play)
+      // This constitutes a truly invalid move.
+      const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+      console.error(
+        `Invalid Play Attempt: Player ${playerId}, Card ${cardToPlay.color} ${cardToPlay.type} ${cardToPlay.value ?? ''} on Top Card ${topCard?.color} ${topCard?.type} ${topCard?.value ?? ''}, Current Color: ${gameState.currentColor}`
+      );
+      throw new Error("Invalid card play");
+    }
   }
   
   playerForCard.cards.splice(cardIndex, 1);
-  gameState.discardPile.push(cardToPlay);
-
-  if (cardToPlay.type !== "wild" && cardToPlay.type !== "wild4" && cardToPlay.color) {
-    gameState.currentColor = cardToPlay.color;
-  }
-
+  gameState.discardPile.push(cardToPlay); 
+  
+  // gameState.currentColor assignment is now primarily handled within applyCardEffects.
+  // The specific log for wild card choice is also now part of applyCardEffects.
+  
   if (playerForCard.cards.length === 0) {
     gameState.status = "finished";
     gameState.winner = playerId;
+    
+    let winLogMessage = `${playerForCard.name} won the game with a ${cardToPlay.color} ${cardToPlay.type}`;
+    if (cardToPlay.type === "number" && cardToPlay.value !== undefined) winLogMessage += ` ${cardToPlay.value}`;
+    if (cardToPlay.chosenColor) winLogMessage += ` (chosen ${cardToPlay.chosenColor})`;
+    winLogMessage += `!`;
+
     gameState.log.push({ 
-      id: uuidv4(),
-      message: `${playerForCard.name} won the game with a ${cardToPlay.color || ''} ${cardToPlay.value || ''} ${cardToPlay.type}!`,
-      timestamp: Date.now(),
-      player: playerForCard.name,
-      avatarIndex: playerForCard.avatarIndex,
-      eventType: 'win',
-      cardType: cardToPlay.type,
-      cardValue: cardToPlay.value,
-      cardColor: cardToPlay.color
+      id: uuidv4(), message: winLogMessage, timestamp: Date.now(),
+      player: playerForCard.name, avatarIndex: playerForCard.avatarIndex,
+      eventType: 'win', cardType: cardToPlay.type, cardValue: cardToPlay.value,
+      cardColor: cardToPlay.chosenColor || cardToPlay.color 
     });
     
     calculatePoints(gameState); 
+    applyCardEffects(gameState, cardToPlay); 
     
     await updateGameState(roomId, gameState);
-    
     newLogs = gameState.log.slice(originalLogLength);
     await broadcastUpdate(roomId, gameState, newLogs);
     
@@ -333,26 +336,22 @@ export async function playCard(roomId: string, playerId: string, cardDetails: Ca
   if (playerForCard.cards.length === 1 && !playerForCard.saidUno) {
       console.log(`${playerForCard.name} forgot to say UNO!`);
        gameState.log.push({
-        id: uuidv4(),
-        message: `${playerForCard.name} forgot to say UNO!`,
-        timestamp: Date.now(),
-        player: playerForCard.name,
-        avatarIndex: playerForCard.avatarIndex,
-        eventType: 'uno_fail'
+        id: uuidv4(), message: `${playerForCard.name} forgot to declare UNO!`,
+        timestamp: Date.now(), player: playerForCard.name,
+        avatarIndex: playerForCard.avatarIndex, eventType: 'uno_fail'
       });
   }
   
-  if (playerForCard.cards.length > 1) {
-      playerForCard.saidUno = false;
+  if (playerForCard.cards.length > 1) { 
+      playerForCard.saidUno = false; 
   }
 
   applyCardEffects(gameState, cardToPlay); 
   
-  gameState.hasDrawnThisTurn = false;
+  gameState.hasDrawnThisTurn = false; 
   gameState.drawPileCount = gameState.drawPile.length;
 
   await updateGameState(roomId, gameState);
-
   newLogs = gameState.log.slice(originalLogLength);
   await broadcastUpdate(roomId, gameState, newLogs);
 
@@ -373,13 +372,45 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
   if (gameState.currentPlayer !== playerId) {
     throw new Error("Not your turn")
   }
+  
+  const originalLogLength = gameState.log ? gameState.log.length : 0;
+  if (!gameState.log) gameState.log = [];
+
+  // --- Handle drawing from pendingDrawStack ---
+  if (gameState.pendingDrawStack) {
+    console.log(`[drawCard Action] Player ${playerId} is drawing from active stack of ${gameState.pendingDrawStack.count}.`);
+    reshuffleIfNeeded(gameState);
+    const cardsToDrawCount = gameState.pendingDrawStack.count;
+    const drawnCards = gameState.drawPile.splice(0, cardsToDrawCount);
+    
+    if (!player) throw new Error("Player not found for drawing from stack");
+    player.cards.push(...drawnCards);
+    
+    gameState.log.push({
+      id: uuidv4(), eventType: 'draw_stack',
+      message: `${player.name} drew ${cardsToDrawCount} cards from the stack.`,
+      timestamp: Date.now(), player: player.name, avatarIndex: player.avatarIndex
+    });
+    
+    gameState.drawCardEffect = { playerId: player.id, count: cardsToDrawCount };
+    gameState.pendingDrawStack = null; // Clear the stack
+
+    // Turn moves to the next player
+    const currentPlayerIndexVal = gameState.players.findIndex((p) => p.id === playerId); 
+    const nextPlayerIndexVal = getNextPlayerIndex(gameState, currentPlayerIndexVal);
+    gameState.currentPlayer = gameState.players[nextPlayerIndexVal].id;
+    gameState.hasDrawnThisTurn = false; // Drawing from stack is not the "one draw per turn"
+
+    await updateGameState(roomId, gameState);
+    const newLogsStack = gameState.log.slice(originalLogLength);
+    await broadcastUpdate(roomId, gameState, newLogsStack);
+    return gameState;
+  }
+  // --- End of handle drawing from pendingDrawStack ---
+
   if (gameState.hasDrawnThisTurn) {
      throw new Error("Already drew a card this turn");
   }
-
-  const originalLogLength = gameState.log ? gameState.log.length : 0;
-  
-  if (!gameState.log) gameState.log = [];
 
   reshuffleIfNeeded(gameState);
 
@@ -392,9 +423,9 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
         avatarIndex: player?.avatarIndex,
         eventType: 'system' 
      });
-     const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
-     const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
-     gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
+     const currentPlayerIndexVal = gameState.players.findIndex((p: Player) => p.id === playerId);
+     const nextPlayerIndexVal = getNextPlayerIndex(gameState, currentPlayerIndexVal);
+     gameState.currentPlayer = gameState.players[nextPlayerIndexVal].id;
      gameState.hasDrawnThisTurn = false; 
      await updateGameState(roomId, gameState);
      const newLogs_emptyDraw = gameState.log.slice(originalLogLength);
@@ -418,9 +449,10 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
     eventType: 'draw'
   });
 
-  const hasAnyPlayableCard = player.cards.some(card => checkPlayValidity(gameState, card));
+  // Check if the drawn card is playable (considering no active stack here)
+  const isDrawnCardPlayable = checkPlayValidity(gameState, drawnCard);
 
-  if (!hasAnyPlayableCard) {
+  if (!isDrawnCardPlayable) {
     gameState.log.push({
       id: uuidv4(),
       message: `${player.name} has no playable cards after drawing. Turn passes.`,
@@ -429,32 +461,28 @@ export async function drawCard(roomId: string, playerId: string): Promise<GameSt
       avatarIndex: player.avatarIndex,
       eventType: 'system'
     });
-    const currentPlayerIndex = gameState.players.findIndex((p: Player) => p.id === playerId);
-    const nextPlayerIndex = getNextPlayerIndex(gameState, currentPlayerIndex);
-    gameState.currentPlayer = gameState.players[nextPlayerIndex].id;
-    gameState.hasDrawnThisTurn = false;
+    const currentPlayerIndexVal = gameState.players.findIndex((p: Player) => p.id === playerId);
+    const nextPlayerIndexVal = getNextPlayerIndex(gameState, currentPlayerIndexVal);
+    gameState.currentPlayer = gameState.players[nextPlayerIndexVal].id;
+    gameState.hasDrawnThisTurn = false; // Reset for next player
     
-    const nextPlayer = gameState.players[nextPlayerIndex];
-    if (nextPlayer && nextPlayer.cards.length !== 1) {
-        nextPlayer.saidUno = false;
+    const nextPlayerToPlay = gameState.players[nextPlayerIndexVal];
+    if (nextPlayerToPlay && nextPlayerToPlay.cards.length !== 1) {
+        nextPlayerToPlay.saidUno = false;
     }
     
     console.log(`Player ${playerId} drew an unplayable card. Turn automatically passed to ${gameState.currentPlayer}.`);
-    await updateGameState(roomId, gameState);
-    
-    const newLogs_drawPass = gameState.log.slice(originalLogLength);
-    await broadcastUpdate(roomId, gameState, newLogs_drawPass);
-    
   } else {
     console.log(`Player ${playerId} drew a card and has playable options.`);
-    await updateGameState(roomId, gameState);
-    
-    const newLogs_drawOnly = gameState.log.slice(originalLogLength);
-    await broadcastUpdate(roomId, gameState, newLogs_drawOnly);
+    // Player keeps the turn, hasDrawnThisTurn remains true
   }
-
+  
   gameState.drawPileCount = gameState.drawPile.length;
-
+  await updateGameState(roomId, gameState);
+  
+  const newLogs_draw = gameState.log.slice(originalLogLength);
+  await broadcastUpdate(roomId, gameState, newLogs_draw);
+  
   return gameState;
 }
 
@@ -470,8 +498,9 @@ export async function declareUno(roomId: string, playerId: string): Promise<Game
     throw new Error("Player not found");
   }
 
-  if (player.cards.length !== 2) {
+  if (player.cards.length !== 2) { // Should be 2 before playing the card that leaves them with 1
     console.warn(`${player.name} tried to declare UNO with ${player.cards.length} cards.`);
+    // Potentially add a penalty or just ignore, current behavior is to ignore.
     return gameState;
   }
 
@@ -522,7 +551,40 @@ export async function passTurn(roomId: string, playerId: string, forcePass: bool
     throw new Error("Not your turn");
   }
   
-  // Only check if forcePass is false and player is not a bot
+  // If a draw stack is active, the player cannot "pass" to avoid it; they must draw.
+  // This action should ideally be called "acceptStack" or similar from client.
+  // For now, if passTurn is called and stack is active, we assume they are drawing the stack.
+  if (gameState.pendingDrawStack) {
+      console.log(`[passTurn as drawStack] Player ${playerId} is "passing" on an active stack of ${gameState.pendingDrawStack.count}. They will draw.`);
+      reshuffleIfNeeded(gameState);
+      const cardsToDrawCount = gameState.pendingDrawStack.count;
+      const drawnCards = gameState.drawPile.splice(0, cardsToDrawCount);
+      player.cards.push(...drawnCards);
+      
+      const originalLogLength = gameState.log ? gameState.log.length : 0;
+      if (!gameState.log) gameState.log = [];
+      gameState.log.push({
+        id: uuidv4(), eventType: 'draw_stack',
+        message: `${player.name} drew ${cardsToDrawCount} cards from the stack (by passing).`,
+        timestamp: Date.now(), player: player.name, avatarIndex: player.avatarIndex
+      });
+      
+      gameState.drawCardEffect = { playerId: player.id, count: cardsToDrawCount };
+      gameState.pendingDrawStack = null; // Clear the stack
+
+      const currentPlayerIndexVal = gameState.players.findIndex((p) => p.id === playerId);
+      const nextPlayerIndexVal = getNextPlayerIndex(gameState, currentPlayerIndexVal);
+      gameState.currentPlayer = gameState.players[nextPlayerIndexVal].id;
+      gameState.hasDrawnThisTurn = false; // Reset for next player
+
+      await updateGameState(roomId, gameState);
+      const newLogsStackPass = gameState.log.slice(originalLogLength);
+      await broadcastUpdate(roomId, gameState, newLogsStackPass);
+      return gameState;
+  }
+
+
+  // Original pass logic: Only allow pass if player has drawn and cannot play
   if (!forcePass && !player.isBot && !gameState.hasDrawnThisTurn) {
      throw new Error("Cannot pass turn unless you have drawn a card and cannot play it, or forgot to declare UNO");
   }
@@ -594,7 +656,7 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
   
   gameState.discardPile = [firstCard];
   gameState.drawPile = drawPile;
-  gameState.drawPileCount = drawPile.length;
+  gameState.drawPileCount = gameState.drawPile.length;
   gameState.currentColor = firstCard.color;
   gameState.currentPlayer = gameState.players[Math.floor(Math.random() * gameState.players.length)].id;
   gameState.status = "playing";
@@ -602,6 +664,7 @@ export async function rematchGame(roomId: string, playerId: string): Promise<Gam
   gameState.winner = null;
   gameState.direction = 1;
   gameState.hasDrawnThisTurn = false;
+  gameState.pendingDrawStack = null; // Reset stack for rematch
   gameState.rematchRequestedBy = null;
   gameState.rematchConfirmedBy = [];
 

@@ -6,6 +6,7 @@ export interface Card {
   type: CardType
   color: CardColor
   value?: number
+  chosenColor?: CardColor; 
 }
 
 export interface Player {
@@ -37,7 +38,7 @@ export interface LogEntry {
   timestamp: number
   player?: string
   avatarIndex?: number
-  eventType?: 'play' | 'draw' | 'uno' | 'skip' | 'reverse' | 'draw2' | 'win' | 'join' | 'leave' | 'bot' | 'system' | 'uno_fail'
+  eventType?: 'play' | 'draw' | 'uno' | 'skip' | 'reverse' | 'draw2' | 'win' | 'join' | 'leave' | 'bot' | 'system' | 'uno_fail' | 'message' | 'stack' | 'stack_start' | 'draw_stack' | 'challenge_issued' | 'challenge_success_challenger' | 'challenge_failure_challenger' | 'challenge_success_challenged' | 'challenge_failure_challenged'
   cardType?: CardType
   cardValue?: number
   cardColor?: CardColor
@@ -63,6 +64,16 @@ export interface GameState {
   socket?: unknown // Use unknown instead of any
   drawCardEffect?: { playerId: string; count: number }
   matchHistory?: MatchResult[]
+  isValidPlay?: (card: Card) => boolean
+  pendingDrawStack?: { count: number, type: 'draw2' | 'wild4' } | null
+  challengeState?: {
+    challengerId: string;
+    challengedPlayerId: string;
+    cardPlayedId: string; 
+    isActive: boolean;
+    isResolved?: boolean;
+    challengerWon?: boolean;
+  } | null;
 }
 
 export type GameAction = { type: "UPDATE_GAME_STATE"; payload: GameState }
@@ -80,9 +91,6 @@ export type UserProfile = {
   updated_at: string | null
 }
 
-export interface BotPlayDecision {
-  action: "play" | "draw"
-  card?: Card
-  chosenColor?: CardColor
-  shouldDeclareUno?: boolean
-}
+export type BotPlayDecision = 
+  | { action: 'play', card: Card, chosenColor?: CardColor, shouldDeclareUno?: boolean } 
+  | { action: 'draw' };

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { revalidatePath } from 'next/cache';
 
 // Define a type for the user data we expect
-export interface User {
+export interface UserProfile {
   player_id: string;
   username: string;
   display_name: string | null;
@@ -15,7 +15,7 @@ export interface User {
   updated_at: string | null;
 }
 
-export async function getAllUsers(): Promise<User[]> {
+export async function getAllUsers(): Promise<UserProfile[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('profiles')
@@ -27,8 +27,8 @@ export async function getAllUsers(): Promise<User[]> {
     throw new Error('Could not fetch users.');
   }
 
-  // Ensure data conforms to User[], even if some rows have unexpected nulls handled by the type
-  return data as User[]; 
+  // Ensure data conforms to UserProfile[], even if some rows have unexpected nulls handled by the type
+  return data as UserProfile[]; 
 }
 
 export async function deleteUser(userId: string): Promise<void> {

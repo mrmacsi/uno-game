@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
-import { PlusCircle, LogIn, ListChecks, Globe, Settings, Loader2, LogOut } from "lucide-react"
+import { PlusCircle, LogIn, ListChecks, Globe, Settings, Loader2, LogOut, BookOpenText } from "lucide-react"
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -90,7 +90,7 @@ export default function Home() {
     const storedPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
     if (storedPlayerId) {
       setError(null);
-      router.refresh();
+      window.location.reload();
     } else {
       router.push('/profile/setup');
     }
@@ -270,6 +270,15 @@ export default function Home() {
                       <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
                         <Globe className="h-4 w-4" />
                         Join Public Room
+                      </Button>
+                    </Link>
+                  </motion.div>
+                  
+                  <motion.div variants={itemVariants}>
+                    <Link href="/rules" className="w-full block">
+                      <Button variant="outline" className="w-full py-2.5 sm:py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5 text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium">
+                        <BookOpenText className="h-4 w-4" /> 
+                        Game Rules
                       </Button>
                     </Link>
                   </motion.div>

@@ -9,6 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 // Utility to remove non-serializable functions (like isValidPlay) before sending state via Pusher
 export function stripFunctionsFromGameState(gameState: GameState): Omit<GameState, 'isValidPlay'> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isValidPlay, ...rest } = gameState
+  const { socket, isValidPlay, ...rest } = gameState; // Also remove socket as it's not serializable
   return rest
 }
