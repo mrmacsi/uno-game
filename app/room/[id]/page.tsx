@@ -1,5 +1,5 @@
 import React from "react";
-import { getRoom } from "@/lib/room-actions";
+import { getRoom, createDefaultRoom } from "@/lib/room-actions";
 import type { GameState } from "@/lib/types";
 import { AlertCircle, Home } from "lucide-react";
 import Link from 'next/link';
@@ -22,6 +22,10 @@ const RoomPage: NextPage<RoomPageProps> = async ({ params }) => {
 
   try {
     roomData = await getRoom(roomId);
+    if (!roomData && roomId === "DEFAULT") {
+      await createDefaultRoom();
+      roomData = await getRoom(roomId);
+    }
     if (!roomData) {
       error = `Room ${roomId} not found. The room may have been deleted or never existed.`;
     }
