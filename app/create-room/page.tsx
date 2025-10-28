@@ -7,13 +7,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { createRoom } from "@/lib/room-actions"
 import { Home, ArrowRight, Loader2 } from "lucide-react"
 import { storePlayerIdInLocalStorage } from "@/lib/client-utils"
 import { createClient } from "@/lib/supabase/client"
-import { generateRandomName } from "@/lib/name-generator"
-import { avatars } from "@/lib/avatar-config"
-import { generateClientUUID } from "@/lib/client-utils"
 import { motion } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
@@ -22,7 +18,6 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 export default function CreateRoom() {
   const router = useRouter()
   const supabase = createClient()
-  const SUPABASE_ENABLED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   const [playerDisplayName, setPlayerDisplayName] = useState("")
   const [avatarIndexState, setAvatarIndexState] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
@@ -63,7 +58,16 @@ export default function CreateRoom() {
          avatarIndex: avatarIndexState!
       }
       
-      const { roomId, playerId: returnedPlayerId } = await createRoom(hostPlayerInput)
+      const resp = await fetch("/api/rooms/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player: hostPlayerInput })
+      })
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}))
+        throw new Error(data?.error || "Create room failed")
+      }
+      const { roomId, playerId: returnedPlayerId } = await resp.json()
       
       storePlayerIdInLocalStorage(returnedPlayerId)
       
@@ -78,22 +82,15 @@ export default function CreateRoom() {
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true)
     setAvatarIndexState(null)
-    let unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
+    const unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
 
-    // Ensure a player ID exists even if Supabase is not configured
     if (!unoPlayerId) {
-      unoPlayerId = generateClientUUID()
-      storePlayerIdInLocalStorage(unoPlayerId)
+      console.error("No player ID found. Redirecting to setup.")
+      router.push('/profile/setup')
+      return
     }
 
     try {
-      // If Supabase is not configured, fall back to a generated profile
-      if (!SUPABASE_ENABLED) {
-        setPlayerDisplayName(generateRandomName())
-        setAvatarIndexState(Math.floor(Math.random() * avatars.length))
-        setLoadingProfile(false)
-        return
-      }
       const { data, error, status } = await supabase
         .from('profiles')
         .select('display_name, avatar_index')
@@ -102,26 +99,21 @@ export default function CreateRoom() {
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error)
-        // Fallback to generated profile
-        setPlayerDisplayName(generateRandomName())
-        setAvatarIndexState(Math.floor(Math.random() * avatars.length))
+        router.push('/profile/setup')
       } else if (!data || !data.display_name || data.avatar_index === null) {
-        console.error("Incomplete profile found (missing display name or avatar). Using fallback.")
-        setPlayerDisplayName(generateRandomName())
-        setAvatarIndexState(Math.floor(Math.random() * avatars.length))
+        console.error("Incomplete profile found (missing display name or avatar). Redirecting to setup.")
+        router.push('/profile/setup')
       } else {
         setPlayerDisplayName(data.display_name)
         setAvatarIndexState(data.avatar_index)
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err)
-      // Fallback to generated profile
-      setPlayerDisplayName(generateRandomName())
-      setAvatarIndexState(Math.floor(Math.random() * avatars.length))
+      router.push('/profile/setup')
     } finally {
       setLoadingProfile(false)
     }
-  }, [supabase, router, SUPABASE_ENABLED])
+  }, [supabase, router])
 
   useEffect(() => {
     fetchProfile()

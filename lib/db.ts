@@ -36,18 +36,19 @@ function createRedisAdapter(): RedisAdapter {
       // Upstash uses lowercase option keys
       const match = options?.MATCH
       const count = options?.COUNT
-      const resp = await upstash.scan(cursor, {
+      const respUnknown: unknown = await upstash.scan(cursor, {
         match: match,
         count: count,
       })
       // Normalize return shape
-      if (Array.isArray(resp)) {
+      if (Array.isArray(respUnknown)) {
         // Older SDKs might return [nextCursor, keys]
-        const [nextCursor, keys] = resp as [number, string[]]
+        const [nextCursor, keys] = respUnknown as [number, string[]]
         return { cursor: Number(nextCursor) || 0, keys: keys || [] }
       }
-      const nextCursor = Number(resp?.cursor ?? 0)
-      const keys: string[] = Array.isArray(resp?.keys) ? resp.keys : []
+      const respObj = respUnknown as { cursor?: number | string; keys?: unknown }
+      const nextCursor = Number(respObj?.cursor ?? 0)
+      const keys: string[] = Array.isArray(respObj?.keys) ? (respObj.keys as string[]) : []
       return { cursor: nextCursor, keys }
     }
 
@@ -66,8 +67,12 @@ function createRedisAdapter(): RedisAdapter {
     const upstashMGet = async (keys: string[]): Promise<(string | null)[]> => {
       if (!keys || keys.length === 0) return []
       const values = await upstash.mget(...keys)
-      // Ensure strictly (string|null)[]
-      return values.map((v: unknown) => (v === null || v === undefined ? null : String(v)))
+      // Normalize to JSON strings
+      return values.map((v: unknown) => {
+        if (v === null || v === undefined) return null
+        if (typeof v === 'string') return v
+        try { return JSON.stringify(v) } catch { return String(v) }
+      })
     }
 
     const upstashDel = async (keys: string | string[]): Promise<number> => {
@@ -80,8 +85,10 @@ function createRedisAdapter(): RedisAdapter {
 
     return {
       get: async (key: string) => {
-        const v = await upstash.get(key)
-        return v === null || v === undefined ? null : String(v)
+        const vUnknown: unknown = await upstash.get(key)
+        if (vUnknown === null || vUnknown === undefined) return null
+        if (typeof vUnknown === 'string') return vUnknown
+        try { return JSON.stringify(vUnknown) } catch { return String(vUnknown) }
       },
       set: async (key: string, value: string) => upstash.set(key, value),
       setEx: async (key: string, ttlSeconds: number, value: string) => upstash.set(key, value, { ex: ttlSeconds }),
@@ -107,7 +114,7 @@ function createRedisAdapter(): RedisAdapter {
 
   // Fallback: Node Redis client (useful locally or with Redis Cloud)
   const client: RedisClientType = createClient({ url: process.env.REDIS_URL })
-  let connecting: Promise<void> | null = null
+  let connecting: Promise<unknown> | null = null
 
   const ensureConnected = async () => {
     if (client.isOpen) return
@@ -116,19 +123,13 @@ function createRedisAdapter(): RedisAdapter {
   }
 
   const nodeScan = async (
-    cursor: number,
+    _cursor: number,
     options?: { MATCH?: string; COUNT?: number }
   ): Promise<{ cursor: number; keys: string[] }> => {
     await ensureConnected()
-    const match = options?.MATCH
-    const count = options?.COUNT
-    const args: (string | number)[] = [String(cursor)]
-    if (match) { args.push("MATCH", match) }
-    if (count) { args.push("COUNT", count) }
-    const resp: [string, string[]] = await client.scan(...args)
-    const nextCursor = Number(resp?.[0] ?? 0)
-    const keys: string[] = Array.isArray(resp?.[1]) ? resp[1] : []
-    return { cursor: nextCursor, keys }
+    const pattern = options?.MATCH ?? '*'
+    const keys = await client.keys(pattern)
+    return { cursor: 0, keys }
   }
 
   const nodeKeys = async (pattern: string): Promise<string[]> => {
