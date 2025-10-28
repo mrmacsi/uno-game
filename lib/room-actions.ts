@@ -270,6 +270,7 @@ export const resetRoom = async (roomId: string) => {
       const initialNonDefaultState: GameState = {
         ...currentGameState, 
         status: "waiting",
+        players: [],
         currentPlayer: "",
         direction: 1,
         drawPile: [], 
@@ -277,7 +278,7 @@ export const resetRoom = async (roomId: string) => {
         currentColor: "red",
         winner: null,
         drawPileCount: 0,
-        log: currentGameState.log.filter(l => l.eventType === 'join' || l.eventType === 'system' || l.eventType === 'bot'),
+        log: [],
         gameStartTime: undefined,
         drawCardEffect: undefined,
         hasDrawnThisTurn: false,
@@ -285,7 +286,7 @@ export const resetRoom = async (roomId: string) => {
         rematchConfirmedBy: []
       };
       await updateGameState(roomId, initialNonDefaultState);
-      console.warn(`[resetRoom] Non-DEFAULT room ${roomId} reset using temporary logic due to missing createInitialGameState.`);
+      console.warn(`[resetRoom] Non-DEFAULT room ${roomId} reset: all players removed.`);
     }
   }
 
