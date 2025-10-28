@@ -105,7 +105,11 @@ export async function joinRoom(roomId: string, joiningPlayerInput: { id: string;
   await updateGameState(roomId, gameState)
   
   const strippedState = stripFunctionsFromGameState(gameState);
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  try {
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  } catch (pusherError) {
+    console.error("[joinRoom] Pusher trigger failed (non-fatal):", pusherError);
+  }
   return player.id
 }
 
@@ -161,7 +165,11 @@ export async function addBotToRoom(roomId: string): Promise<GameState | { error:
   await updateGameState(roomId, gameState);
 
   const strippedState = stripFunctionsFromGameState(gameState);
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  try {
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  } catch (pusherError) {
+    console.error("[addBotToRoom] Pusher trigger failed (non-fatal):", pusherError);
+  }
 
   return strippedState;
 }
@@ -198,7 +206,11 @@ export async function removeBotFromRoom(roomId: string, botId: string): Promise<
   await updateGameState(roomId, gameState);
 
   const strippedState = stripFunctionsFromGameState(gameState);
-  await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  try {
+    await pusherServer.trigger(`game-${roomId}`, "game-updated", strippedState);
+  } catch (pusherError) {
+    console.error("[removeBotFromRoom] Pusher trigger failed (non-fatal):", pusherError);
+  }
 
   return strippedState;
 }

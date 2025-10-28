@@ -12,12 +12,16 @@ import { joinRoom } from "@/lib/room-actions"
 import { storePlayerIdInLocalStorage, PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 import { Home, KeyRound, ShieldAlert, ArrowRight, Globe, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { generateRandomName } from "@/lib/name-generator"
+import { avatars } from "@/lib/avatar-config"
+import { generateClientUUID } from "@/lib/client-utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 
 export default function JoinRoom() {
   const router = useRouter()
   const supabase = createClient()
+  const SUPABASE_ENABLED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   const [playerDisplayName, setPlayerDisplayName] = useState("")
   const [avatarIndexState, setAvatarIndexState] = useState<number | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
@@ -31,15 +35,21 @@ export default function JoinRoom() {
   const fetchProfile = useCallback(async () => {
     setLoadingProfile(true);
     setAvatarIndexState(null);
-    const playerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
+    let playerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY);
 
+    // Ensure a player ID exists even if Supabase is not configured
     if (!playerId) {
-      console.error("No player ID found. Redirecting to setup.");
-      router.push('/profile/setup');
-      return; 
+      playerId = generateClientUUID();
+      storePlayerIdInLocalStorage(playerId);
     }
 
     try {
+      if (!SUPABASE_ENABLED) {
+        setPlayerDisplayName(generateRandomName());
+        setAvatarIndexState(Math.floor(Math.random() * avatars.length));
+        setLoadingProfile(false);
+        return;
+      }
       const { data, error, status } = await supabase
         .from('profiles')
         .select('display_name, avatar_index')
@@ -48,24 +58,24 @@ export default function JoinRoom() {
 
       if (error && status !== 406) {
         console.error("Error fetching profile:", error);
-        localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
-        router.push('/profile/setup');
+        setPlayerDisplayName(generateRandomName());
+        setAvatarIndexState(Math.floor(Math.random() * avatars.length));
       } else if (!data || !data.display_name || data.avatar_index === null) {
-        console.error("Incomplete profile found (missing display name or avatar). Redirecting to setup.");
-        localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
-        router.push('/profile/setup');
+        console.error("Incomplete profile found (missing display name or avatar). Using fallback.");
+        setPlayerDisplayName(generateRandomName());
+        setAvatarIndexState(Math.floor(Math.random() * avatars.length));
       } else {
         setPlayerDisplayName(data.display_name);
         setAvatarIndexState(data.avatar_index);
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err);
-      localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
-      router.push('/profile/setup');
+      setPlayerDisplayName(generateRandomName());
+      setAvatarIndexState(Math.floor(Math.random() * avatars.length));
     } finally {
       setLoadingProfile(false);
     }
-  }, [supabase, router]);
+  }, [supabase, router, SUPABASE_ENABLED]);
 
   useEffect(() => {
     fetchProfile();
