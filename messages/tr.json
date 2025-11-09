@@ -324,7 +324,15 @@
     "waiting": "Bekliyor",
     "playing": "Oynuyor",
     "finished": "Bitti",
-    "join": "Katıl"
+    "join": "Katıl",
+    "view": "Görüntüle",
+    "delete": "Sil",
+    "deleting": "Siliniyor...",
+    "reset": "Sıfırla",
+    "resetting": "Sıfırlanıyor...",
+    "deleteRoomTitle": "{roomId} Odasını Sil?",
+    "deleteRoomDescription": "Bu odayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "yesDelete": "Evet, Sil"
   },
   "resetRoom": {
     "resetRoom": "Odayı Sıfırla",

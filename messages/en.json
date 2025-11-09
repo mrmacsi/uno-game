@@ -324,7 +324,15 @@
     "waiting": "Waiting",
     "playing": "Playing",
     "finished": "Finished",
-    "join": "Join"
+    "join": "Join",
+    "view": "View",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "reset": "Reset",
+    "resetting": "Resetting...",
+    "deleteRoomTitle": "Delete Room {roomId}?",
+    "deleteRoomDescription": "Are you sure you want to delete this room? This action cannot be undone.",
+    "yesDelete": "Yes, Delete"
   },
   "resetRoom": {
     "resetRoom": "Reset Room",

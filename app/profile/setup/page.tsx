@@ -8,8 +8,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { Loader2, Home } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
+import { useTranslations } from 'next-intl'
 
 export default function ProfileSetupPage() {
+  const t = useTranslations()
   const supabase = createClient()
   const router = useRouter()
   const [unoPlayerId, setUnoPlayerId] = useState<string | null>(null)
@@ -67,7 +69,7 @@ export default function ProfileSetupPage() {
          size="icon" 
          className="absolute top-4 left-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full shadow"
          onClick={() => router.push('/')}
-         title="Back to Home"
+         title={t('common.backToHome')}
        >
          <Home className="h-5 w-5" />
        </Button>

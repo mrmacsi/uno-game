@@ -306,13 +306,13 @@ export default function RoomList() {
                           disabled={action.loading}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                          {action.loading ? "Deleting..." : "Delete"}
+                          {action.loading ? t('roomList.deleting') : t('roomList.delete')}
                         </Button>
                       }
-                      title={`Delete Room ${room.roomId}?`}
-                      description="Are you sure you want to delete this room? This action cannot be undone."
+                      title={t('roomList.deleteRoomTitle', { roomId: room.roomId })}
+                      description={t('roomList.deleteRoomDescription')}
                       confirmAction={() => handleAttemptDelete(room.roomId)}
-                      confirmText={action.loading ? "Deleting..." : "Yes, Delete"}
+                      confirmText={action.loading ? t('roomList.deleting') : t('roomList.yesDelete')}
                       isDestructive={true}
                     />
                   )}
@@ -324,7 +324,7 @@ export default function RoomList() {
                     disabled={action.loading}
                   >
                     <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                    {action.loading ? "Resetting..." : "Reset"}
+                    {action.loading ? t('roomList.resetting') : t('roomList.reset')}
                   </Button>
                   <Link href={`/room/${room.roomId}`} passHref>
                     <Button 
@@ -332,7 +332,7 @@ export default function RoomList() {
                       className="rounded-full text-xs bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all"
                       disabled={action.loading || (room.roomId !== "DEFAULT" && (room.status === 'finished' || (room.status === 'playing' && room.players.length >= 4)))}
                     >
-                      {room.roomId === "DEFAULT" || room.status === 'waiting' || (room.status === 'playing' && room.players.length < 4) ? t('roomList.join') : 'View'}
+                      {room.roomId === "DEFAULT" || room.status === 'waiting' || (room.status === 'playing' && room.players.length < 4) ? t('roomList.join') : t('roomList.view')}
                       <ArrowRightCircle className="h-4 w-4 ml-1.5" />
                     </Button>
                   </Link>
