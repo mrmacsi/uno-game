@@ -159,6 +159,7 @@
     "ringFailed": "Çalma Başarısız",
     "ringSent": "Çalma Gönderildi",
     "notificationSent": "Oyuncuya bildirim gönderildi",
+    "waitForTurn": "Oynamak için sıranı bekle.",
     "roomNotFound": "Oda bulunamadı",
     "gameAlreadyStarted": "Oyun zaten başladı veya bitti",
     "roomFull": "Oda dolu",

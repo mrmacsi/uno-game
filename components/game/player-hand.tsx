@@ -210,7 +210,7 @@ export default function PlayerHand() {
                             if (!isMyTurn) {
                                 setAnimatingCard(null);
                                 console.log('--> Play blocked: Not your turn (checked before color prompt)');
-                                toast("Not Your Turn", { description: "Wait for your turn to play." });
+                                toast(t('game.notYourTurn'), { description: t('game.waitForTurn') });
                                 return;
                             }
                             promptColorSelection(card.id);

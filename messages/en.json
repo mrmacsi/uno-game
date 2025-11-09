@@ -159,6 +159,7 @@
     "ringFailed": "Ring Failed",
     "ringSent": "Ring Sent",
     "notificationSent": "Notification sent to player",
+    "waitForTurn": "Wait for your turn to play.",
     "roomNotFound": "Room not found",
     "gameAlreadyStarted": "Game has already started or ended",
     "roomFull": "Room is full",
