@@ -296,7 +296,18 @@
     "selectAvatar": "Select Avatar",
     "save": "Save Profile",
     "saving": "Saving...",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "login": "Login",
+    "username": "Username",
+    "yourExactUsername": "Your exact username",
+    "enterUsernameToContinue": "Enter your username to continue.",
+    "selectYourAvatar": "Select Your Avatar",
+    "changeAvatar": "Change Avatar",
+    "selectAvatarButton": "Select Avatar",
+    "pleaseSelectAvatar": "Please select an avatar.",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "random": "Random"
   },
   "admin": {
     "title": "Admin Panel",
@@ -305,12 +316,26 @@
     "avatars": "Avatars"
   },
   "roomList": {
+    "availableRooms": "Available Rooms",
+    "refresh": "Refresh",
+    "empty": "Empty",
     "noRooms": "No active rooms",
     "players": "players",
     "waiting": "Waiting",
     "playing": "Playing",
     "finished": "Finished",
     "join": "Join"
+  },
+  "resetRoom": {
+    "resetRoom": "Reset Room",
+    "resetting": "Resetting...",
+    "yesResetRoom": "Yes, Reset Room",
+    "cancel": "Cancel",
+    "roomReset": "Room Reset",
+    "roomResetSuccess": "Room has been reset successfully",
+    "resetFailed": "Reset Failed",
+    "resetFailedDesc": "Failed to reset room.",
+    "resetConfirmMessage": "All players will need to rejoin after reset. Are you sure?"
   }
 }
 

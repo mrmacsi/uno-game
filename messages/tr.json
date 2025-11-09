@@ -296,7 +296,18 @@
     "selectAvatar": "Avatar Seç",
     "save": "Profili Kaydet",
     "saving": "Kaydediliyor...",
-    "backToHome": "Ana Sayfaya Dön"
+    "backToHome": "Ana Sayfaya Dön",
+    "login": "Giriş",
+    "username": "Kullanıcı Adı",
+    "yourExactUsername": "Tam kullanıcı adınız",
+    "enterUsernameToContinue": "Devam etmek için kullanıcı adınızı girin.",
+    "selectYourAvatar": "Avatarınızı Seçin",
+    "changeAvatar": "Avatarı Değiştir",
+    "selectAvatarButton": "Avatar Seç",
+    "pleaseSelectAvatar": "Lütfen bir avatar seçin.",
+    "cancel": "İptal",
+    "ok": "Tamam",
+    "random": "Rastgele"
   },
   "admin": {
     "title": "Yönetici Paneli",
@@ -305,12 +316,26 @@
     "avatars": "Avatarlar"
   },
   "roomList": {
+    "availableRooms": "Mevcut Odalar",
+    "refresh": "Yenile",
+    "empty": "Boş",
     "noRooms": "Aktif oda yok",
     "players": "oyuncu",
     "waiting": "Bekliyor",
     "playing": "Oynuyor",
     "finished": "Bitti",
     "join": "Katıl"
+  },
+  "resetRoom": {
+    "resetRoom": "Odayı Sıfırla",
+    "resetting": "Sıfırlanıyor...",
+    "yesResetRoom": "Evet, Odayı Sıfırla",
+    "cancel": "İptal",
+    "roomReset": "Oda Sıfırlandı",
+    "roomResetSuccess": "Oda başarıyla sıfırlandı",
+    "resetFailed": "Sıfırlama Başarısız",
+    "resetFailedDesc": "Oda sıfırlanamadı.",
+    "resetConfirmMessage": "Sıfırlama sonrası tüm oyuncuların tekrar katılmaları gerekecek. Emin misiniz?"
   }
 }
 

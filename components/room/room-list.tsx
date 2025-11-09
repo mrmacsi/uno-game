@@ -169,7 +169,7 @@ export default function RoomList() {
     return (
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-4 gap-2 sm:gap-0">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Available Rooms</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('roomList.availableRooms')}</h2>
           <Skeleton className="h-8 sm:h-9 w-24 sm:w-28 rounded-full" />
         </div>
         <Skeleton className="w-full h-40 rounded-xl" />
@@ -229,7 +229,7 @@ export default function RoomList() {
           disabled={loading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          <span className="text-sm">Refresh</span>
+          <span className="text-sm">{t('roomList.refresh')}</span>
         </Button>
       </div>
       
@@ -285,7 +285,7 @@ export default function RoomList() {
                         />
                       ))
                     ) : (
-                      <p className="text-xs text-gray-400 italic pl-1">Empty</p>
+                      <p className="text-xs text-gray-400 italic pl-1">{t('roomList.empty')}</p>
                     )}
                     {remainingPlayers > 0 && (
                       <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-600 dark:text-gray-300 border-2 border-white dark:border-gray-800 shadow-sm z-10">

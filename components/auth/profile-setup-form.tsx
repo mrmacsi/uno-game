@@ -14,10 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Loader2, Edit, User, Wand2, LogIn } from 'lucide-react'
 import { toast } from "sonner"
+import { useTranslations } from 'next-intl'
 // Import the name generator
 import { generateRandomName, adjectives } from "@/lib/name-generator"
 // Import avatars list for linking
-import { avatars } from "@/lib/avatar-config"; 
+import { avatars } from "@/lib/avatar-config";
 
 interface SelectedAvatarState { name: string; index: number }
 
@@ -46,6 +47,7 @@ interface ProfileUpsertData {
 
 // Rename playerId prop to unoPlayerId
 export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { unoPlayerId: string }) {
+  const t = useTranslations('profile')
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams() // Get search params
@@ -331,9 +333,9 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                {/* Display Name Input - Moved down */}
                <div className="space-y-2">
                  <div className="flex justify-between items-center">
-                   <Label htmlFor="display-name" className="font-semibold text-gray-700 dark:text-gray-300">Display Name</Label>
+                   <Label htmlFor="display-name" className="font-semibold text-gray-700 dark:text-gray-300">{t('displayName')}</Label>
                    <Button type="button" variant="ghost" size="sm" onClick={generateNewRandomName} className="text-xs h-7 px-2 rounded-full flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-                     <Wand2 className="h-3.5 w-3.5" /> Random
+                     <Wand2 className="h-3.5 w-3.5" /> {t('random')}
                    </Button>
                  </div>
                  <Input 
@@ -355,7 +357,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
 
                {/* Avatar Selection - Center this whole block */}
                <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-                   <Label className="font-semibold text-gray-700 dark:text-gray-300 self-center">Avatar</Label> 
+                   <Label className="font-semibold text-gray-700 dark:text-gray-300 self-center">{t('selectAvatar')}</Label> 
                    {/* This div now just holds the avatar and button, centering is handled by parent */}
                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
                      {selectedAvatar ? <AvatarDisplay index={selectedAvatar.index} size="lg" /> : <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-600"><User className="h-8 w-8" /></div>}
@@ -367,18 +369,18 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
                             className="dark:border-gray-600 dark:hover:bg-gray-800 dark:text-white transition duration-150 ease-in-out rounded-md whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
                          >
                             <Edit className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> 
-                            {selectedAvatar ? 'Change Avatar' : 'Select Avatar'}
+                            {selectedAvatar ? t('changeAvatar') : t('selectAvatarButton')}
                          </Button>
                        </DialogTrigger>
                        {/* Make Dialog Content responsive */}
                        <DialogContent className="w-[90vw] max-w-lg sm:max-w-[600px] bg-white dark:bg-gray-950 rounded-lg p-4 sm:p-6">
-                         <DialogHeader className="sr-only"><DialogTitle>Select Your Avatar</DialogTitle></DialogHeader>
+                         <DialogHeader className="sr-only"><DialogTitle>{t('selectYourAvatar')}</DialogTitle></DialogHeader>
                          <AvatarSelector onSelect={handleAvatarSelect} />
-                         <DialogFooter className="mt-4"><DialogClose asChild><Button type="button" variant="secondary" size="sm" className="rounded-md">Cancel</Button></DialogClose></DialogFooter>
+                         <DialogFooter className="mt-4"><DialogClose asChild><Button type="button" variant="secondary" size="sm" className="rounded-md">{t('cancel')}</Button></DialogClose></DialogFooter>
                        </DialogContent>
                      </Dialog>
                    </div>
-                   {!selectedAvatar && <p className="text-sm text-red-600 dark:text-red-400 pt-1 self-center">Please select an avatar.</p>}
+                   {!selectedAvatar && <p className="text-sm text-red-600 dark:text-red-400 pt-1 self-center">{t('pleaseSelectAvatar')}</p>}
                </div>
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-4">
@@ -401,19 +403,19 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
         {viewMode === 'login' && (
           <>
             <CardHeader className="text-center pt-8 pb-4">
-              <CardTitle className="text-3xl font-bold tracking-tight">Login</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">Enter your username to continue.</CardDescription>
+              <CardTitle className="text-3xl font-bold tracking-tight">{t('login')}</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">{t('enterUsernameToContinue')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-8">
                <div className="space-y-2">
-                 <Label htmlFor="login-username" className="font-semibold text-gray-700 dark:text-gray-300">Username</Label>
+                 <Label htmlFor="login-username" className="font-semibold text-gray-700 dark:text-gray-300">{t('username')}</Label>
                  <Input 
                     id="login-username" 
                     type="text" 
                     value={loginUsername} 
                     onChange={(e) => setLoginUsername(e.target.value)} 
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
-                    placeholder="Your exact username" 
+                    placeholder={t('yourExactUsername')} 
                     required 
                     className="dark:bg-gray-800 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-400 dark:focus:ring-blue-400 transition duration-150 ease-in-out rounded-md" 
                  />
@@ -458,7 +460,7 @@ export default function ProfileSetupForm({ unoPlayerId: propUnoPlayerId }: { uno
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4">
-            <AlertDialogAction onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))} className="rounded-md text-sm sm:text-base px-3 py-1.5 sm:px-4 sm:py-2">OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))} className="rounded-md text-sm sm:text-base px-3 py-1.5 sm:px-4 sm:py-2">{t('ok')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
