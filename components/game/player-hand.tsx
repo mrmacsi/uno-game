@@ -6,14 +6,16 @@ import UnoCard from "./uno-card"
 import { toast } from "sonner"
 import { checkPlayValidity } from "@/lib/game-logic"
 import { cn } from "@/lib/utils"
+import { useTranslations } from 'next-intl'
 
 export default function PlayerHand() {
-  const { 
-    state, 
-    currentPlayerId, 
-    playCard, 
-    error: gameError, 
-    isLoading, 
+  const t = useTranslations();
+  const {
+    state,
+    currentPlayerId,
+    playCard,
+    error: gameError,
+    isLoading,
     promptColorSelection,
     cardScale,
     isProcessingPlay,
@@ -26,11 +28,11 @@ export default function PlayerHand() {
 
   useEffect(() => {
     if (gameError) {
-      toast.error("Game Error", {
+      toast.error(t('error.unexpectedError'), {
         description: gameError,
       })
     }
-  }, [gameError])
+  }, [gameError, t])
 
   useEffect(() => {
     if (!currentPlayerId || !state?.players) return

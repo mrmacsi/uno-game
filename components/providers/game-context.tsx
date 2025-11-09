@@ -13,6 +13,7 @@ import { useAutoPlay, useAutoPlayLogic } from "@/hooks/use-auto-play";
 import { useGamePusher } from "@/hooks/use-game-pusher";
 import { useGameLogs } from "@/hooks/use-game-logs";
 import { useGameEffects } from "@/hooks/use-game-effects";
+import { useTranslations } from 'next-intl';
 
 type GameContextType = {
   state: GameState;
@@ -69,6 +70,7 @@ export function GameProvider({
   roomId: string;
 }) {
   const router = useRouter();
+  const t = useTranslations();
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
     typeof window !== "undefined" ? getPlayerIdFromLocalStorage() : null
@@ -186,7 +188,7 @@ export function GameProvider({
   const handlePlayCard = async (cardId: string, selectedColor?: CardColor) => {
     if (!state || !currentPlayerId) return;
     if (isProcessingPlay) {
-      toast.warning("Please wait", { description: "Processing previous action." });
+      toast.warning(t('game.pleaseWait'), { description: t('game.processingPreviousAction') });
       return;
     }
     setIsProcessingPlay(true);
@@ -200,7 +202,7 @@ export function GameProvider({
     }
     try {
       if (state.currentPlayer !== currentPlayerId) {
-        toast.error("Not Your Turn", { description: "Please wait for your turn." });
+        toast.error(t('game.notYourTurn'), { description: t('game.pleaseWaitForTurn') });
         setIsProcessingPlay(false);
         return;
       }
@@ -246,7 +248,7 @@ export function GameProvider({
       const errorMessage = err instanceof Error && specificErrors.some(e => err.message.includes(e))
         ? err.message
         : "Could not play card. Please try again.";
-      toast.error("Action Failed", { description: errorMessage });
+      toast.error(t('game.actionFailed'), { description: errorMessage });
       await refreshGameState();
     } finally {
       setIsLoading(false);
@@ -259,14 +261,14 @@ export function GameProvider({
       return;
     }
     if (state.currentPlayer !== currentPlayerId) {
-      toast.error("Cannot Draw Card", {
-        description: "It's not your turn",
+      toast.error(t('game.cannotDrawCard'), {
+        description: t('game.pleaseWaitForTurn'),
       });
       return;
     }
     if (state.hasDrawnThisTurn) {
-      toast.error("Cannot Draw Card", {
-        description: "You've already drawn a card this turn",
+      toast.error(t('game.cannotDrawCard'), {
+        description: t('game.alreadyDrawn'),
       });
       return;
     }
@@ -279,7 +281,7 @@ export function GameProvider({
       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
         : "Failed to draw card. Please try again.";
-      toast.error("Action Failed", { description: errorMessage });
+      toast.error(t('game.actionFailed'), { description: errorMessage });
       setIsLoading(false);
     }
   };
@@ -321,17 +323,17 @@ export function GameProvider({
   const handleSelectWildCardColor = async (color: CardColor) => {
     if (!roomId || !currentPlayerId || !pendingWildCardId || color === 'black') {
       setError("Invalid state or color for selecting wild color.");
-      toast.error("Invalid Color", { description: "Please select Red, Blue, Green, or Yellow." });
+      toast.error(t('game.invalidColor'), { description: t('game.selectValidColor') });
       return;
     }
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player) {
-      toast.error("Action Failed", { description: "Player data not found." });
+      toast.error(t('game.actionFailed'), { description: t('game.playerDataNotFound') });
       return;
     }
     const cardToPlay = player.cards.find(c => c.id === pendingWildCardId);
     if (!cardToPlay) {
-      toast.error("Action Failed", { description: "Card not found. Please try again." });
+      toast.error(t('game.actionFailed'), { description: t('game.cardNotFound') });
       await refreshGameState();
       return;
     }
@@ -359,14 +361,14 @@ export function GameProvider({
       return;
     }
     if (state.status !== "playing") {
-      toast.error("Cannot Pass Turn", {
-        description: "Game is not in progress yet",
+      toast.error(t('game.cannotPassTurn'), {
+        description: t('game.gameAlreadyStarted'),
       });
       return;
     }
     if (state.currentPlayer !== currentPlayerId) {
-      toast.error("Cannot Pass Turn", {
-        description: "It's not your turn",
+      toast.error(t('game.cannotPassTurn'), {
+        description: t('game.pleaseWaitForTurn'),
       });
       return;
     }
@@ -379,7 +381,7 @@ export function GameProvider({
       const errorMessage = error instanceof Error && specificErrors.some(e => error.message.includes(e))
         ? error.message
         : "Failed to pass turn. Please try again.";
-      toast.error("Action Failed", { description: errorMessage });
+      toast.error(t('game.actionFailed'), { description: errorMessage });
       setIsLoading(false);
     }
   };
@@ -390,8 +392,8 @@ export function GameProvider({
     }
     const currentPlayer = state.players.find(p => p.id === currentPlayerId);
     if (!currentPlayer?.isHost) {
-      toast.error("Cannot Start Game", {
-        description: "Only the host can start the game",
+      toast.error(t('game.cannotStartGame'), {
+        description: t('waitingRoom.onlyHostCanStartGame'),
       });
       return;
     }
@@ -405,7 +407,7 @@ export function GameProvider({
       const errorMessage = error instanceof Error && error.message.includes("Not the host")
         ? error.message
         : "Failed to start game. Please try again.";
-      toast.error("Action Failed", { description: errorMessage });
+      toast.error(t('game.actionFailed'), { description: errorMessage });
       setIsLoading(false);
     }
   };
@@ -491,8 +493,8 @@ export function GameProvider({
         });
       }
     } catch (error) {
-      toast.error("Message Failed", {
-        description: "Could not send message, please try again",
+      toast.error(t('game.messageFailed'), {
+        description: t('error.unexpectedError'),
       })
     }
   }
@@ -518,13 +520,13 @@ export function GameProvider({
         throw new Error("Failed to ring opponent")
       }
       
-      toast("Ring Sent", {
-        description: "Notification sent to player",
+      toast(t('game.ringSent'), {
+        description: t('game.notificationSent'),
         duration: 1500,
       })
     } catch (error) {
-      toast.error("Ring Failed", {
-        description: "Could not send notification. Please try again.",
+      toast.error(t('game.ringFailed'), {
+        description: t('error.unexpectedError'),
       })
     }
   }
