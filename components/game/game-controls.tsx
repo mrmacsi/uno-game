@@ -182,7 +182,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
               <DrawerFooter>
                 <DrawerClose asChild>
                   <Button variant="outline" className="border-white/20 text-white">
-                    {t('game.close')}
+                    {t('common.cancel')}
                   </Button>
                 </DrawerClose>
               </DrawerFooter>
@@ -271,9 +271,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </DrawerTrigger>
         <DrawerContent className="bg-black/90 border-white/10 text-white">
           <DrawerHeader>
-            <DrawerTitle>{t('game.gameLog')}</DrawerTitle>
+            <DrawerTitle>{t('gameOver.gameLogs')}</DrawerTitle>
             <DrawerDescription className="text-white/70">
-              {t('game.recentEvents')}
+              {t('game.gameLog.noEvents')}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-2">
@@ -282,7 +282,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline" className="border-white/20 text-white">
-                {t('game.close')}
+                {t('common.cancel')}
               </Button>
             </DrawerClose>
           </DrawerFooter>

@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslations } from 'next-intl';
 
 export default function SelectAvatarPage() {
+  const t = useTranslations('common');
   const router = useRouter();
 
   return (
@@ -23,7 +25,7 @@ export default function SelectAvatarPage() {
           className="flex items-center gap-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t('back')}
         </Button>
       </motion.div>
       <AvatarSelector />
