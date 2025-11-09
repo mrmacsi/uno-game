@@ -4,6 +4,7 @@ import { AvatarDisplay } from "../game/avatar-display"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useGame } from "../providers/game-context"
+import { useTranslations } from 'next-intl'
 
 interface PlayerInfoProps {
   player: Player
@@ -12,6 +13,7 @@ interface PlayerInfoProps {
 }
 
 export default function PlayerInfo({ player, isCurrentTurn, showRingButton = false }: PlayerInfoProps) {
+  const t = useTranslations('game')
   const { state, ringOpponent, currentPlayerId } = useGame()
   
   // This determines if the PlayerInfo card being rendered is for the player whose turn it is globally.
@@ -72,7 +74,7 @@ export default function PlayerInfo({ player, isCurrentTurn, showRingButton = fal
                 "flex items-center text-[9px] sm:text-[10px] leading-tight",
                 isCurrentTurn ? "text-yellow-200 font-semibold" : "text-white/60"
              )}>
-               {player.cards.length} <span className="hidden sm:inline ml-0.5">cards</span>
+               {player.cards.length} <span className="hidden sm:inline ml-0.5">{player.cards.length === 1 ? t('cardLeft') : t('cardsLeft')}</span>
              </div>
           </div>
         </div>
@@ -84,7 +86,7 @@ export default function PlayerInfo({ player, isCurrentTurn, showRingButton = fal
               size="icon"
               className="w-5 h-5 p-0.5 text-white/70 hover:text-amber-400 hover:bg-white/10 rounded-full flex-shrink-0"
               onClick={handleRing}
-              title={`Ring ${player.name}`}
+              title={`${t('ringBell')} ${player.name}`}
             >
               <Bell className="w-3 h-3" />
             </Button>
@@ -93,7 +95,7 @@ export default function PlayerInfo({ player, isCurrentTurn, showRingButton = fal
           {isCurrentTurn && (
             <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold flex-shrink-0 shadow-sm whitespace-nowrap">
               <Clock className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-              <span>Turn</span>
+              <span>{t('turn')}</span>
             </div>
           )}
         </div>

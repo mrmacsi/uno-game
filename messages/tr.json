@@ -35,7 +35,10 @@
     "profileIncomplete": "Profil eksik. Lütfen profil kurulumunu tamamlayın.",
     "failedToLoad": "Profil yüklenemedi. Lütfen tekrar deneyin.",
     "goToSetup": "Profil Kurulumuna Git",
-    "unexpectedError": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."
+    "unexpectedError": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+    "roomNotFound": "Oda Bulunamadı",
+    "joinAnotherRoom": "Başka Odaya Katıl",
+    "backToHome": "Ana Sayfaya Dön"
   },
   "createRoom": {
     "title": "Yeni Oyun Odası Oluştur",
@@ -122,6 +125,7 @@
   "game": {
     "unoGame": "UNO Oyunu",
     "yourTurn": "Senin Sıran!",
+    "turn": "Sıra",
     "draw": "Çek",
     "pass": "Pas",
     "uno": "UNO!",

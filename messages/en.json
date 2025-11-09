@@ -35,7 +35,10 @@
     "profileIncomplete": "Profile incomplete. Please complete your profile setup.",
     "failedToLoad": "Failed to load profile. Please try again.",
     "goToSetup": "Go to Profile Setup",
-    "unexpectedError": "An unexpected error occurred. Please try again."
+    "unexpectedError": "An unexpected error occurred. Please try again.",
+    "roomNotFound": "Room Not Found",
+    "joinAnotherRoom": "Join Another Room",
+    "backToHome": "Back to Home"
   },
   "createRoom": {
     "title": "Create a New Game Room",
@@ -122,6 +125,7 @@
   "game": {
     "unoGame": "UNO Game",
     "yourTurn": "Your Turn!",
+    "turn": "Turn",
     "draw": "Draw",
     "pass": "Pass",
     "uno": "UNO!",
