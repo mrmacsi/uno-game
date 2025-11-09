@@ -38,7 +38,10 @@
     "unexpectedError": "An unexpected error occurred. Please try again.",
     "roomNotFound": "Room Not Found",
     "joinAnotherRoom": "Join Another Room",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "pageNotFound": "404 - Not Found",
+    "pageNotFoundDesc": "Could not find the requested page.",
+    "returnHome": "Return Home"
   },
   "createRoom": {
     "title": "Create a New Game Room",

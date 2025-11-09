@@ -38,7 +38,10 @@
     "unexpectedError": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
     "roomNotFound": "Oda Bulunamadı",
     "joinAnotherRoom": "Başka Odaya Katıl",
-    "backToHome": "Ana Sayfaya Dön"
+    "backToHome": "Ana Sayfaya Dön",
+    "pageNotFound": "404 - Sayfa Bulunamadı",
+    "pageNotFoundDesc": "İstenen sayfa bulunamadı.",
+    "returnHome": "Ana Sayfaya Dön"
   },
   "createRoom": {
     "title": "Yeni Oyun Odası Oluştur",
