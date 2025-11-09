@@ -82,9 +82,13 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
     if (!isMyTurn || !isHumanPlayer || !state.currentPlayer) return;
 
     console.log("GameControls: Initiating Auto Play for human player", state.currentPlayer);
+
+    // Add a 2-second delay to give player time to see and think before auto play
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     const botPlayResult = getBotPlay(state as GameState, state.currentPlayer);
     console.log("GameControls: Auto Play - getBotPlay result:", JSON.parse(JSON.stringify(botPlayResult)));
-    
+
     await executeAutomatedTurnAction(state, state.currentPlayer, botPlayResult);
   };
 

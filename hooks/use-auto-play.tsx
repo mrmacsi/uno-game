@@ -45,7 +45,7 @@ export function useAutoPlayLogic({ isAutoPlayActive, currentPlayerId, state }: A
     const currentPlayerDetails = state.players.find(p => p.id === currentPlayerId);
     if (!currentPlayerDetails || currentPlayerDetails.isBot) return;
     
-    // Add a slight delay to make it feel more natural
+    // Add a 2-second delay to give player time to see and think before auto play
     const autoPlayTimeout = setTimeout(async () => {
       try {
         console.log("Auto Play: Executing automated turn for human player");
@@ -78,7 +78,7 @@ export function useAutoPlayLogic({ isAutoPlayActive, currentPlayerId, state }: A
       } catch (error) {
         console.error("Auto Play: Error during automated turn", error);
       }
-    }, 400);
+    }, 2000);
     
     return () => clearTimeout(autoPlayTimeout);
   }, [isAutoPlayActive, currentPlayerId, state.currentPlayer, state.status, state]);
