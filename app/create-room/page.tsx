@@ -14,8 +14,10 @@ import { motion } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import { useTranslations } from 'next-intl'
 
 export default function CreateRoom() {
+  const t = useTranslations()
   const router = useRouter()
   const supabase = createClient()
   const [playerDisplayName, setPlayerDisplayName] = useState("")
@@ -31,22 +33,22 @@ export default function CreateRoom() {
     const unoPlayerId = localStorage.getItem(PLAYER_ID_LOCAL_STORAGE_KEY)
 
     if (!unoPlayerId) {
-       setSubmitError("Cannot create room: Player ID missing.")
+       setSubmitError(t('createRoom.errorPlayerIdMissing'))
        console.error("CreateRoom Error: uno_player_id not found in localStorage")
        return
     }
     if (!playerDisplayName.trim()) {
-      setSubmitError("Cannot create room: Player display name missing.")
+      setSubmitError(t('createRoom.errorPlayerNameMissing'))
       console.error("CreateRoom Error: playerDisplayName state is empty")
       return
     }
      if (avatarIndexState === null) {
-      setSubmitError("Cannot create room: Player avatar missing.")
+      setSubmitError(t('createRoom.errorAvatarMissing'))
       console.error("CreateRoom Error: avatarIndex state is null")
       return
     }
     if (playerDisplayName.length > 15) {
-      setSubmitError("Display Name must be 15 characters or less")
+      setSubmitError(t('createRoom.errorNameTooLong'))
       return
     }
 
@@ -74,7 +76,7 @@ export default function CreateRoom() {
       router.push(`/room/${roomId}`)
     } catch (error) {
       console.error("Failed to create room:", error)
-      setSubmitError(error instanceof Error ? error.message : "Could not create room. Please try again.")
+      setSubmitError(error instanceof Error ? error.message : t('createRoom.errorCreateFailed'))
       setIsCreating(false)
     }
   }
@@ -123,11 +125,11 @@ export default function CreateRoom() {
   let tooltipMessage = "";
   if (!isCreating) {
     if (!playerDisplayName && avatarIndexState === null) {
-      tooltipMessage = "Please ensure your profile is complete (display name and avatar) to create a room.";
+      tooltipMessage = t('createRoom.tooltipProfileIncomplete');
     } else if (!playerDisplayName) {
-      tooltipMessage = "Please ensure your display name is set in your profile.";
+      tooltipMessage = t('createRoom.tooltipNameMissing');
     } else if (avatarIndexState === null) {
-      tooltipMessage = "Please ensure your avatar is selected in your profile.";
+      tooltipMessage = t('createRoom.tooltipAvatarMissing');
     }
   }
 
@@ -135,7 +137,7 @@ export default function CreateRoom() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-500 via-orange-400 to-yellow-300 dark:from-red-800 dark:via-orange-700 dark:to-yellow-600 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
-        <p className="mt-4 text-white text-lg">Loading Profile...</p>
+        <p className="mt-4 text-white text-lg">{t('home.loadingProfile')}</p>
       </div>
     )
   }
@@ -150,9 +152,9 @@ export default function CreateRoom() {
       >
         <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
           <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
-            <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">Create a New Game Room</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">{t('createRoom.title')}</CardTitle>
             <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
-              Set up a private room and invite your friends!
+              {t('createRoom.description')}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleCreateRoom}>
@@ -171,7 +173,7 @@ export default function CreateRoom() {
                   )}
                   <div className="flex-grow min-w-0">
                     <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
-                      Playing as:
+                      {t('createRoom.playingAs')}
                     </Label>
                     <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
                       {playerDisplayName} 
@@ -194,7 +196,7 @@ export default function CreateRoom() {
                       disabled={isButtonDisabled}
                       aria-describedby={isButtonDisabled && tooltipMessage ? "create-room-tooltip" : undefined}
                     >
-                      {isCreating ? "Creating Room..." : "Create Room"}
+                      {isCreating ? t('createRoom.creatingRoom') : t('createRoom.createRoom')}
                       {!isCreating && <ArrowRight className="ml-2 h-4 w-4" />}
                     </Button>
                   </span>
@@ -212,7 +214,7 @@ export default function CreateRoom() {
                 onClick={() => router.push('/')}
               >
                 <Home className="mr-2 h-4 w-4" />
-                Back to Home
+                {t('common.backToHome')}
               </Button>
             </CardFooter>
           </form>

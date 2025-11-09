@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes"
 import SafeHydration from "@/components/layout/safe-hydration"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/sonner"
+import { NextIntlClientProvider } from 'next-intl'
+import { getMessages } from 'next-intl/server'
 
 // Better font loading with display swap
 const fontSans = Inter({ 
@@ -35,43 +37,47 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const messages = await getMessages()
+  
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased",
         fontSans.variable
       )} suppressHydrationWarning={true}>
-        <ThemeProvider 
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange={false}
-          storageKey="uno-theme-preference"
-          forcedTheme={undefined}
-        >
-          <SafeHydration>
-            <div className="relative flex min-h-screen flex-col">
-              {children}
-            </div>
-            <Toaster 
-              richColors 
-              position="top-right" 
-              toastOptions={{ 
-                classNames: {
-                  toast: 'p-0.5 border',
-                  title: 'text-xs font-semibold',
-                  description: 'text-[10px]',
-                  closeButton: 'right-0.5 top-0.5 h-4 w-4',
-                },
-              }}
-            />
-          </SafeHydration>
-        </ThemeProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider 
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange={false}
+            storageKey="uno-theme-preference"
+            forcedTheme={undefined}
+          >
+            <SafeHydration>
+              <div className="relative flex min-h-screen flex-col">
+                {children}
+              </div>
+              <Toaster 
+                richColors 
+                position="top-right" 
+                toastOptions={{ 
+                  classNames: {
+                    toast: 'p-0.5 border',
+                    title: 'text-xs font-semibold',
+                    description: 'text-[10px]',
+                    closeButton: 'right-0.5 top-0.5 h-4 w-4',
+                  },
+                }}
+              />
+            </SafeHydration>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

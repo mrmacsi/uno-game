@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import React, { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { LanguageToggle } from "@/components/layout/language-toggle";
 import Link from "next/link"
 import RoomList from "@/components/room/room-list"
 import { PlusCircle, LogIn, ListChecks, Globe, Settings, Loader2, LogOut } from "lucide-react"
@@ -12,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { AvatarDisplay } from "@/components/game/avatar-display";
 import { PLAYER_ID_LOCAL_STORAGE_KEY } from "@/lib/client-utils"
 import ContentLoader from 'react-content-loader';
+import { useTranslations } from 'next-intl';
 
 type ProfileData = {
   display_name: string | null;
@@ -36,6 +38,7 @@ const ProfileSkeleton = () => (
 );
 
 export default function Home() {
+  const t = useTranslations()
   const supabase = createClient()
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -61,16 +64,16 @@ export default function Home() {
           .single<ProfileData>();
 
         if (error && status !== 406) {
-          setError("Failed to load profile. Please try again.");
+          setError(t('error.failedToLoad'));
           localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
         } else if (!data || !data.display_name || data.avatar_name === null || data.avatar_index === null) {
-          setError("Profile incomplete. Please complete your profile setup.");
+          setError(t('error.profileIncomplete'));
         } else {
           setProfile(data as ProfileData);
         }
       } catch (err) {
         console.error("Unexpected error during profile check:", err);
-        setError("An unexpected error occurred. Please try again.");
+        setError(t('error.unexpectedError'));
         localStorage.removeItem(PLAYER_ID_LOCAL_STORAGE_KEY);
       } finally {
         setLoading(false);
@@ -100,15 +103,15 @@ export default function Home() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-500 via-orange-400 to-amber-300 dark:from-red-950 dark:via-orange-900 dark:to-amber-800 p-8">
         <div className="bg-white/90 dark:bg-gray-900/90 rounded-2xl p-8 max-w-md w-full shadow-xl">
-          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Error Loading Profile</h2>
+          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">{t('error.loadingProfile')}</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
           <div className="flex gap-4">
             <Button onClick={handleRetry} variant="default">
-              Retry
+              {t('common.retry')}
             </Button>
             <Link href="/profile/setup">
               <Button variant="outline">
-                Go to Profile Setup
+                {t('error.goToSetup')}
               </Button>
             </Link>
           </div>
@@ -146,7 +149,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-500 via-orange-400 to-amber-300 dark:from-red-950 dark:via-orange-900 dark:to-amber-800 p-8">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
-        <p className="mt-4 text-white text-lg">Redirecting...</p> 
+        <p className="mt-4 text-white text-lg">{t('home.redirecting')}</p> 
       </div>
     );
   }
@@ -198,22 +201,23 @@ export default function Home() {
                       size="sm"
                       className="h-auto p-0 text-[10px] sm:text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 self-start font-normal"
                     >
-                      Edit Profile
+                      {t('nav.editProfile')}
                     </Button>
                   </Link>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
+                <LanguageToggle />
                 <ThemeToggle />
                 {profile.admin === true && (
                   <Link href="/admin" passHref>
-                    <Button variant="ghost" size="icon" title="Admin Panel" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 w-8 h-8 sm:w-9 sm:h-9">
+                    <Button variant="ghost" size="icon" title={t('nav.adminPanel')} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 w-8 h-8 sm:w-9 sm:h-9">
                       <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </Link>
                 )}
-                <Button variant="ghost" size="icon" title="Logout" onClick={handleLogout} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 w-8 h-8 sm:w-9 sm:h-9">
+                <Button variant="ghost" size="icon" title={t('nav.logout')} onClick={handleLogout} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 w-8 h-8 sm:w-9 sm:h-9">
                   <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
@@ -225,9 +229,9 @@ export default function Home() {
               transition={{ delay: 0.1, duration: 0.5 }}
               className="text-center pt-1"
             >
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500 dark:from-red-500 dark:to-orange-400">UNO</h1>
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500 dark:from-red-500 dark:to-orange-400">{t('home.title')}</h1>
               <p className="mt-0.5 text-gray-600 dark:text-gray-300 text-[11px] sm:text-sm">
-                The classic card game, online.
+                {t('home.subtitle')}
               </p>
             </motion.div>
           </div>
@@ -240,13 +244,13 @@ export default function Home() {
               animate="visible"
             >
               <div className="space-y-3 sm:space-y-4">
-                <h2 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200">Quick Actions</h2>
+                <h2 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200">{t('home.quickActions')}</h2>
                 <motion.div className="space-y-2.5 sm:space-y-3" variants={containerVariants}>
                   <motion.div variants={itemVariants}>
                     <Link href="/create-room" className="w-full block">
                       <Button className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-medium py-2.5 sm:py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
                         <PlusCircle className="h-4 w-4" />
-                        Create New Room
+                        {t('home.createRoom')}
                       </Button>
                     </Link>
                   </motion.div>
@@ -255,21 +259,21 @@ export default function Home() {
                     <Link href="/join-room" className="w-full block">
                       <Button variant="outline" className="w-full py-2.5 sm:py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5 text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium">
                         <LogIn className="h-4 w-4" />
-                        Join Room with Code
+                        {t('home.joinRoom')}
                       </Button>
                     </Link>
                   </motion.div>
                   
                   <motion.div variants={itemVariants} className="relative py-1.5 sm:py-2">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700/50"></div></div>
-                    <div className="relative flex justify-center"><span className="bg-white/90 dark:bg-gray-900/90 px-2 text-xs text-gray-500 dark:text-gray-400">or</span></div>
+                    <div className="relative flex justify-center"><span className="bg-white/90 dark:bg-gray-900/90 px-2 text-xs text-gray-500 dark:text-gray-400">{t('home.or')}</span></div>
                   </motion.div>
                   
                   <motion.div variants={itemVariants}>
                     <Link href={`/room/DEFAULT`} className="w-full block">
                       <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-sm sm:text-base">
                         <Globe className="h-4 w-4" />
-                        Join Public Room
+                        {t('home.joinPublicRoom')}
                       </Button>
                     </Link>
                   </motion.div>
@@ -279,7 +283,7 @@ export default function Home() {
               <motion.div variants={itemVariants}>
                 <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                   <ListChecks className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                  <h2 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200">Active Game Rooms</h2>
+                  <h2 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200">{t('home.activeRooms')}</h2>
                 </div>
                 <RoomList />
               </motion.div>
@@ -287,7 +291,7 @@ export default function Home() {
           </div>
           
           <div className="px-3 sm:px-4 py-2 text-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-400/80 w-full mt-auto border-t border-gray-200/50 dark:border-gray-800/40 bg-white/50 dark:bg-gray-900/50">
-            <p>Built with ❤️ in London • {new Date().getFullYear()}</p>
+            <p>{t('home.footer')} • {new Date().getFullYear()}</p>
           </div>
         </div>
       </motion.div>

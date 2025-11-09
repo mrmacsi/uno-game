@@ -9,11 +9,13 @@ import { AvatarDisplay } from "@/components/game/avatar-display"
 import { Clock, Users, RefreshCw, Trash2, ArrowRightCircle, RotateCcw, Search, Sparkles, Play, PlusCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { useTranslations } from 'next-intl'
 
 // Define max players to display avatars for
 const MAX_AVATARS_DISPLAY = 3;
 
 export default function RoomList() {
+  const t = useTranslations()
   const [rooms, setRooms] = useState<GameState[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export default function RoomList() {
       setRooms(data.rooms)
     } catch (error) {
       console.error("Error fetching rooms:", error)
-      setError("Failed to load rooms")
+      setError(t('error.failedToLoad'))
     } finally {
       setLoading(false)
     }
@@ -198,15 +200,15 @@ export default function RoomList() {
         <div className="w-16 h-16 rounded-full bg-gray-500/10 flex items-center justify-center mx-auto mb-4">
           <Search className="h-8 w-8 text-gray-400" />
         </div>
-        <p className="text-gray-600 text-lg font-medium mb-2">No rooms available</p>
-        <p className="text-gray-500 mb-6">Create a new room to get started!</p>
+        <p className="text-gray-600 text-lg font-medium mb-2">{t('roomList.noRooms')}</p>
+        <p className="text-gray-500 mb-6">{t('createRoom.description')}</p>
         <Link href="/create-room" passHref>
           <Button 
             size="lg"
             className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all px-8 py-3 text-base"
           >
             <PlusCircle className="h-5 w-5 mr-2.5" />
-            Create a Room
+            {t('home.createRoom')}
           </Button>
         </Link>
       </div>
@@ -270,7 +272,7 @@ export default function RoomList() {
                 <div className="flex-grow">
                   <h4 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
                      <Users className="h-3.5 w-3.5"/> 
-                     Players ({room.players.length}/4)
+                     {t('roomList.players')} ({room.players.length}/4)
                   </h4>
                   <div className="flex items-center -space-x-2 min-h-[24px]">
                     {playersToShow.length > 0 ? (
@@ -330,7 +332,7 @@ export default function RoomList() {
                       className="rounded-full text-xs bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow hover:shadow-md transition-all"
                       disabled={action.loading || (room.roomId !== "DEFAULT" && (room.status === 'finished' || (room.status === 'playing' && room.players.length >= 4)))}
                     >
-                      {room.roomId === "DEFAULT" || room.status === 'waiting' || (room.status === 'playing' && room.players.length < 4) ? 'Join Room' : 'View'}
+                      {room.roomId === "DEFAULT" || room.status === 'waiting' || (room.status === 'playing' && room.players.length < 4) ? t('roomList.join') : 'View'}
                       <ArrowRightCircle className="h-4 w-4 ml-1.5" />
                     </Button>
                   </Link>

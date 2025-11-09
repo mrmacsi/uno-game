@@ -13,8 +13,10 @@ import { Home, KeyRound, ShieldAlert, ArrowRight, Globe, Loader2 } from "lucide-
 import { createClient } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
 import { AvatarDisplay } from "@/components/game/avatar-display"
+import { useTranslations } from 'next-intl'
 
 export default function JoinRoom() {
+  const t = useTranslations()
   const router = useRouter()
   const supabase = createClient()
   const [playerDisplayName, setPlayerDisplayName] = useState("")
@@ -91,22 +93,22 @@ export default function JoinRoom() {
     let hasError = false
 
     if (!playerId) {
-      setError("Cannot join room: Player ID missing.");
+      setError(t('joinRoom.errorPlayerIdMissing'));
       console.error("JoinRoom Error: playerId not found in localStorage");
       hasError = true;
     }
     if (!playerDisplayName.trim()) {
-      setNameError("Player display name missing. Please check profile.")
+      setNameError(t('joinRoom.errorPlayerNameMissing'))
       hasError = true
     }
     if (avatarIndexState === null) {
-      setNameError("Player avatar missing. Please check profile.");
+      setNameError(t('joinRoom.errorAvatarMissing'));
       hasError = true;
     }
     
     const finalRoomId = isDefault ? "DEFAULT" : roomId.trim().toUpperCase();
     if (!finalRoomId) { 
-      setRoomIdError("Please enter a room code")
+      setRoomIdError(t('joinRoom.errorRoomCodeRequired'))
       hasError = true
     }
     
@@ -139,9 +141,9 @@ export default function JoinRoom() {
       console.error("Failed to join room:", error)
       if (error instanceof Error) {
         if (error.message.includes("Room not found")) {
-          setRoomIdError("Room code not found. Please check and try again.");
+          setRoomIdError(t('joinRoom.errorRoomNotFound'));
         } else if (error.message.includes("Room is full")) {
-          setError("This room is currently full.");
+          setError(t('joinRoom.errorRoomFull'));
         } else if (error.message.includes("Game has already started")) {
           // If it's a game in progress, just redirect to the room
           // The player is not in this game, but we'll handle the error display in the room page
@@ -151,7 +153,7 @@ export default function JoinRoom() {
           setError(error.message);
         }
       } else {
-          setError("An unknown error occurred while joining the room.");
+          setError(t('joinRoom.errorUnknown'));
       }
       setIsJoining(false)
     }
@@ -161,7 +163,7 @@ export default function JoinRoom() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 via-purple-400 to-indigo-300 dark:from-blue-800 dark:via-purple-700 dark:to-indigo-600 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
-        <p className="mt-4 text-white text-lg">Loading Profile...</p>
+        <p className="mt-4 text-white text-lg">{t('home.loadingProfile')}</p>
       </div>
     );
   }
@@ -176,12 +178,12 @@ export default function JoinRoom() {
       <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden border border-white/20 dark:border-gray-800/50">
         <CardHeader className="p-5 sm:p-6 border-b dark:border-gray-800">
           <CardTitle className="text-2xl font-bold tracking-tight text-center dark:text-white">
-            {isDefault ? "Join the Public Room" : "Join Game Room"}
+            {isDefault ? t('joinRoom.titlePublic') : t('joinRoom.title')}
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400 pt-1">
             {isDefault 
-              ? "Jump into the always-available public game!" 
-              : "Enter the room code and your name to join."} 
+              ? t('joinRoom.descriptionPublic')
+              : t('joinRoom.description')} 
           </CardDescription>
         </CardHeader>
         
@@ -197,11 +199,11 @@ export default function JoinRoom() {
                 <div className="space-y-2">
                   <Label htmlFor="roomId" className="flex items-center gap-1.5 text-gray-700 dark:text-gray-200">
                      <KeyRound className="h-4 w-4" />
-                     Room Code
+                     {t('joinRoom.roomCode')}
                   </Label>
                   <Input
                     id="roomId"
-                    placeholder="Enter 4-letter code"
+                    placeholder={t('joinRoom.roomCodePlaceholder')}
                     value={roomId}
                     onChange={(e) => {
                       setRoomId(e.target.value.toUpperCase())
@@ -229,7 +231,7 @@ export default function JoinRoom() {
                 )}
                  <div className="flex-grow min-w-0">
                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
-                     Playing as:
+                     {t('joinRoom.playingAs')}
                    </Label>
                    <p className="text-base font-semibold text-gray-800 dark:text-white truncate">
                      {playerDisplayName}
@@ -262,7 +264,7 @@ export default function JoinRoom() {
               className={`w-full font-semibold py-3 rounded-lg transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-70 ${isDefault ? 'bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white'}`}
               disabled={isJoining || !playerDisplayName || (!isDefault && roomId.length !== 4)}
             >
-              {isJoining ? "Joining..." : (isDefault ? "Join Public Room" : "Join Room")}
+              {isJoining ? t('joinRoom.joining') : (isDefault ? t('joinRoom.joinPublicRoom') : t('joinRoom.joinRoom'))}
               {!isJoining && (isDefault ? <Globe className="ml-2 h-4 w-4" /> : <ArrowRight className="ml-2 h-4 w-4" />)}
             </Button>
              <Button 
@@ -272,7 +274,7 @@ export default function JoinRoom() {
                onClick={() => router.push('/')}
              >
                <Home className="mr-2 h-4 w-4" />
-               Back to Home
+               {t('common.backToHome')}
              </Button>
           </CardFooter>
         </form>
@@ -280,3 +282,4 @@ export default function JoinRoom() {
     </motion.div>
   )
 }
+
