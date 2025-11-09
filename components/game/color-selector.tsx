@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { X, Check, PaintBucket } from "lucide-react"
 import { useState } from "react"
+import { useTranslations } from 'next-intl'
 
 interface ColorSelectorProps {
   onSelectColor: (color: "red" | "blue" | "green" | "yellow") => void
@@ -12,11 +13,12 @@ interface ColorSelectorProps {
 }
 
 export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorSelectorProps) {
+  const t = useTranslations('game')
   const [hoveredColor, setHoveredColor] = useState<string | null>(null)
   
   const colors = [
     { 
-      name: "Red", 
+      name: t('red'), 
       value: "red", 
       bg: "bg-gradient-to-br from-red-400 to-red-600",
       hoverBg: "hover:from-red-500 hover:to-red-700",
@@ -25,7 +27,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
       textColor: "text-red-50"
     },
     { 
-      name: "Blue", 
+      name: t('blue'), 
       value: "blue", 
       bg: "bg-gradient-to-br from-blue-400 to-blue-600",
       hoverBg: "hover:from-blue-500 hover:to-blue-700",
@@ -34,7 +36,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
       textColor: "text-blue-50"
     },
     { 
-      name: "Green", 
+      name: t('green'), 
       value: "green", 
       bg: "bg-gradient-to-br from-green-400 to-green-600",
       hoverBg: "hover:from-green-500 hover:to-green-700",
@@ -43,7 +45,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
       textColor: "text-green-50"
     },
     { 
-      name: "Yellow", 
+      name: t('yellow'), 
       value: "yellow", 
       bg: "bg-gradient-to-br from-yellow-300 to-yellow-500",
       hoverBg: "hover:from-yellow-400 hover:to-yellow-600",
@@ -67,7 +69,7 @@ export default function ColorSelector({ onSelectColor, isOpen, onClose }: ColorS
         <DialogHeader className="pb-2">
           <DialogTitle className="text-center flex items-center justify-center gap-2 text-white">
             <PaintBucket className="h-5 w-5 text-white/70" />
-            <span>Choose a Color</span>
+            <span>{t('selectColor')}</span>
           </DialogTitle>
           {onClose && (
             <Button 

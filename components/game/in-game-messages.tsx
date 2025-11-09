@@ -4,27 +4,29 @@ import { Button } from "@/components/ui/button"
 import { useGame } from "../providers/game-context"
 import { X } from "lucide-react"
 import { useState } from "react"
-
-const PRESET_MESSAGES = [
-  "Good game!",
-  "Oh no! Oh no! Oh no no no no no!",
-  "OMG!",
-  "Hahahaha!",
-  "Nice move!",
-  "Wow!",
-  "Oops!",
-  "Loser!",
-  "Let's go!",
-  "So close!"
-]
+import { useTranslations } from 'next-intl'
 
 interface InGameMessagesProps {
   onClose: () => void;
 }
 
 export default function InGameMessages({ onClose }: InGameMessagesProps) {
+  const t = useTranslations('game.presetMessages')
   const { sendGameMessage } = useGame()
   const [isSending, setIsSending] = useState(false);
+  
+  const PRESET_MESSAGES = [
+    t('goodGame'),
+    t('ohNo'),
+    t('omg'),
+    t('haha'),
+    t('niceMove'),
+    t('wow'),
+    t('oops'),
+    t('loser'),
+    t('letsGo'),
+    t('soClose')
+  ]
   
   const handleSendMessage = async (message: string) => {
     if (isSending) return;
@@ -40,7 +42,7 @@ export default function InGameMessages({ onClose }: InGameMessagesProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Quick Messages</h3>
+        <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
         <Button 
           variant="ghost" 
           size="icon" 

@@ -129,11 +129,24 @@
     "drawCard": "Draw Card",
     "passTurn": "Pass Turn",
     "messages": "Messages",
-    "selectColor": "Select Color",
+    "selectColor": "Choose a Color",
     "red": "Red",
     "blue": "Blue",
     "green": "Green",
     "yellow": "Yellow",
+    "presetMessages": {
+      "title": "Quick Messages",
+      "goodGame": "Good game!",
+      "ohNo": "Oh no! Oh no! Oh no no no no no!",
+      "omg": "OMG!",
+      "haha": "Hahahaha!",
+      "niceMove": "Nice move!",
+      "wow": "Wow!",
+      "oops": "Oops!",
+      "loser": "Loser!",
+      "letsGo": "Let's go!",
+      "soClose": "So close!"
+    },
     "cardsLeft": "cards left",
     "cardLeft": "card left",
     "itsYourTurn": "It's your turn!",
@@ -181,7 +194,13 @@
     "reverseRule": "Reverse: Change play direction.",
     "skipRule": "Skip: Next player loses turn.",
     "unoRule": "Click \"UNO!\" button when you have one card left.",
-    "firstToWin": "First to play all cards wins!"
+    "firstToWin": "First to play all cards wins!",
+    "gameLog": {
+      "noEvents": "No game events yet.",
+      "copied": "Copied!",
+      "copiedToClipboard": "Message copied to clipboard.",
+      "clickToCopy": "Click to copy message"
+    }
   },
   "gameOver": {
     "title": "Game Over!",

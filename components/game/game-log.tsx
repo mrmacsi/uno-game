@@ -6,6 +6,7 @@ import type { LogEntry, CardColor } from "@/lib/types";
 import { AvatarDisplay } from "./avatar-display";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from 'next-intl';
 
 interface GameLogProps {
   logs: LogEntry[];
@@ -62,8 +63,10 @@ const formatMessageWithCard = (message: string, cardColor?: CardColor, cardType?
 };
 
 export default function GameLog({ logs }: GameLogProps) {
+  const t = useTranslations('game.gameLog');
+  
   if (!logs || logs.length === 0) {
-    return <p className="text-center text-sm text-white/60 py-4">No game events yet.</p>;
+    return <p className="text-center text-sm text-white/60 py-4">{t('noEvents')}</p>;
   }
 
   const handleMessageClick = async (messageText: string) => {
@@ -73,8 +76,8 @@ export default function GameLog({ logs }: GameLogProps) {
     }
     try {
       await navigator.clipboard.writeText(messageText);
-      toast.success("Copied!", { 
-        description: "Message copied to clipboard.",
+      toast.success(t('copied'), { 
+        description: t('copiedToClipboard'),
         duration: 2000
       });
     } catch (err) {
@@ -123,7 +126,7 @@ export default function GameLog({ logs }: GameLogProps) {
                 colorClass
               )}
               onClick={() => handleMessageClick(fullMessageText)}
-              title="Click to copy message"
+              title={t('clickToCopy')}
             >
               {avatarIndex !== undefined ? (
                  <AvatarDisplay index={avatarIndex} size="xs" className="mt-0.5 flex-shrink-0" />

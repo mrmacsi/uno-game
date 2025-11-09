@@ -37,12 +37,14 @@ import GameLog from "./game-log";
 import { getBotPlay } from "@/lib/game-logic"; // For Auto Play
 import { executeAutomatedTurnAction } from "@/lib/auto-play-utils"; // For Auto Play
 import type { GameState } from "@/lib/types"; // For Auto Play
+import { useTranslations } from 'next-intl';
 
 interface GameControlsProps {
   onToggleMessages: () => void;
 }
 
 export default function GameControls({ onToggleMessages }: GameControlsProps) {
+  const t = useTranslations();
   const {
     state,
     currentPlayerId,
@@ -120,7 +122,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-            <p>Quick Messages</p>
+            <p>{t('game.quickMessages')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -140,7 +142,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-            <p>Scroll hand left</p>
+            <p>{t('game.scrollHandLeft')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -159,28 +161,28 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             </DrawerTrigger>
             <DrawerContent className="bg-black/90 border-white/10 text-white">
               <DrawerHeader>
-                <DrawerTitle>UNO Rules</DrawerTitle>
+                <DrawerTitle>{t('game.unoRules')}</DrawerTitle>
                 <DrawerDescription className="text-white/70">
-                  Quick reference for game rules
+                  {t('game.quickReference')}
                 </DrawerDescription>
               </DrawerHeader>
               <div className="px-4 space-y-2 text-sm">
-                <p>• Play a card matching the discard pile's color, number, or symbol.</p>
-                <p>• If you can't play, you must draw a card.</p>
-                <p>• After drawing, you can play the drawn card if it's valid.</p>
-                <p>• If you still can't play after drawing, your turn ends (click End Turn).</p>
-                <p>• Wild cards can be played on any color. You choose the next color.</p>
-                <p>• Wild Draw 4: Choose the next color. The next player draws 4 cards and loses their turn.</p>
-                <p>• Draw 2: Next player draws 2 and loses their turn.</p>
-                <p>• Reverse: Reverses the direction of play.</p>
-                <p>• Skip: Skips the next player's turn.</p>
-                <p>• When you have one card left, click the "UNO!" button before playing your second-to-last card.</p>
-                <p>• First player to empty their hand wins the round!</p>
+                <p>• {t('game.rule1')}</p>
+                <p>• {t('game.rule2')}</p>
+                <p>• {t('game.rule3')}</p>
+                <p>• {t('game.rule4')}</p>
+                <p>• {t('game.rule5')}</p>
+                <p>• {t('game.rule6')}</p>
+                <p>• {t('game.rule7')}</p>
+                <p>• {t('game.rule8')}</p>
+                <p>• {t('game.rule9')}</p>
+                <p>• {t('game.rule10')}</p>
+                <p>• {t('game.rule11')}</p>
               </div>
               <DrawerFooter>
                 <DrawerClose asChild>
                   <Button variant="outline" className="border-white/20 text-white">
-                    Close
+                    {t('game.close')}
                   </Button>
                 </DrawerClose>
               </DrawerFooter>
@@ -197,26 +199,26 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                   className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
                 >
                   <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs bg-black/95 border-white/20 text-white z-[100]">
-                <p className="font-medium">UNO Quick Rules:</p>
-                <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
-                  <li>Match the top card by color, number, or symbol.</li>
-                  <li>Click the draw pile (deck icon) if you can't play.</li>
-                  <li>Play the drawn card if possible, otherwise click 'End Turn'.</li>
-                  <li>Special Cards:</li>
-                  <ul className="list-[circle] pl-3">
-                    <li>Wild: Choose next color.</li>
-                    <li>Wild Draw 4: Choose color, next player draws 4.</li>
-                    <li>Draw 2: Next player draws 2.</li>
-                    <li>Reverse: Change play direction.</li>
-                    <li>Skip: Next player loses turn.</li>
-                  </ul>
-                  <li>Click "UNO!" button when you have one card left.</li>
-                  <li>First to play all cards wins!</li>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs bg-black/95 border-white/20 text-white z-[100]">
+              <p className="font-medium">{t('game.quickRulesTitle')}</p>
+              <ul className="text-xs mt-1 space-y-1 list-disc pl-4">
+                <li>{t('game.matchTopCard')}</li>
+                <li>{t('game.clickDrawPile')}</li>
+                <li>{t('game.playDrawnCard')}</li>
+                <li>{t('game.specialCards')}</li>
+                <ul className="list-[circle] pl-3">
+                  <li>{t('game.wildRule')}</li>
+                  <li>{t('game.wildDraw4Rule')}</li>
+                  <li>{t('game.draw2Rule')}</li>
+                  <li>{t('game.reverseRule')}</li>
+                  <li>{t('game.skipRule')}</li>
                 </ul>
-              </TooltipContent>
+                <li>{t('game.unoRule')}</li>
+                <li>{t('game.firstToWin')}</li>
+              </ul>
+            </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
@@ -231,30 +233,30 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                 onClick={decreaseCardSize}
               >
                 <ZoomOut className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-              <p>Decrease card size</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider delayDuration={100}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
-                onClick={increaseCardSize}
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-              <p>Increase card size</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+            <p>{t('game.decreaseCardSize')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-white/80 hover:bg-white/10 rounded-full h-7 w-7 border border-white/20"
+              onClick={increaseCardSize}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
+            <p>{t('game.increaseCardSize')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       </div>
 
       <Drawer>
@@ -269,9 +271,9 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
         </DrawerTrigger>
         <DrawerContent className="bg-black/90 border-white/10 text-white">
           <DrawerHeader>
-            <DrawerTitle>Game Log</DrawerTitle>
+            <DrawerTitle>{t('game.gameLog')}</DrawerTitle>
             <DrawerDescription className="text-white/70">
-              Recent game events
+              {t('game.recentEvents')}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-2">
@@ -280,7 +282,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
           <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline" className="border-white/20 text-white">
-                Close
+                {t('game.close')}
               </Button>
             </DrawerClose>
           </DrawerFooter>
@@ -306,14 +308,14 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                   : "from-yellow-300 to-yellow-500 text-yellow-900"
               }`}
               title={
-                state.direction === 1 ? "Clockwise" : "Counter-Clockwise"
+                state.direction === 1 ? t('game.clockwise') : t('game.counterClockwise')
               }
             >
               {state.direction === 1 ? "➡️" : "⬅️"}
             </span>
             <span
               className={`inline-block px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r ${colorStyles} shadow-md`}
-              title={`Current color: ${state.currentColor}`}
+              title={`${t('game.currentColor')}: ${state.currentColor}`}
             >
               {state.currentColor.toUpperCase()}
             </span>
@@ -336,11 +338,11 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                 }`}
               >
                 <Play className="h-3 w-3 mr-0.5 sm:mr-1" />
-                {isAutoPlayActive ? "Stop Auto" : "Auto"}
+                {isAutoPlayActive ? t('game.stopAuto') : t('game.auto')}
               </Button>
             </TooltipTrigger>
             <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-              <p>{isAutoPlayActive ? "Disable auto play" : "Let the AI play for you"}</p>
+              <p>{isAutoPlayActive ? t('game.disableAutoPlay') : t('game.letAiPlay')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -354,7 +356,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             }`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
-            UNO!
+            {t('game.uno')}
           </Button>
         )}
 
@@ -367,7 +369,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             }`}
           >
             <Hand className="h-3 w-3 mr-0.5 sm:mr-1" />
-            UNO!
+            {t('game.uno')}
           </Button>
         )}
 
@@ -386,11 +388,11 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
                 disabled={!canDraw}
               >
                 <ArrowDown className="w-4 h-4 mr-1.5" />
-                Draw
+                {t('game.draw')}
               </Button>
             </TooltipTrigger>
             <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-              <p>{canDraw ? "Draw a card" : "Cannot draw now"}</p>
+              <p>{canDraw ? t('game.drawCard') : t('game.cannotDrawNow')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -402,7 +404,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold shadow px-2 py-1 h-7 text-[10px] sm:text-xs animate-pulse"
           >
             <ArrowDown className="h-3 w-3 mr-0.5 sm:mr-1" />
-            {isMobile ? "End" : "End Turn"}
+            {isMobile ? t('game.end') : t('game.endTurn')}
           </Button>
         )}
       </div>
@@ -422,7 +424,7 @@ export default function GameControls({ onToggleMessages }: GameControlsProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent className="bg-black/95 border-white/20 text-white z-[100]">
-            <p>Scroll hand right</p>
+            <p>{t('game.scrollHandRight')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

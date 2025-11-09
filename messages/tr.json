@@ -134,6 +134,19 @@
     "blue": "Mavi",
     "green": "Yeşil",
     "yellow": "Sarı",
+    "presetMessages": {
+      "title": "Hızlı Mesajlar",
+      "goodGame": "İyi oyun!",
+      "ohNo": "Olmadı! Olmadı! Olmadı olmadı olmadı!",
+      "omg": "Aman Tanrım!",
+      "haha": "Hahahaha!",
+      "niceMove": "Güzel hamle!",
+      "wow": "Vay be!",
+      "oops": "Hoppala!",
+      "loser": "Kaybeden!",
+      "letsGo": "Hadi gidelim!",
+      "soClose": "Çok yakındı!"
+    },
     "cardsLeft": "kart kaldı",
     "cardLeft": "kart kaldı",
     "itsYourTurn": "Senin sıran!",
@@ -181,7 +194,13 @@
     "reverseRule": "Ters: Oyun yönünü değiştir.",
     "skipRule": "Pas: Sonraki oyuncu sırasını kaybeder.",
     "unoRule": "Bir kartınız kaldığında \"UNO!\" düğmesine tıklayın.",
-    "firstToWin": "Tüm kartları ilk oynayan kazanır!"
+    "firstToWin": "Tüm kartları ilk oynayan kazanır!",
+    "gameLog": {
+      "noEvents": "Henüz oyun olayı yok.",
+      "copied": "Kopyalandı!",
+      "copiedToClipboard": "Mesaj panoya kopyalandı.",
+      "clickToCopy": "Mesajı kopyalamak için tıklayın"
+    }
   },
   "gameOver": {
     "title": "Oyun Bitti!",
