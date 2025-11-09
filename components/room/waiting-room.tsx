@@ -15,8 +15,10 @@ import { addBotToRoom, removeBotFromRoom } from "@/lib/room-actions"
 import { AvatarDisplay } from "@/components/game/avatar-display"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { useTranslations } from 'next-intl'
 
 export default function WaitingRoom() {
+  const t = useTranslations()
   const {
     state,
     refreshGameState,
@@ -45,26 +47,26 @@ export default function WaitingRoom() {
     if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(state.roomId)
         .then(() => {
-          toast.success("Room code copied!", {
-            description: "Share this with your friends to join the game.",
+          toast.success(t('waitingRoom.roomCodeCopied'), {
+            description: t('waitingRoom.shareWithFriends'),
           })
         })
         .catch(() => {
-          toast.error("Clipboard error", {
-            description: "Could not copy to clipboard. Please copy manually.",
+          toast.error(t('waitingRoom.clipboardError'), {
+            description: t('waitingRoom.cannotCopy'),
           })
         })
     } else {
-      toast.error("Clipboard not supported", {
-        description: "Clipboard is not supported in this browser. Please copy manually.",
+      toast.error(t('waitingRoom.clipboardError'), {
+        description: t('waitingRoom.clipboardNotSupported'),
       })
     }
   }
 
   const handleAddBot = async () => {
     if (!canAddBot) {
-      toast.error("Cannot add bot", {
-        description: state.players.length >= 4 ? "Room is full." : "Only the host can add bots in the waiting room."
+      toast.error(t('waitingRoom.cannotAddBot'), {
+        description: state.players.length >= 4 ? t('waitingRoom.roomIsFull') : t('waitingRoom.onlyHostCanAddBots')
       });
       return;
     }
@@ -72,13 +74,13 @@ export default function WaitingRoom() {
     try {
       const result = await addBotToRoom(state.roomId);
       if (result && 'error' in result) {
-        toast.error("Failed to add bot", { description: result.error });
+        toast.error(t('waitingRoom.failedToAddBot'), { description: result.error });
       } else {
-        toast.success("Bot added to room!")
+        toast.success(t('waitingRoom.botAdded'))
       }
     } catch (err: unknown) {
       console.error("Failed to add bot:", err);
-      toast.error("Failed to add bot", { description: "An unexpected error occurred." });
+      toast.error(t('waitingRoom.failedToAddBot'), { description: t('error.unexpectedError') });
     } finally {
       setIsAddingBot(false);
     }
@@ -86,20 +88,20 @@ export default function WaitingRoom() {
 
   const handleRemoveBot = async (botId: string) => {
     if (!isHost) {
-      toast.error("Only the host can remove bots.");
+      toast.error(t('waitingRoom.onlyHostCanRemoveBots'));
       return;
     }
     setIsRemovingBot(botId);
     try {
       const result = await removeBotFromRoom(state.roomId, botId);
       if (result && 'error' in result) {
-        toast.error("Failed to remove bot", { description: result.error });
+        toast.error(t('waitingRoom.failedToRemoveBot'), { description: result.error });
       } else {
-        toast.success("Bot removed from room!");
+        toast.success(t('waitingRoom.botRemoved'));
       }
     } catch (err: unknown) {
       console.error("Failed to remove bot:", err);
-      toast.error("Failed to remove bot", { description: "An unexpected error occurred." });
+      toast.error(t('waitingRoom.failedToRemoveBot'), { description: t('error.unexpectedError') });
     } finally {
       setIsRemovingBot(null);
     }
@@ -108,10 +110,10 @@ export default function WaitingRoom() {
   const handleStartGame = async () => {
     if (!canStartGame) {
       console.log("Cannot start game:", { isHost, playerCount: state.players.length })
-      toast.error("Cannot start game", {
+      toast.error(t('waitingRoom.cannotStartGame'), {
         description: isHost 
-          ? "Need at least 2 players to start" 
-          : "Only the host can start the game",
+          ? t('waitingRoom.needMorePlayers')
+          : t('waitingRoom.onlyHostCanStartGame'),
       })
       return
     }
@@ -121,11 +123,11 @@ export default function WaitingRoom() {
       await startGame(state.roomId, currentPlayerId!)
     } catch (err: unknown) {
       console.error("Failed to start game:", err)
-      let description = "Please try again."
+      let description = t('waitingRoom.tryAgain')
       if (err instanceof Error && err.message === "Game has already started") {
-        description = "Game has already started. Please refresh or rejoin the room."
+        description = t('waitingRoom.gameAlreadyStarted')
       }
-      toast.error("Failed to start game", {
+      toast.error(t('waitingRoom.failedToStartGame'), {
         description,
       })
     } finally {
@@ -137,8 +139,8 @@ export default function WaitingRoom() {
     setIsRefreshing(true)
     try {
       await refreshGameState()
-      toast.success("Game refreshed", {
-        description: "Latest game state loaded.",
+      toast.success(t('waitingRoom.gameRefreshed'), {
+        description: t('waitingRoom.latestStateLoaded'),
       })
     } catch (error) {
       console.error("Failed to refresh game:", error)
@@ -173,10 +175,10 @@ export default function WaitingRoom() {
             </Button>
             <CardTitle className="text-red-600 flex items-center gap-2 text-lg sm:text-xl">
               <AlertCircle className="w-5 h-5" />
-              <span>Connection Issue</span>
+              <span>{t('waitingRoom.connectionIssue')}</span>
             </CardTitle>
             <CardDescription className="text-red-600/80 text-sm sm:text-base">
-              Your player ID could not be found. Please try rejoining the room.
+              {t('waitingRoom.playerIdNotFound')}
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-3 p-4 sm:p-6 bg-gradient-to-br from-red-50/50 to-white">
@@ -184,14 +186,14 @@ export default function WaitingRoom() {
               className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md rounded-xl"
               onClick={() => router.push(`/join-room?roomId=${state.roomId}`)}
             >
-              Rejoin Room
+              {t('waitingRoom.rejoinRoom')}
             </Button>
             <Button 
               variant="outline"
               className="w-full border-gray-200 hover:bg-gray-50 rounded-xl" 
               onClick={goToHome}
             >
-              Back to Home
+              {t('common.backToHome')}
             </Button>
           </CardFooter>
         </Card>
@@ -229,13 +231,13 @@ export default function WaitingRoom() {
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 flex items-center justify-center shadow-lg mb-2">
               <Users className="h-6 w-6 text-white/90" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">Waiting Room</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">{t('waitingRoom.title')}</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-              Welcome, <span className="font-semibold text-gray-700 dark:text-gray-300">{currentPlayer?.name || "Player"}</span>!
+              {t('waitingRoom.welcome', { name: currentPlayer?.name || "Player" })}
               {isHost && (
                 <div className="mt-1.5 inline-flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800/60 px-2 py-0.5 rounded-full text-yellow-700 dark:text-yellow-300 text-xs font-medium">
                   <Crown className="h-3 w-3" />
-                  <span>You are the host</span>
+                  <span>{t('waitingRoom.youAreHost')}</span>
                 </div>
               )}
             </CardDescription>
@@ -246,7 +248,7 @@ export default function WaitingRoom() {
           <div className="space-y-4 flex-grow flex flex-col">
             <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700/50 shadow-sm">
               <div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Room Code</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">{t('waitingRoom.roomCode')}</p>
                 <p className="text-lg font-mono font-bold text-gray-800 dark:text-gray-100">{state.roomId}</p>
               </div>
               <Button 
@@ -263,7 +265,7 @@ export default function WaitingRoom() {
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                  <span>Players</span>
+                  <span>{t('waitingRoom.players')}</span>
                 </h3>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
                   {state.players.length}/4
@@ -317,9 +319,9 @@ export default function WaitingRoom() {
                           className="font-medium text-xs text-gray-800 dark:text-gray-100 truncate w-full" 
                           title={player.name}
                         >
-                          {player.name} {player.isBot ? "(Bot)" : ""}
+                          {player.name} {player.isBot ? t('waitingRoom.bot') : ""}
                           {player.id === currentPlayerId && !player.isBot && (
-                            <span className="block text-[9px] text-indigo-600 dark:text-indigo-400 font-normal">(You)</span>
+                            <span className="block text-[9px] text-indigo-600 dark:text-indigo-400 font-normal">{t('waitingRoom.you')}</span>
                           )}
                         </span>
                       </motion.div>
@@ -331,11 +333,11 @@ export default function WaitingRoom() {
             
             {isHost ? (
               <div className={`p-2.5 rounded-lg border text-xs ${canStartGame ? "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800/60 text-green-700 dark:text-green-200" : "bg-yellow-50 dark:bg-yellow-900/40 border-yellow-200 dark:border-yellow-800/60 text-yellow-700 dark:text-yellow-200"}`}> 
-                <p>{canStartGame ? "Ready to start!" : (state.players.length < 2 ? "Need at least 2 players." : "Add more players or start.")}</p>
+                <p>{canStartGame ? t('waitingRoom.readyToStart') : (state.players.length < 2 ? t('waitingRoom.needMorePlayers') : t('waitingRoom.addMoreOrStart'))}</p>
               </div>
             ) : (
               <div className="bg-gray-100 dark:bg-gray-800/60 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 text-xs text-center">
-                <p>Waiting for host...</p>
+                <p>{t('waitingRoom.waitingForHost')}</p>
               </div>
             )}
           </div>
@@ -351,9 +353,9 @@ export default function WaitingRoom() {
                     disabled={isAddingBot || state.players.length >=4}
                 >
                     {isAddingBot ? (
-                        <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Adding Bot...</>
+                        <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {t('waitingRoom.addingBot')}</>
                     ) : (
-                        <><UserPlus className="mr-1.5 h-4 w-4" /> Add Bot</>
+                        <><UserPlus className="mr-1.5 h-4 w-4" /> {t('waitingRoom.addBot')}</>
                     )}
                 </Button>
             )}
@@ -367,9 +369,9 @@ export default function WaitingRoom() {
               onClick={handleStartGame}
             >
               {isStarting ? ( 
-                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Starting...</>
+                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {t('waitingRoom.starting')}</>
               ) : ( 
-                <><Play className="mr-1.5 h-4 w-4 fill-current" /> Start Game</>
+                <><Play className="mr-1.5 h-4 w-4 fill-current" /> {t('waitingRoom.startGame')}</>
               )}
             </Button>
             {isHost && (
@@ -383,10 +385,10 @@ export default function WaitingRoom() {
           </div>
           <p className="text-[10px] text-center text-gray-500 dark:text-gray-400 pt-1">
             {!isHost 
-              ? "Only the host can start or add bots."
+              ? t('waitingRoom.onlyHostCanStart')
               : (state.players.length < 2 
-                ? "Need 2+ players to start. You can add bots if the room isn't full."
-                : (state.players.length < 4 ? "Click Start Game or Add Bot." : "Click Start Game when ready."))}
+                ? t('waitingRoom.needTwoPlayers')
+                : (state.players.length < 4 ? t('waitingRoom.clickStartOrAddBot') : t('waitingRoom.clickStartWhenReady')))}
           </p>
         </CardFooter>
       </Card>
