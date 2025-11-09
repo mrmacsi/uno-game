@@ -124,7 +124,7 @@ export function GameProvider({
       setError(null);
     } catch (err) {
       console.error("[GameProvider] Error updating game state:", err);
-      setError(err instanceof Error ? err.message : "Error updating game state");
+      setError(err instanceof Error ? err.message : t('game.errorUpdatingGameState'));
     }
   }, []);
 
@@ -136,10 +136,10 @@ export function GameProvider({
       if (gameState) {
         updateGameState(gameState);
       } else {
-        setError("Room not found or invalid state");
+        setError(t('game.roomNotFoundInvalid'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refresh game state");
+      setError(err instanceof Error ? err.message : t('game.failedToRefreshGameState'));
     } finally {
       setIsLoading(false);
     }
@@ -289,12 +289,12 @@ export function GameProvider({
   const handleDeclareUno = async () => {
     if (!roomId || !currentPlayerId) return setError("Missing Room/Player ID");
     if (state.currentPlayer !== currentPlayerId) {
-      toast("Not Your Turn", { description: "You can only declare UNO on your turn." });
+      toast(t('game.notYourTurn'), { description: t('game.declareUnoYourTurn') });
       return;
     }
     const player = state.players.find(p => p.id === currentPlayerId);
     if (!player || player.cards.length !== 2) {
-      toast("Invalid Action", { description: "You can only declare UNO when you have exactly two cards." });
+      toast(t('game.invalidAction'), { description: t('game.declareUnoTwoCards') });
       return;
     }
     dispatch({
@@ -421,10 +421,10 @@ export function GameProvider({
     setError(null);
     try {
       await resetRoom(roomId);
-      toast("Room is resetting...", { duration: 2000 });
+      toast(t('game.roomIsResetting'), { duration: 2000 });
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to reset room");
-      toast.error("Action Failed", { description: "Could not reset the room. Please try again." });
+      setError(error instanceof Error ? error.message : t('game.failedToResetRoom'));
+      toast.error(t('game.actionFailed'), { description: t('game.failedToResetRoom') });
     } finally {
       setIsResetting(false);
     }
@@ -447,8 +447,8 @@ export function GameProvider({
         }, 500);
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to start rematch");
-      toast.error("Action Failed", { description: "Could not start rematch. Please try again." });
+      setError(error instanceof Error ? error.message : t('game.failedToStartRematch'));
+      toast.error(t('game.actionFailed'), { description: t('game.failedToStartRematch') });
     } finally {
       setIsLoading(false);
     }
