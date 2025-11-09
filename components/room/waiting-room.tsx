@@ -212,7 +212,7 @@ export default function WaitingRoom() {
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8"
-              title="Refresh Room"
+              title={t('waitingRoom.refreshRoom')}
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -221,7 +221,7 @@ export default function WaitingRoom() {
               size="icon"
               onClick={goToHome}
               className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full h-8 w-8"
-              title="Back to Home"
+              title={t('common.backToHome')}
             >
               <Home className="h-4 w-4" />
             </Button>
@@ -294,7 +294,7 @@ export default function WaitingRoom() {
                             className="absolute top-1 right-1 z-20 h-6 w-6 rounded-full bg-red-500/80 text-white hover:bg-red-600/90"
                             onClick={() => handleRemoveBot(player.id)}
                             disabled={isRemovingBot === player.id}
-                            title="Remove Bot"
+                            title={t('waitingRoom.removeBot')}
                           >
                             {isRemovingBot === player.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                           </Button>

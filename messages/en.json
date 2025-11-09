@@ -170,11 +170,13 @@
     "declareUnoTwoCards": "You can only declare UNO when you have exactly two cards.",
     "failedToResetRoom": "Could not reset the room. Please try again.",
     "failedToStartRematch": "Could not start rematch. Please try again.",
+    "failedToDeclareUno": "Failed to declare UNO. Please try again.",
     "roomIsResetting": "Room is resetting...",
     "failedToResetRoom": "Failed to reset room",
     "roomNotFound": "Room not found",
     "gameAlreadyStarted": "Game has already started or ended",
     "roomFull": "Room is full",
+    "unknownError": "Unknown error",
     "presetMessages": {
       "title": "Quick Messages",
       "goodGame": "Good game!",

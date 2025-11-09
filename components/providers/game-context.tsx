@@ -313,8 +313,8 @@ export function GameProvider({
   } catch (error) {
     const errorMessage = error instanceof Error && error.message.includes("Invalid Action")
       ? error.message
-      : "Failed to declare UNO. Please try again.";
-    toast.error("Action Failed", { description: errorMessage });
+      : t('game.failedToDeclareUno');
+    toast.error(t('game.actionFailed'), { description: errorMessage });
   } finally {
     setIsLoading(false);
   }
@@ -343,7 +343,7 @@ export function GameProvider({
       await playCard(roomId, currentPlayerId, cardToPlay, color);
       setPendingWildCardId(null);
     } catch (error) {
-      toast.error("Action Failed", { description: "Could not play the wild card. Please try again." });
+      toast.error(t('game.actionFailed'), { description: t('game.cannotPlayWild') });
       await refreshGameState();
     } finally {
       setIsLoading(false);
